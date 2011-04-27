@@ -45,12 +45,17 @@ function [IC MODEL params] = est_selModelOrder(EEG,varargin)
 %                           .minic      - the minimum of ic across model
 %                                         orders
 %                           .popt       - the model order that minimizes ic
+%                           .pelbow     - the model order corresponding to
+%                                         the 'elbow' of the information
+%                                         criterion (heuristically computed
+%                                         as explained in hlp_findElbow())
+%                           .elbowic    - the ic value at the 'elbow'
 %                           .winStartTimes - the start times of the
 %                                            selected windows
 %   MODEL               The VAR model fit to pmax.
 %   params              The parameters used for model fitting/selection
 %
-% See Also: pop_est_selModelOrder(), pop_est_fitMVAR(), 
+% See Also: pop_est_selModelOrder(), pop_est_fitMVAR(), hlp_findElbow()
 %
 % References:
 % 
