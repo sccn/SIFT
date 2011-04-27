@@ -110,7 +110,7 @@ end
 switch MoveFoc
  case 1
     %--- move focus to subplot # ---
-    H    = get(gcf,'Children');  %findobj(get(gcf,'Children'),'tag','subplot1');
+    H    = findobj(get(gcf,'Children'),'Type','axes');
     Ptot = length(H);
     if (length(M)==1),
        M    = Ptot - M + 1; 

@@ -356,7 +356,6 @@ g = arg_define([0 2],varargin, ...
     arg({'baseline','Baseline'},[],[],'Time range of baseline [Min Max] (sec). Will subtract baseline from each point. Leave blank for no baseline.','shape','row','type','denserealdouble','cat','DataProcessing'), ...
     arg_nogui({'fighandles','FigureHandles'},[],[],'Vector of figure handles to superimpose new graph onto. New figures and grid will *not* be created. Old grid will be used and new subplots overlaid'), ...
     arg({'smooth','Smooth2D'},false,[],'Smooth time-freq image. This will apply nearest-neighbor interpolation.','cat','DataProcessing'), ...
-    arg_sub({'subplotargs','SubplotExpansionProperties'},[],@vis_TimeFreqCell,'Additional arguments for subplot callback function.','cat','SubplotExpansion'), ...
     arg_nogui({'xord','XTickLabels'},[],[],'Labels for X-Tickmarks. Must equal number of time windows','cat','DisplayProperties'), ...
     arg_nogui({'yord','YTickLabels'},[],[],'Labels for Y-Tickmarks. Must equal number of time windows','cat','DisplayProperties'), ...
     arg_norep({'channels','VariablesToKeep'},[],[],'List of indices of channels to keep. Can be [vector], a subset of [1:nbchan]'), ...
@@ -384,6 +383,7 @@ g = arg_define([0 2],varargin, ...
     arg_norep({'report_args'},[],[],'Need this to allow recursive calls...') ...
     );
 
+%     arg_sub({'subplotargs','SubplotExpansionProperties'},[],@vis_TimeFreqCell,'Additional arguments for subplot callback function.','cat','SubplotExpansion'), ...
 
     
 % Commit ALLEEG and Conn variables to workspace   
@@ -457,40 +457,6 @@ end
     
 
 
-    
-% setup defaults
-% Recursively plot additional connectivity methods
-% --------------------------------------------------
-
-% if length(g.fighandles)>1 && length(g.connmethods) == 1;
-%     g.connmethods = g.connmethods(ones(1,length(g.fighandles)));
-% end
-% if ~isempty(g.fighandles) && (length(g.fighandles) ~= length(g.connmethods))
-%     error('the length of ''fighandles'' must equal the length of ''connmethods''');
-% end
-% 
-% figureHandles = [];
-% 
-% % if there's more than one connectivity method, render TF grids for each of
-% % them separately
-% if length(g.connmethods)>1
-%     gtmp=g;
-%     gtmp.connmethods = g.connmethods(2:end);
-%     if length(g.fighandles)>1
-%         gtmp.fighandles = g.fighandles(2:end);
-%     else
-%         gtmp.fighandles = g.fighandles;
-%     end
-%     
-%     figureHandles = [figureHandles vis_TimeFreqGrid(ALLEEG,Conn,gtmp)];
-%     
-%     g.connmethods = g.connmethods(1);
-%     if ~isempty(g.fighandles)
-%         g.fighandles = g.fighandles(1); 
-%     end
-% end
-
-
 if isempty(g.connmethods)
     % if no connectivity methods specified, select all of them
     g.connmethods   = hlp_getConnMethodNames(Conn(1));          end
@@ -501,9 +467,6 @@ if isempty(g.timeRange)
 
 
 CEstimator = g.connmethods;
-% --------------------------------------------------
-
-
 
 
 % do some error checking
@@ -1081,7 +1044,6 @@ for ch_i=1:nch
 %             subplotargs = hlp_varargin2struct({g.subplotargs subargs});
            
             set(gca,'userdata',subargs)
-%             set([gca h],'buttondownfcn','tmp12871209871234 = get(gca,''UserData''); hlp_struct2varargin(); vis_TimeFreqCell(tmp12871209871234{:}); clear tmp12871209871234;');
             set([gca h],'buttondownfcn','vis_TimeFreqCell(get(gca,''UserData''));');
 %             set([gca h],'tooltip',sprintf('%s --> %s. Click to expand',g.nodelabels{j},g.nodelabels{i}));
             
