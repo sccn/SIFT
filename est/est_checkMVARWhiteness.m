@@ -240,5 +240,8 @@ for t=1:numWins
                 
 end
 
+stats.winStartIdx = g.winStartIdx;
+stats.alpha = g.alpha;
+
 if g.verb, close(h); end
 

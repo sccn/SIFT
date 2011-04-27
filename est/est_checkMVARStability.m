@@ -1,4 +1,4 @@
-function [stability lambda] = est_checkMVARStability(EEG,MODEL,typeproc,varargin)
+function [stats] = est_checkMVARStability(EEG,MODEL,typeproc,varargin)
 %
 % Test the stability of a fitted VAR model. See [1-2] for mathematical
 % details on testing VAR stability. A stable VAR process is also a
@@ -17,12 +17,13 @@ function [stability lambda] = est_checkMVARStability(EEG,MODEL,typeproc,varargin
 %
 % Outputs:
 %
-%   stability:  [numwindows x 1] vector of results of stability tests. 1
-%               indicates stable VAR process for that window, 0 indicates
-%               an unstable VAR process.
-%
-%   lambda:     [numwindows x nchs*morder] matrix of eigenvalues of VAR
-%               process. All eigenvalues should be < 1 for stable VAR process
+%   stats          
+%       .stability:  [numwindows x 1] vector of results of stability tests. 1
+%                    indicates stable VAR process for that window, 0 indicates
+%                    an unstable VAR process.
+% 
+%       .lambda:     [numwindows x nchs*morder] matrix of eigenvalues of VAR
+%                    process. All eigenvalues should be < 1 for stable VAR process
 %
 %
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
@@ -76,19 +77,21 @@ end
 if g.verb, h=waitbar(0,sprintf('checking stability...\nCondition: %s',EEG.condition)); end
 
 numWins = length(g.winStartIdx);
-stability = zeros(1,numWins); 
+stats.stability = zeros(1,numWins); 
 [nchs Mp] = size(MODEL.AR{1});
-lambda = zeros(numWins,Mp);
+stats.lambda = zeros(numWins,Mp);
 %lambda = [];
 for t=1:numWins
     % rewrite VAR[p] process as VAR[1]
     A = [MODEL.AR{t} ; [eye(nchs*g.morder-nchs,nchs*g.morder-nchs) zeros(nchs*g.morder-nchs,nchs)]];
-    lambda(t,:) = log(abs(eig(A)));
-    stability(t) = all(lambda(t,:)<0);
+    stats.lambda(t,:) = log(abs(eig(A)));
+    stats.stability(t) = all(stats.lambda(t,:)<0);
     if g.verb, 
         waitbar(t/numWins,h,sprintf('checking stability (%d/%d)...\nCondition: %s',t,numWins,EEG.condition));
     end
 end
+
+stats.winStartIdx = g.winStartIdx;
 
 if g.verb, close(h); end
 

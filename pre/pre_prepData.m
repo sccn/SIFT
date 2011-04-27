@@ -154,6 +154,15 @@ ALLEEG = arg_extract(varargin,'ALLEEG',1);
 MyComponentNames = [];
 if ~isempty(ALLEEG)
     
+    for cond=1:length(ALLEEG)
+        if ~isfield(ALLEEG(cond),'CAT') || ~isfield(ALLEEG(cond).CAT,'curComps')
+            ALLEEG(cond).CAT.curComps = 1:size(ALLEEG(cond).icaweights,1);
+        end
+        if  ~isfield(ALLEEG(cond),'CAT') || ~isfield(ALLEEG(cond).CAT,'MODEL')
+            ALLEEG(cond).CAT.MODEL = [];
+        end
+    end
+    
     if isfield(ALLEEG(1).CAT,'curComponentNames') && ~isempty(ALLEEG(1).CAT.curComponentNames)
         MyComponentNames = ALLEEG(1).CAT.curComponentNames;
     else
@@ -192,6 +201,16 @@ clear data;
 ALLEEG = eeg_checkset(ALLEEG);
 
 for cond=1:length(ALLEEG)
+    if ~isfield(ALLEEG(cond),'CAT') || ~isfield(ALLEEG(cond).CAT,'curComps')
+        ALLEEG(cond).CAT.curComps = 1:size(ALLEEG(cond).icaweights,1);
+    end
+    if  ~isfield(ALLEEG(cond),'CAT') || ~isfield(ALLEEG(cond).CAT,'MODEL')
+        ALLEEG(cond).CAT.MODEL = [];
+    end
+end
+    
+
+for cond=1:length(ALLEEG)
 
     g.EEG = ALLEEG(cond);
     
@@ -222,7 +241,7 @@ for cond=1:length(ALLEEG)
     
     % select components
     g.EEG.CAT.srcdata = g.EEG.icaact;
-    g.EEG = pre_selectcomps(g.EEG,g.selectComponents);
+    g.EEG = pre_selectcomps('EEG',g.EEG,g.selectComponents);
     g.EEG.CAT.nbchan = size(g.EEG.CAT.srcdata,1);
     
     % now also process the original dataset without normalization
@@ -277,7 +296,7 @@ function g = hlp_preprocess(g)
 
         % detrend or center data
         if g.detrend.arg_selection
-            g.EEG = pre_detrend(g.EEG,g.detrend);
+            g.EEG = pre_detrend('EEG',g.EEG,g.detrend);
         end
 
 %         filter data
@@ -323,7 +342,7 @@ function g = hlp_preprocess(g)
         
         % difference
         if g.diff.arg_selection
-            g.EEG = pre_diffData(g.EEG,g.diff);
+            g.EEG = pre_diffData('EEG',g.EEG,g.diff);
         end
 
         % remove bad segments of data
@@ -341,6 +360,6 @@ function g = hlp_preprocess(g)
         
         % normalize ica activations
         if g.normalize.arg_selection
-            g.EEG.icaact = pre_normData(g.EEG.icaact,g.normalize);
+            g.EEG.icaact = pre_normData('data',g.EEG.icaact,g.normalize);
         end
         

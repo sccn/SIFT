@@ -74,7 +74,7 @@ mvarAlgorithms = {'vieira-morf'};
 % names of algorithms in exact order they appear in mvarAlgorithms
 mvarAlgsFullNames = {'Vieira-Morf'};
 
-if exist('arfit')==2
+if exist('arfit')==2 || exist('arfit')==7
     mvarAlgorithms    = [mvarAlgorithms 'arfit'];
     mvarAlgsFullNames = [mvarAlgsFullNames 'ARFIT'];
 end
@@ -159,8 +159,8 @@ if ischar(ALLEEG)
                 end
         end
         
-        % all-clear, continue to model order selection
-        pop_est_selModelOrder(ALLEEG,0,g);
+        % all-clear, continue to model order selection with GUI
+        pop_est_selModelOrder(ALLEEG,1,g);
     end;
     
     return;

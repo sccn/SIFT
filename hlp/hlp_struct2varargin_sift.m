@@ -1,15 +1,14 @@
-function var = hlp_mergeVarargin(varargin)
-% var = hlp_mergeVarargin(varargin)
-% Checks if first argument in varargin is a struct and, if so, converts to
-% arglist format (cell array of name-value pairs) and appends any remaining
-% varargin arguments. Use in combination with finputcheck() to convert
-% mixed-type varargin to structure format
+
+function v = hlp_struct2varargin(g)
+% Converts a structure to a cell array of ('name',value) pairs.
 %
-% This function will be deprecated in SIFT 1.0-beta
+% INPUT:
+%       g - a structure
 %
-% Example:
-%   var = hlp_mergeVarargin(varargin);
-%   g = finputcheck(var, hlp_getDefaultArglist(myPrefix), myFuncName,'ignore');
+% OUTPUT:
+%       v - a cell array of ('fieldname', value) pairs for each field in the
+%       original struct
+% 
 % 
 % Author: Tim Mullen 2010, SCCN/INC, UCSD. 
 % Email:  tim@sccn.ucsd.edu
@@ -29,19 +28,9 @@ function var = hlp_mergeVarargin(varargin)
 % You should have received a copy of the GNU General Public License
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+names = fieldnames(g);
+vals = struct2cell(g);
+v = cell(1,2*length(names));
+v(1:2:end) = names;
+v(2:2:end) = vals;
 
-if isempty(varargin)
-    var = {};
-    return;
-end
-
-if isstruct(varargin{1})
-    var = hlp_struct2varargin(varargin{1});
-    varargin = varargin(2:end);
-else
-    var = {};
-end
-
-if length(varargin)>1
-    var = [var,varargin];
-end

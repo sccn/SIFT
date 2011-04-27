@@ -25,6 +25,10 @@ function [IC MODEL params] = est_selModelOrder(EEG,varargin)
 % 'epochTimeLims',     time range to analyze (sec) where 0 = start of the epoch
 % 'prctWinToSample',   percent of time windows to randomly select  
 % 'verb',              verbosity level (0=no output, 1=text, 2=gui)
+% 'normalize'          cell array containing one or more of
+%                      {'temporal', 'ensemble'}. This performs ensemble
+%                      normalization or temporal normalization (or both) 
+%                      within each window
 %
 % Output:
 %
@@ -84,6 +88,10 @@ g = finputcheck(var, [hlp_getDefaultArglist('est'); ...
 if ischar(g), error(g); end
 if nargout > 2, params = g; end
 
+if length(g.morder)<2
+    error('''morder'' should contain a minimum and maximum model order');
+end
+
 pmin        = g.morder(1);
 pmax        = g.morder(2);
 npnts       = EEG.trials*floor(g.winlen*EEG.srate);
@@ -95,7 +103,7 @@ end
 
 % if params.verb, h=waitbar(0,'selecting model order...'); end
 % data = permute(EEG.data,[2 1 3]);
-if ismember(g.algorithm,{'vierra-morf-cpp','arfit'})
+if ismember(g.algorithm,{'vieira-morf-cpp','arfit'})
     % for these methods, we have to fit a separate MODEL for each model order
     for p=pmin:pmax
         VARtmp(p-pmin+1) = est_fitMVAR(EEG,0,g,'morder',p);
@@ -143,14 +151,25 @@ for t=1:numWins
     % Hannan-Quinn criterion
     hq(:,t) = logdp + (nbchan*nbchan*(pmin:pmax)).*2.*log(log(ne))./ne;  % TM
 
-    % get index iopt of order that minimizes the order selection 
-    % criterion specified by the variable varparams.icselector
+    
     for i=1:length(g.icselector)
+        % get index iopt of order that minimizes the order selection 
+        % criterion specified by the variable varparams.icselector
         sel = g.icselector{i};
-        [minic.(sel)(t) iopt] = eval(['min(' sel '(:,t));']);
+        ic = eval([sel '(:,t);']);
+        [minic.(sel)(t) iopt] = min(ic);
         popt.(sel)(t) = pmin + iopt-1; % estimated optimum order 
+        
+        
+        % get index iopt of order that represents the "elbow" of the order  
+        % selection criterion specified by the variable varparams.icselector
+        % An "elbow" is defined at the largest order for which the criterion
+        % is <= 90% of the minimum
+%         [elbowic.(sel)(t) iopt] = min(abs(ic(1:iopt)-0.9*(ic(1)-ic(iopt)))); % prctile(ic(1:iopt),10)
+        [elbowic.(sel)(t) iopt] = hlp_findElbow(ic);
+        pelbow.(sel)(t) = pmin + iopt-1; % estimated optimum order 
     end
-     
+   
 end
 
 % store the information criteria in output structure
@@ -159,7 +178,10 @@ for i=1:length(g.icselector)
     eval(['IC.(sel).ic = ' sel ';']);
     IC.(sel).minic = minic.(sel);
     IC.(sel).popt = popt.(sel);
+    IC.(sel).pelbow = pelbow.(sel);
+    IC.(sel).elbowic = elbowic.(sel);
 end
+
 IC.selector = g.icselector;
 IC.pmin = pmin;
 IC.pmax = pmax;

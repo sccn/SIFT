@@ -12,7 +12,7 @@ function [MODEL params] = est_fitMVAR(EEG,typeproc,varargin)
 % Optional:
 %
 % 'algorithm',         string denoting which algorithm to use for model
-%                       fitting ('vierra-morf','arfit')
+%                       fitting ('vieira-morf','arfit')
 % 'winStartIdx'        vector of sample points (start of windows) at which to estimate windowed VAR model
 % 'morder',            VAR model order
 % 'winlen',            window length (sec)
@@ -21,6 +21,10 @@ function [MODEL params] = est_fitMVAR(EEG,typeproc,varargin)
 % 'prctWinToSample',   percent of time windows to randomly select  
 % 'verb',              verbosity level (0=no output, 1=text, 2=gui)
 % 'timer'              estimate time required to fit model
+% 'normalize'          cell array containing one or more of
+%                      {'temporal', 'ensemble'}. This performs ensemble
+%                      normalization or temporal normalization (or both) 
+%                      within each window
 %
 % Output:
 %
@@ -67,7 +71,7 @@ var = hlp_mergeVarargin(varargin{:});
 g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_fitMVAR','ignore','quiet');
 if ischar(g), error(g); end
 if isempty(g.epochTimeLims), g.epochTimeLims = [0 EEG.pnts/EEG.srate]; end
-if isempty(g.morder) || length(g.morder)>2, error('invalid entry for field ''morder'''); end
+if isempty(g.morder) || length(g.morder)>1, error('invalid entry for field ''morder.'' Make sure the model order is a single integer.'); end
  % combine structs, overwriting duplicates of g with 
 %     g = catstruct(g,gvar); clear g2;
 if nargout > 1, params = g; end
@@ -86,52 +90,80 @@ end
 numWins   = length(g.winStartIdx);
 
 % initialize variables
-% th contains confidence intervals from ARFIT
+% th contains confidence intervals from ARFIT (if used)
 [AR PE RC th]  = deal(cell(1,numWins));
 
 if g.verb
     h=waitbar(0,sprintf('fitting VAR[%d] model [mode=%s]\nCondition: %s ...', ...
               g.morder, num2str(g.algorithm),EEG.condition)); 
 end
-% 
-% if ~isempty(g.normalize)
-%     % normalize data
-%     EEG.CAT.srcdata = hlp_normdata(EEG.CAT.srcdata,g.normalize);
-% end
-    
-data = permute(EEG.CAT.srcdata,[2 1 3]);  % time x chans x trials
 
+if ~isempty(g.normalize)
+    % normalize each window separately
+    if g.verb, fprintf('Normalizing each window across %s...\n',g.normalize{:}); end
+    for t=1:numWins
+        winpnts = g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1;
+        EEG.CAT.srcdata(:,winpnts,:) = pre_normData(EEG.CAT.srcdata(:,winpnts,:),'Method',g.normalize);
+    end
+end
+    
 if g.timer
     timeElapsed = nan(1,numWins);
 else
     timeElapsed = [];
 end
+
+if ~ismember(g.algorithm,{'arfit','vieira-morf-ding'})
+    EEG.CAT.srcdata = permute(EEG.CAT.srcdata,[2 1 3]);  % time x chans x trials
+end
+
 for t=1:numWins
     
     if g.timer, tic; end
     % extract window and pad each trial with nans up to model order+2
     % Fit MODEL model up to g.morder
     winpnts = g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1;
-    gdata = squeeze(data(winpnts,:,:));
-    gdata = nanpad(gdata,g.morder);
+    
     
     switch lower(g.algorithm)
         case 'vieira-morf-pll'
-            [AR{t},RC{t},PE{t}] = mvar_pll(gdouble(gdata), g.morder, 2);
-        case 'vieira-morf-cpp'
-            [AR{t},PE{t}] = armorf(reshape(EEG.CAT.srcdata(:,winpnts,:), ...
-                            [EEG.CAT.nbchan,EEG.trials*winLenPnts]),...
-                            EEG.trials,winLenPnts,g.morder);
-            AR{t} = -AR{t}; % convert to default mvar format
+            if exist('mvar_pll','file')
+                data = squeeze(EEG.CAT.srcdata(winpnts,:,:));
+                data = nanpad(data,g.morder);
+                [AR{t},RC{t},PE{t}] = mvar_pll(gdouble(data), g.morder, 2);
+            else
+                error('mvar_pll.m not found! mvar_pll option not available!');
+            end
+        case 'vieira-morf-ding'
+            if exist('armorf','file')
+                [AR{t},PE{t}] = armorf(reshape(EEG.CAT.srcdata(:,winpnts,:), ...
+                                [EEG.CAT.nbchan,EEG.trials*winLenPnts]),...
+                                EEG.trials,winLenPnts,g.morder);
+                AR{t} = -AR{t}; % convert to default mvar format
+            else
+                error('armorf.m not found! vieira-morf-ding option unavailable');
+            end
         case 'vieira-morf'
-            [AR{t},RC{t},PE{t}] = mvar_vierramorf(gdata, g.morder);
+            data = squeeze(EEG.CAT.srcdata(winpnts,:,:));
+            data = nanpad(data,g.morder);
+            [AR{t},RC{t},PE{t}] = mvar_vieiramorf(data, g.morder);
         case 'arfit'
-            % arfit
+            if exist('armorf','file')
                 RC{t} = [];
                 [w, AR{t}, PE{t} sbc, fpe, th{t}] = arfit(permute(EEG.CAT.srcdata(:,winpnts,:),[2 1 3]), g.morder, g.morder,'zero');
+            else
+                error('arfit.m not found! ARFIT option unavailable');
+            end
         otherwise
-            % one of the other modes...
-                [AR{t}, RC{t}, PE{t}] = mvar(gdata,g.morder,str2double(g.algorithm));
+            if exist('mvar','function')
+                % one of the other mvar modes...
+                data = squeeze(EEG.CAT.srcdata(winpnts,:,:));
+                data = nanpad(data,g.morder);
+                [AR{t}, RC{t}, PE{t}] = mvar(data,g.morder,str2double(g.algorithm));
+            else
+                help 'est_fitMVAR';
+                error('unknown algorithm (%s)',g.algorithm);
+            end
     end
 
     if g.verb
@@ -152,6 +184,7 @@ end
 
 if g.verb, close(h); end
 
+% construct MODEL object
 MODEL.AR = AR;
 MODEL.PE = PE;
 MODEL.RC = RC;
@@ -165,4 +198,4 @@ MODEL.winlen = g.winlen;
 MODEL.algorithm = g.algorithm;
 MODEL.modelclass = 'mvar';
 MODEL.timeelapsed = timeElapsed;
-% MODEL.normalize = g.normalize;
+MODEL.normalize = g.normalize;

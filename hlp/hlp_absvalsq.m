@@ -1,4 +1,4 @@
-function Conn = hlp_absvalsq(Conn,methods,force)
+function Conn = hlp_absvalsq(Conn,methods,force,verb)
 %
 % Compute the square of the absolute value of a complex number. If
 % 'force'=false then real-valued data is returned unmodified
@@ -45,6 +45,10 @@ function Conn = hlp_absvalsq(Conn,methods,force)
     if nargin<3
         force = 0;
     end
+    
+    if nargin<4
+        verb = 1;
+    end
 
     if ~iscell(methods)
         error('methods must be a cell matrix of strings');
@@ -53,14 +57,16 @@ function Conn = hlp_absvalsq(Conn,methods,force)
     for cnd=1:length(Conn)
         for i=1:length(methods) 
             if ~isfield(Conn(cnd),methods{i})
-                fprintf('Conn(%d).%s does not exist. Skipping...\n',cnd,methods{i});
+                if verb, fprintf('Conn(%d).%s does not exist. Skipping...\n',cnd,methods{i}); end
                 continue;
             end
             if isreal(Conn(cnd).(methods{i})) && ~force
-                fprintf('Conn(%d).%s is real, skipping (use ''force'' argument to override)\n',cnd,methods{i});
+               if verb, fprintf('Conn(%d).%s is real, skipping (use ''force'' argument to override)\n',cnd,methods{i}); end
                 continue;
             end
 
-            Conn(cnd).(methods{i}) = Conn(cnd).(methods{i}).*conj(Conn(cnd).(methods{i}));
+            Conn(cnd).(methods{i}) = abs(Conn(cnd).(methods{i})).^2;
+                        
+%             Conn(cnd).(methods{i}) = Conn(cnd).(methods{i}).*conj(Conn(cnd).(methods{i}));
         end
     end

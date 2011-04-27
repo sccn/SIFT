@@ -34,6 +34,12 @@ function varargout = pop_est_mvarConnectivity(ALLEEG,varargin)
 %                         Multiple Coherence (mCoh)
 %                      SPECTRAL DENSITY MEASURES
 %                         Complex Spectral Density (S)
+%   'absvalsq':     Boolean (true,false) determining whether to return the
+%                   square of the absolute value of complex measures (def:
+%                   true)
+%   'spectraldecibels': Boolean (true,false) determining whether to return
+%                       the spectral power in units of decibels
+%                       (10*log10(Power)) (def: false)
 %
 % Output:
 %
@@ -76,7 +82,11 @@ if nargin < 2
    popup = 1; 
 else
     var = hlp_mergeVarargin(varargin{:});
-    myargs = {'connmethods'  'cell'    {'DTF','dDTF','dDTF08','ffDTF','nDTF','GGC', 'iCoh','Coh','S','pCoh','mCoh','RPDC','GPDC','nPDC','PDCF','PDC'}     {'DTF'}};
+    myargs = {'connmethods'  'cell'    {'DTF','dDTF','dDTF08','ffDTF','nDTF','GGC', 'iCoh','Coh','S','pCoh','mCoh','RPDC','GPDC','nPDC','PDCF','PDC'}     {'DTF'}; ...
+              'absvalsq'     'boolean' []   true; ...
+              'spectraldecibels'    'boolean'   []      false; ...
+              'freqs',              'real'      []     (1 : fix(ALLEEG(1).srate/2)-1); ...
+              'verb',               'boolean'   [0 2]  2};
     g = finputcheck(var, [myargs; hlp_getDefaultArglist('est')], 'pop_est_mvarConnectivity','ignore');
     if ischar(g), error(g); end
     g.connmethods = unique(g.connmethods);
@@ -91,7 +101,6 @@ end
 
 g.winlen = ALLEEG(1).CAT.MODEL.winlen;
 g.winstep = ALLEEG(1).CAT.MODEL.winstep;
-g.verb = 1;
 connmethods = {'','DTF','nDTF','dDTF','dDTF08','ffDTF','','PDC','nPDC','GPDC','PDCF','RPDC','','GGC','','Coh','iCoh','pCoh','mCoh','','S'};
 connmethodsFullNames = {'+ DIRECTED TRANSFER FUNCTION MEASURES', ...
                         '     Directed Tranfer Function (DTF)',...
@@ -117,13 +126,14 @@ connmethodsFullNames = {'+ DIRECTED TRANSFER FUNCTION MEASURES', ...
                         };
 
 if popup
+    
     geomhoriz = {1 1 1 1 1 [1 2]};
     uilist = { ...
                { 'Style', 'text', 'string', 'Select connectivity measures to calculate' }...
                { 'Style', 'text', 'string', '(hold Ctrl to select multiple)' }...
                { 'Style', 'listbox', 'string', connmethodsFullNames, 'tag', 'lstConnmethods','Value',2,'Min',1,'Max',20} ...
-               { 'Style', 'checkbox', 'string', 'return squared amplitude of complex measures', 'value', 1, 'tag','chkSquareModulus'}...
-               { 'Style', 'checkbox', 'string', 'convert spectral density to decibels', 'value', 1, 'tag','chkSpectralDecibels'}...
+               { 'Style', 'checkbox', 'string', 'return squared amplitude of complex measures', 'value', true, 'tag','chkSquareModulus'}...
+               { 'Style', 'checkbox', 'string', 'convert spectral density to decibels', 'value', false, 'tag','chkSpectralDecibels'}...
                { 'Style', 'text', 'string', 'Frequencies (Hz)'} ...
                { 'Style', 'edit', 'string', ['1: ' num2str(fix(ALLEEG(1).srate/2)-1)], 'tag','edtFreqs'}...
 			 };
@@ -140,7 +150,9 @@ if popup
     g.freqs = str2num(result.edtFreqs);
     g.connmethods = strtrim(connmethods(result.lstConnmethods));
     g.connmethods(cellfun(@(x)(isempty(x)),g.connmethods))=[];
-    
+    g.absvalsq = result.chkSquareModulus;
+    g.spectraldecibels = result.chkSpectralDecibels;
+    g.verb = 2;
 end
 
 
@@ -148,14 +160,12 @@ end
 for cond=1:length(ALLEEG)
     ALLEEG(cond).CAT.Conn = est_mvarConnectivity(ALLEEG(cond),ALLEEG(cond).CAT.MODEL,g);
     
-    if result.chkSquareModulus
-        ALLEEG(cond).CAT.Conn = hlp_absvalsq(ALLEEG(cond).CAT.Conn,g.connmethods);
-        g.absvalsq = true;
+    if g.absvalsq
+        ALLEEG(cond).CAT.Conn = hlp_absvalsq(ALLEEG(cond).CAT.Conn,g.connmethods,false,g.verb);
     end
     
-    if result.chkSpectralDecibels && isfield(ALLEEG(cond).CAT.Conn,'S')
-        ALLEEG(cond).CAT.Conn.S = 20*log10(ALLEEG(cond).CAT.Conn.S);
-        g.spectraldecibels = true;
+    if g.spectraldecibels && isfield(ALLEEG(cond).CAT.Conn,'S')
+        ALLEEG(cond).CAT.Conn.S = 10*log10(ALLEEG(cond).CAT.Conn.S);
     end
     
     % clear any existing visualization GUI config files

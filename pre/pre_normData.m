@@ -12,7 +12,7 @@ function [normdata g] = pre_normData(varargin)
 %
 % Inputs:
 %
-%   EEG:        EEG data structure
+%   data:        data structure [channels x 
 %
 % Optional:     <'Name',Value> pairs
 %

@@ -29,6 +29,10 @@ function IC = pop_est_selModelOrder(ALLEEG,typeproc,varargin)
 %     'epochTimeLims',     time range to analyze (sec) where 0 = start of the epoch
 %     'prctWinToSample',   percent of time windows to randomly select  [0 100]
 %     'verb',              verbosity level (0=no output, 1=text, 2=gui)
+%     'normalize'          cell array containing one or more of
+%                           {'temporal', 'ensemble'}. This performs ensemble
+%                           normalization or temporal normalization (or both) 
+%                           within each window
 %
 % Output:
 %
@@ -82,7 +86,7 @@ IC = {};
 
 % display help if not enough arguments
 % ------------------------------------
-if nargin < 2 || typeproc~=0
+if nargin < 2
 	help pop_est_selModelOrder;
 	return;
 end;	
@@ -92,8 +96,7 @@ var = hlp_mergeVarargin(varargin{:});
 g = finputcheck(var, hlp_getDefaultArglist('est'), 'pop_est_selModelOrder','ignore');
 if ischar(g), error(g); end
 if ~isfield(g,'icselector'), g.icselector = {'sbc','aic'}; end
-    
-popup = 1; %nargin<3;
+if ~isfield(g,'plot'), g.plot = 1; end
 
 % possible information criteria
 orderCriteria = {'AIC','FPE','SBC','HQ'};
@@ -104,6 +107,12 @@ if ~isempty(g.morder) && length(g.morder) == 2
 else
     pmin = 1;
     pmax = 30;
+end
+
+if nargin>2 && typeproc == 0
+    popup = 0;
+else
+    popup = 1;
 end
 
 % pop up window
@@ -158,85 +167,11 @@ for cond=1:length(ALLEEG)
     % calculate the information criteria
     IC{cond} = est_selModelOrder(ALLEEG(cond),g);
 
-    numinfocriteria = length(g.icselector);
-    numWins = size(IC{cond}.(g.icselector{1}).ic,2);
-
-
-    % plot the results
-    % ----------------------
-    figure('name',sprintf('%s - Model Order Selection Results',ALLEEG(cond).condition));
-    for i=1:numinfocriteria
-        allinfocrit(i,:) = mean(IC{cond}.(lower(g.icselector{i})).ic,2);
+    if g.plot
+        
+        vis_plotOrderCriteria(IC,{ALLEEG.condition},g.icselector);
+        
     end
-
-    if numWins>1
-        numrows = floor(sqrt(numinfocriteria))+1;
-        numcols = ceil(numinfocriteria/(numrows-1));
-    else
-        numrows = 1;
-        numcols = 1;
-    end
-
-    set(gca,'Position',[0 0 1 1]);
-
-    % plot information criteria
-    subplot(numrows,numcols,1:numcols); 
-    plot(IC{cond}.pmin:IC{cond}.pmax,allinfocrit,'linewidth',2);
-    set(gca,'xtick',IC{cond}.pmin:IC{cond}.pmax);
-    axis auto
-    xlabel('model order','fontsize',12);
-    ylabel('Information criteria (bits)','fontsize',12);
-    set(gca,'xgrid','on');
-    title('Mean IC across sampled windows','fontsize',12);
-    axcopy(gca);
-
-    hold on
-
-    defcolororder = get(0,'defaultaxescolororder');
-    % make markers at minima
-    for i=1:numinfocriteria
-        sel = g.icselector{i};
-        popt = round(mean(IC{cond}.(lower(sel)).popt));
-        minic = allinfocrit(i,popt-IC{cond}.pmin+1);
-        plot(popt,minic,'rs','markersize',10,'MarkerEdgeColor','k','markerfacecolor',defcolororder(i,:));
-        lmin = vline(popt);
-        set(lmin,'color',defcolororder(i,:),'linestyle','--','linewidth',2);
-        legendstr{i} = sprintf('%s (%d)',g.icselector{i},popt);
-    end
-    legend(legendstr);
-    % popt = popt+IC{cond}.pmin-1;
-    % plot(popt',minic);
-
-    % popt = popt(:);
-    % ylim = get(gca,'Ylim');
-    % ylim = ylim(ones(1,numinfocriteria),:);
-    % line([popt popt],ylim);
-    hold off
-    % 
-
-
-    if numWins>1
-        % plot histograms of optimal model order across windows
-        for i=1:numinfocriteria
-            ax=subplot(numrows,numcols,i+numcols);
-            xScale = IC{cond}.pmin:IC{cond}.pmax;
-            bar(xScale,histc(IC{cond}.(lower(g.icselector{i})).popt,xScale),'k');
-            popt = round(mean(IC{cond}.(lower(g.icselector{i})).popt));
-            axes(ax);
-            lmin = vline(popt);
-            set(lmin,'color',defcolororder(i,:),'linestyle','--','linewidth',2);
-            title(g.icselector{i},'fontsize',12,'fontweight','bold');
-            axcopy(gca);
-            xlabel('opt. model order','fontsize',12);
-            ylabel('histogram count','fontsize',12);
-            xlim([IC{cond}.pmin IC{cond}.pmax]);
-        end
-    %     axis on
-        %set(gca,'yaxislocation','right');
-    end
-
-
-    try, icadefs; set(gcf, 'color', BACKCOLOR); catch, end;
     
 end
 

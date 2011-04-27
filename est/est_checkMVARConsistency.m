@@ -1,4 +1,4 @@
-function PC = est_checkMVARConsistency(EEG,MODEL,typeproc,varargin)
+function stats = est_checkMVARConsistency(EEG,MODEL,typeproc,varargin)
 %
 % For a VAR[p] process fit to N time windows, this function returns a 
 % vector of MVAR model consistency estimates for each time window. The
@@ -21,7 +21,8 @@ function PC = est_checkMVARConsistency(EEG,MODEL,typeproc,varargin)
 %   
 % Outputs:
 %   
-%   PC:             Percent Consistency Index [1]
+%   stats
+%       .PC:             Percent Consistency Index [1]
 %
 % References: 
 % 
@@ -82,17 +83,19 @@ end
 if g.verb, h=waitbar(0,sprintf('checking consistency...\nCondition: %s',EEG.condition)); end
 
 numWins = length(g.winStartIdx);
-PC = zeros(1,numWins); 
+stats.PC = zeros(1,numWins); 
 
 for t=1:numWins
     
     data = squeeze(EEG.CAT.srcdata(:,g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1,:));
-    PC(t)= est_consistency(data,MODEL.AR{t},MODEL.PE{t});
+    stats.PC(t)= est_consistency(data,MODEL.AR{t},MODEL.PE{t});
 
     if g.verb, 
         waitbar(t/numWins,h,sprintf('checking consistency (%d/%d)...\nCondition: %s',t,numWins,EEG.condition));
     end
 end
+
+stats.winStartIdx = g.winStartIdx;
 
 if g.verb, close(h); end
 

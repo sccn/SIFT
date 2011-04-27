@@ -47,8 +47,6 @@ function varargout = pop_est_validateMVAR(ALLEEG,typeproc,varargin)
 %   
 %
 % Output:
-%   
-%     lastcom:                Reserved for future use
 %
 %     whitestats:             Structure containing whiteness statistics.
 %                             See est_checkMVARWhiteness() for details on
@@ -109,12 +107,13 @@ if nargin < 2
 	help pop_est_validateMVAR;
 	return;
 end;	
+
 lastcom = [];
 whitestats = [];
-PC = [];
-stability = [];
+PCstats = [];
+stabilitystats = [];
 
-if nargin < 4
+if nargin < 3 %4
     popup = 1;
 else
     popup = 0;
@@ -128,7 +127,25 @@ for i=1:length(ALLEEG)
     end
 end
 
-whitenessCriteria = {'Ljung-Box','ACF','Box-Pierce','Li-McLeod'};  %{'ACF'}; %{'Ljung-Box','ACF','Durbin-Watson','Portmanteau','LMP'};
+whitenessCriteria = {'Ljung-Box','ACF','Box-Pierce','Li-McLeod'};
+
+% parse inputs
+var = hlp_mergeVarargin(varargin{:});
+myargs = {'whitenessCriteria'   'cell'  whitenessCriteria   whitenessCriteria; ...
+          'checkWhiteness',     'boolean'   []          true; ...
+          'checkConsistency'    'boolean'   []          true; ...
+          'checkStability'      'boolean'   []          true; ...
+          'alpha'               'real'      [0 1]       0.05; ...   
+          'prctWinToSample',    'real'      [0 100]     100; ...
+          'alpha'               'real'      [0 1]       0.05; ...
+          'verb'                'real'      [0 2]       2; ...
+          'winStartIdx'         'real'      []          []; ...
+          'plot'                'boolean'   []          true; ...
+          };
+g = finputcheck(var, [myargs ; hlp_getDefaultArglist('est')], 'est_checkWhiteness','ignore','quiet');
+if ischar(g), error(g); end
+
+
 numWins = length(MODEL(1).AR);
 
 % pop up window
@@ -139,13 +156,13 @@ if popup
 	geomhoriz = {1 1 [3 1] 1 1 [3 1] };
     uilist = { ...
                { 'Style', 'checkbox', 'string', 'Check Whiteness of Residuals' ,'tag', 'chkWhiteness' ,'Value',1}...
-               { 'Style', 'listbox', 'string', whitenessCriteria, 'tag', 'lstWhitenessCriteria','Value',1,'Min',1,'Max',20} ...
+               { 'Style', 'listbox', 'string', g.whitenessCriteria, 'tag', 'lstWhitenessCriteria','Value',1,'Min',1,'Max',20} ...
                { 'Style', 'text', 'string', 'significance level: '} ...
-               { 'Style', 'edit', 'string', 0.05, 'tag','txtAlpha' } ...
+               { 'Style', 'edit', 'string',g.alpha, 'tag','txtAlpha' } ...
                { 'Style', 'checkbox', 'string', 'check percent consistency ' ,'tag', 'chkConsistency'}...
                { 'Style', 'checkbox', 'string', 'check model stability ' ,'tag', 'chkStability' , 'enable','on'}...
                { 'Style', 'text', 'string', '% windows to sample'} ...
-               { 'Style', 'edit', 'string', 100, 'tag','prctWinToSample' } ...
+               { 'Style', 'edit', 'string', g.prctWinToSample, 'tag','prctWinToSample' } ...
 			 };
 
 	[ tmp1 tmp2 strhalt result ] = inputgui( 'geometry', geomhoriz, 'geomvert',[1 3.5 1 1 1 1], 'uilist',uilist, 'helpcom','pophelp(''pop_est_validateMVAR'');', ...
@@ -161,26 +178,27 @@ if popup
     g.checkConsistency = result.chkConsistency;
     g.checkWhiteness = result.chkWhiteness;
     g.checkStability = result.chkStability;
-    g.whitenessCriteria = lower(hlp_variableize(whitenessCriteria(result.lstWhitenessCriteria)));
-    if ischar(g.whitenessCriteria), g.whitenessCriteria={g.whitenessCriteria}; end
+    g.whitenessCriteria = whitenessCriteria(result.lstWhitenessCriteria);
+%     if ischar(g.whitenessCriteria), g.whitenessCriteria={g.whitenessCriteria}; end
     g.verb = 2;
     g.winStartIdx = [];
     g.alpha = str2num(result.txtAlpha);
 else  
-    var = hlp_mergeVarargin(varargin{:});
-    myargs = {'whitenessCriteria'   'cell'  whitenessCriteria   whitenessCriteria; ...
-              'checkWhiteness',     'boolean'   []      true; ...
-              'checkConsistency'    'boolean'   []      true; ...
-              'checkStability'      'boolean'   []      true; ...
-              'alpha'               'real'      [0 1]   0.05; ...    
-              };
-    g = finputcheck(var, [myargs ; hlp_getDefaultArglist('est')], 'est_checkWhiteness','ignore');
-    if ischar(g), error(g); end
-    g.alpha = 0.06;
+%     var = hlp_mergeVarargin(varargin{:});
+%     myargs = {'whitenessCriteria'   'cell'  whitenessCriteria   whitenessCriteria; ...
+%               'checkWhiteness',     'boolean'   []      true; ...
+%               'checkConsistency'    'boolean'   []      true; ...
+%               'checkStability'      'boolean'   []      true; ...
+%               'alpha'               'real'      [0 1]   0.05; ...    
+%               };
+%     g = finputcheck(var, [myargs ; hlp_getDefaultArglist('est')], 'est_checkWhiteness','ignore');
+%     if ischar(g), error(g); end
+%     g.alpha = 0.06;
 end
 
-numrows = sum([g.checkWhiteness g.checkConsistency g.checkStability]);
-numcols = 1;
+g.whitenessCriteria = lower(hlp_variableize(g.whitenessCriteria));
+if ischar(g.whitenessCriteria), g.whitenessCriteria={g.whitenessCriteria}; end
+
 
 % determine which windows to use
 if isempty(g.winStartIdx)
@@ -211,111 +229,23 @@ for cond=1:length(ALLEEG)
     end
     
     if g.checkWhiteness
-        [whitestats] = est_checkMVARWhiteness(ALLEEG(cond),MODEL(cond),typeproc,g);
+        whitestats = est_checkMVARWhiteness(ALLEEG(cond),MODEL(cond),typeproc,g);
     end
     
     if g.checkConsistency
-        PC = est_checkMVARConsistency(ALLEEG(cond),MODEL(cond),typeproc,g);
+        PCstats = est_checkMVARConsistency(ALLEEG(cond),MODEL(cond),typeproc,g);
     end
     
     if g.checkStability
-        [stability lambda] = est_checkMVARStability(ALLEEG(cond),MODEL(cond),typeproc,g);
-    end
-    
-
-
-    % plot results
-    figure('Name',sprintf('%s - Model Validation Results',ALLEEG(cond).condition));
-    curplot=1;
-    if g.checkWhiteness
-
-        subplot(numrows,numcols,curplot);
-        for i = 1:length(g.whitenessCriteria)
-            wcstr = lower(hlp_variableize(g.whitenessCriteria{i}));
-            wc = whitestats.(wcstr);
-            pvals(i,:) = wc.pval;
-            lgnd{i} = sprintf('%s (%d/%d white)',wc.fullname, sum(wc.w),length(wc.w));
-        end
-
-        if size(pvals,2)>1
-            % more than one window -- make lineplot
-            plot(1:length(g.winStartIdx),pvals);
-            xlabel('Window number');
-            legend(lgnd);
-        else
-            % single window -- make barplot
-            h = bar(pvals);
-            ch = get(h,'Children');
-
-            set(gca,'xticklabel',lgnd);
-            colors = [[1 0 0];[0 0 1];[0 1 0];[0 0 0];[1 0 1];[0 1 1]];
-            colors = colors(1:length(pvals),:);
-            set(ch,'FaceVertexCData',colors);
-
-        end
-
-        hl=hline(g.alpha); 
-        set(gca,'xlim',[0 length(g.winStartIdx)+1],'Ylim',[max(0,min(pvals(:))-0.5), min(1,max(pvals(:))+0.5)]);
-        set(hl,'linestyle','--','linewidth',2);
-        ylabel({'Significance of whiteness','(larger is better)'});
-        axcopy(gca);
-
-        curplot=curplot+1;
+        stabilitystats = est_checkMVARStability(ALLEEG(cond),MODEL(cond),typeproc,g);
     end
 
-    if g.checkConsistency
-        ax=subplot(numrows,numcols,curplot);
-        if length(PC)>2
-            % more than one window -- make lineplot       
-            plot(1:length(g.winStartIdx),PC);
-            axes(ax);
-            text(0.98,0.9,sprintf('Mean PC: %0.2f%%',mean(PC)), ...
-                'units','normalized','horizontalalignment','right', ...
-                'edgecolor','k','backgroundcolor','w');
-            xlabel('Window number');
-        else
-            % single window -- make barplot
-            bar(PC);
-            legend(sprintf('(%0.2f%% Consistent)',PC));
-        end
-        set(gca,'xlim',[0 length(g.winStartIdx)+1],'ylim',[min(PC)-50 min(max(PC)+50,100)]);
-        ylabel('Percent Consistency');
-        axcopy(gca);
-        curplot = curplot+1;
+    if g.plot
+        vis_plotModelValidation({whitestats},{PCstats},{stabilitystats},'whitenessCriteria',g.whitenessCriteria,'checkWhiteness',g.checkWhiteness,'checkConsistency',g.checkConsistency,'checkStability',g.checkStability,'conditions',{ALLEEG.condition});
     end
 
-    if g.checkStability
-        % plot stability results
-        subplot(numrows,numcols,curplot);
-        if length(stability)>2
-            % more than one window -- make lineplot    
-            %boxplot(real(lambda)');
-            maxlambda = max(real(lambda),[],2);
-            plot(1:length(g.winStartIdx),maxlambda);
-            xlabel('Window number')
-        else
-            % single window -- make barplot
-            maxlambda = max(real(lambda(:)));
-            bar(maxlambda);
-        end
-
-
-    %     set(gca,'ylim',[max(0,0.7*min(abs(lambda(:)))) max(1.3,1.3*max(abs(lambda(:))))]);
-        set(gca,'xlim',[0 length(g.winStartIdx)+1],'ylim',[1.2*min(maxlambda(:)) max(0.01,1.3*max(maxlambda(:)))]);
-    %     axis auto
-        hl=hline(0);
-        set(hl,'linestyle','--','linewidth',2);
-        ylabel({'Stability Index','(should be < 0)'});
-        numstable = sum(stability);
-        legend(sprintf('(%d/%d stable)',numstable,length(stability)));
-        axcopy(gca);
-    end
-
-    try, icadefs; set(gcf, 'color', BACKCOLOR); catch, end;
-
-    varargout{1}{cond} = lastcom;
-    varargout{2}{cond} = whitestats;
-    varargout{3}{cond} = PC;
-    varargout{4}{cond} = stability;
+    varargout{1}{cond} = whitestats;
+    varargout{2}{cond} = PCstats;
+    varargout{3}{cond} = stabilitystats;
 end
 
