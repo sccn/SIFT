@@ -159,18 +159,16 @@ for t=1:numWins
     
     for i=1:length(g.icselector)
         % get index iopt of order that minimizes the order selection 
-        % criterion specified by the variable varparams.icselector
+        % criterion specified in g.icselector
         sel = g.icselector{i};
         ic = eval([sel '(:,t);']);
         [minic.(sel)(t) iopt] = min(ic);
         popt.(sel)(t) = pmin + iopt-1; % estimated optimum order 
         
         
-        % get index iopt of order that represents the "elbow" of the order  
-        % selection criterion specified by the variable varparams.icselector
-        % An "elbow" is defined at the largest order for which the criterion
-        % is <= 90% of the minimum
-%         [elbowic.(sel)(t) iopt] = min(abs(ic(1:iopt)-0.9*(ic(1)-ic(iopt)))); % prctile(ic(1:iopt),10)
+        % get model order corresponding to the "elbow" of the order  
+        % selection criterion. An "elbow" is found using a geometric
+        % heuristic (see hlp_findElbow() for details)
         [elbowic.(sel)(t) iopt] = hlp_findElbow(ic);
         pelbow.(sel)(t) = pmin + iopt-1; % estimated optimum order 
     end
