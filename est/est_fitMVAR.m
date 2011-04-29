@@ -76,6 +76,10 @@ if isempty(g.morder) || length(g.morder)>1, error('invalid entry for field ''mor
 %     g = catstruct(g,gvar); clear g2;
 if nargout > 1, params = g; end
 
+if isempty(g.algorithm)
+    g.algorithm = 'vieira-morf';
+end
+
 winLenPnts = floor(g.winlen*EEG.srate); % window size in points
 if isempty(g.winStartIdx)
     % starting point of each window (points)
@@ -155,7 +159,7 @@ for t=1:numWins
                 error('arfit.m not found! ARFIT option unavailable');
             end
         otherwise
-            if exist('mvar','function')
+            if exist('mvar','file')
                 % one of the other mvar modes...
                 data = squeeze(EEG.CAT.srcdata(winpnts,:,:));
                 data = nanpad(data,g.morder);
