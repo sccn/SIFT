@@ -29,7 +29,7 @@ function params = hlp_getDefaultArglist(prefix)
                 'equalizetrials', 'boolean'     {0 1}            0;            ...      % equalize the number of trials between two conditions 
             };
         case 'est'
-            params = {'algorithm',          ''        {'vierra-morf','arfit'}     'vierra-morf'; ...  % which algorithm to use for model fitting
+            params = {'algorithm',          ''        {'vieira-morf','arfit'}     'vieira-morf'; ...  % which algorithm to use for model fitting
                      'winStartIdx',         'real'       []        []; ...          % vector of sample points (start of windows) at which to estimate windowed VAR model
                      'morder',               'real'       []        []; ...          % VAR model order
                      'winlen',              'real'        []        0.5; ...         % window length (sec)

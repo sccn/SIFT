@@ -117,6 +117,10 @@ if ~ismember(g.algorithm,{'arfit','vieira-morf-ding'})
     EEG.CAT.srcdata = permute(EEG.CAT.srcdata,[2 1 3]);  % time x chans x trials
 end
 
+if isempty(g.algorithm)
+    g.algorithm = 'vieira-morf';
+end
+
 for t=1:numWins
     
     if g.timer, tic; end
