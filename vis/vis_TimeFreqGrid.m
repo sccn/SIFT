@@ -272,7 +272,7 @@ if ~isempty(ALLEEG)
         MyComponentNames = strtrim(cellstr(num2str(MyComponentNames'))');
     end
     
-    if isfield(ALLEEG(1),'chanlocs')
+    if isfield(ALLEEG(1),'chanlocs') && ~isempty(ALLEEG(1).chanlocs)
         MyChannelNames = {ALLEEG(1).chanlocs.labels};
     else
         MyChannelNames = strtrim(cellstr(num2str((1:ALLEEG(1).nbchan)'))');
