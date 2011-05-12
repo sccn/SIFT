@@ -76,18 +76,6 @@ function A = sim_genVARModelFromEq(expr,morder)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-%% Convert to EEGLAB format
-ALLEEG = eeg_emptyset;
-ALLEEG.data = permute(data,[2 1 3]);   % chans x time x trials
-ALLEEG.icaact = permute(data,[2 1 3]);   % chans x time x trials
-ALLEEG.srate = SRATE;
-ALLEEG.times = ((0:(Nl-1))/SRATE)*1000;   % ms
-ALLEEG.pnts = Nl;
-ALLEEG.trials = Nr;
-ALLEEG.xmin = ALLEEG.times(1);
-ALLEEG.xmax = ALLEEG.times(end)/1000;  % sec
-ALLEEG.nbchan = size(ALLEEG.data,1);
-
 Nvars = length(expr);
 
 if nargin>1
