@@ -20,6 +20,8 @@ function [MODEL params] = est_fitMVARKalman(EEG,typeproc,varargin)
 %     'epochTimeLims'      time range to analyze (sec) where 0 = start of the epoch
 %     'verb'               verbosity level (0=no output, 1=text, 2=gui)
 %     'timer'              estimate time required to fit model
+%     'downsampleFactor'   store VAR coefficient matrices only for every Nth
+%                          timepoint, where N=downsampleFactor.
 %
 % Output:
 %
@@ -73,12 +75,20 @@ if isempty(g.morder) || length(g.morder)>2, error('invalid entry for field ''mor
  % combine structs, overwriting duplicates of g with 
 if ~isfield(g,'updatecoeff'), g.updatecoeff = 0.001; end
 if ~isfield(g,'updatemode'), g.updatemode = 1; end
-    
+if ~isfield(g,'downsampleFactor'), g.downsampleFactor = 1; end;
+if ~isfield(g,'winstep'), g.winstep = []; end
+
+if ~isempty(g.winstep)
+    g.downsamplefactor = round(g.winstep*EEG.srate);
+else
+    g.winstep = g.downsampleFactor/EEG.srate;
+end
+
 %     g = catstruct(g,gvar); clear g2;
 
 if nargout > 1, params = g; end
 
-g.winStartIdx  = 1:size(EEG.CAT.srcdata,2);
+g.winStartIdx  = 1:g.downsampleFactor:size(EEG.CAT.srcdata,2);
 numWins   = length(g.winStartIdx);
 
 [AR PE RC]  = deal(cell(1,numWins));
@@ -94,17 +104,25 @@ if size(EEG.CAT.srcdata,3)>1
     error('Kalman filtering cannot be used with multi-trial data');
 end
 
-% Fit MODEL model up to g.morder using Kalman filter
+MemoryLengthSamples = -1/log(1-g.updatecoeff);
+TimeConstant = MemoryLengthSamples/EEG.srate;
+if g.verb, 
+    fprintf('The effective window length is approximately %0.5f seconds (%d samples)\n',TimeConstant,MemoryLengthSamples); 
+    fprintf('Your step size is %0.3f ms\n',g.winstep*1000);
+end
+    
 
+% Fit MODEL model up to g.morder using Kalman filter
+ 
 [nchs npnts] = size(EEG.CAT.srcdata);
 
-[VAR,residuals,Kalman,C] = mvaar(permute(EEG.CAT.srcdata,[2 1]),g.morder,g.updatecoeff,g.updatemode,[],2);
+[VAR,residuals,Kalman,C] = mvaar(permute(EEG.CAT.srcdata,[2 1]),g.morder,g.updatecoeff,g.updatemode,[],g.verb,g.downsampleFactor);
 
 time = toc;
 
-for t=2:npnts
+for t=2:size(VAR,1)
     % store VAR coefficients and noise covariance matrices
-    AR{t-1} = reshape(VAR(t,:),nchs,nchs*g.morder);
+    AR{t-1} = reshape(VAR(t,:),nchs*g.morder,nchs).';
     PE{t-1}  = C(:,:,t);
     RC{t-1} = [];
     if g.timer, timeElapsed(t-1) = time/npnts; end
@@ -116,9 +134,13 @@ MODEL.PE = PE;
 MODEL.RC = RC;
 MODEL.winStartTimes = (g.winStartIdx-1)/EEG.srate;
 MODEL.winlen = 1/EEG.srate;
-MODEL.winstep = 1/EEG.srate;
+MODEL.winstep = g.downsampleFactor/EEG.srate;
 MODEL.morder = g.morder;
 MODEL.algorithm = 'kalman';
 MODEL.modelclass = 'mvar';
 MODEL.timeelapsed = timeElapsed;
+MODEL.updatecoeff = g.updatecoeff;
+MODEL.updatemode = g.updatemode;
+MODEL.downsampleFactor = g.downsampleFactor;
 % MODEL.normalize = g.normalize;
+

@@ -1,4 +1,4 @@
-function [x,e,Kalman,Q2] = mvaar(y,p,UC,mode,Kalman,verb)
+function [x,e,Kalman,Q2] = mvaar(y,p,UC,mode,Kalman,verb,downsampleFactor)
 % Multivariate (Vector) adaptive AR estimation base on a multidimensional
 % Kalman filer algorithm. A standard VAR model (A0=I) is implemented. The
 % state vector is defined as X=(A1|A2...|Ap) and x=vec(X')
@@ -29,6 +29,7 @@ function [x,e,Kalman,Q2] = mvaar(y,p,UC,mode,Kalman,verb)
 %       $Id: mvaar.m 5090 2008-06-05 08:12:04Z schloegl $
 % 	Copyright (C) 2001-2002 Christian Kasess
 % 	Copyright (C) 2003, 2008 Alois Schloegl
+%   Modified by 2011, Tim Mullen to allow downsampled storage
 %
 %    This program is free software: you can redistribute it and/or modify
 %    it under the terms of the GNU General Public License as published by
@@ -66,7 +67,7 @@ if ~any(mode==(0:4))
 end;
 
 
-[M,LEN] = size(y');		%number of channels, total signal length
+[LEN, M] = size(y);		%number of channels, total signal length
 L = M*M*p;
 
 if LEN<(p+1),
@@ -77,10 +78,10 @@ end
 ye = zeros(size(y));	%prediction of y
 
 if nargout>1,
-    x=zeros(L,LEN);
+    x=zeros(L,floor(LEN/downsampleFactor));
 end;
 if nargout>3,
-    Q2=zeros(M,M,LEN);
+    Q2=zeros(M,M,floor(LEN/downsampleFactor));
 end
 
 
@@ -95,7 +96,6 @@ if nargin<5 || isempty(Kalman)
 end;
 
 upd = eye(L)/L*UC;		%diagonal matrix containing UC
-
 
 if(mode==3)
     Block=kron(eye(M),ones(M*p));
@@ -114,10 +114,10 @@ elseif(mode==4)
     end;
 end;
 
-
+curval = 1;
 for n = 2:LEN,
     
-    if verb==2
+    if verb==2 && ~mod(n,100)
         waitbar(n/LEN,h,...
         sprintf('fitting VAR[%d] model [mode=%s] (%d/%d) ...', ...
         p,'Kalman',n,LEN)); 
@@ -128,7 +128,7 @@ for n = 2:LEN,
         Yr=[y(n-1:-1:1,:)' zeros(M,p-n+1)];	%vector of past observations
         Yr=Yr(:)';
     else
-        Yr=y(n-1:-1:n-p,:)';						%vector of past observations
+        Yr=y(n-1:-1:n-p,:)';				%vector of past observations
         Yr=Yr(:)';
     end
     
@@ -175,12 +175,19 @@ for n = 2:LEN,
         Kalman.x=Kalman.x+Kalman.G*(err)';
     end; % isnan>(err)
     
-    if nargout>1,
-        x(:,n) = Kalman.x;
-    end;
-    if nargout>3,
-        Q2(:,:,n)=Kalman.Q2;
-    end;
+    if ~mod(n-1,downsampleFactor)
+        % store the current state
+        curval = curval + 1;
+        
+        if nargout>1,
+            x(:,curval) = Kalman.x;
+        end;
+
+        if nargout>3,
+            Q2(:,:,curval)=Kalman.Q2;
+        end;
+        
+    end
 end;
 
 e = y - ye;
