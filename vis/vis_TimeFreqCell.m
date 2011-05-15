@@ -510,7 +510,7 @@ for dir=1:numdirs
         axis([min(g.alltimes) max(g.alltimes) min([Emin(:)' Stat(:)'])*1.2 max([Emax(:)' Stat(:)'])*1.2]);
     else
         if ~all(isnan(Emin(:)))
-            axis([min(g.alltimes) max(g.alltimes) min(Emin)*1.2 max(Emax)*1.2]);
+            axis([min(g.alltimes)-eps max(g.alltimes)+eps min(Emin)*1.2-eps max(Emax)*1.2+eps]);
         end
     end;
     
@@ -581,7 +581,7 @@ for dir=1:numdirs
         end;
     else             % plot marginal mean coherence only
         if ~isnan(max(Emax))
-            axis([g.allfreqs(1) g.allfreqs(end) min(Emin)*1.2 max(Emax)*1.2]);
+            axis([g.allfreqs(1)-eps g.allfreqs(end)+eps min(Emin)*1.2-eps max(Emax)*1.2+eps]);
         end;
     end
     

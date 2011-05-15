@@ -15,14 +15,14 @@ function A = sim_genVARModelFromEq(expr,morder)
 %   A:          VAR[p] model coefficients in format A=[A1,A2, ... Ap] where
 %               p = morder. Ai is the M x M coefficient matrix for lag i.
 %
-% Example: generate a VAR[3] model from a (text-based) system of equations
+% Example1: generate a static VAR[3] model from a (text-based) system of equations
 %
 % expr = { ...
-%     'x1(t) = 0.9*x1(t-1) + 0.3*x2(t-2) + e1(t)' ...
-%     'x2(t) = 1.3*x2(t-1) + -0.8*x2(t-2) + e2(t)' ...
-%     'x3(t) = 0.3*x1(t-2) + 0.6*x2(t-1) + e3(t)' ...
+%     'x1(t) = 0.9*x1(t-1)  + 0.3*x2(t-2)  + e1(t)' ...
+%     'x2(t) = 1.3*x2(t-1)  + -0.8*x2(t-2) + e2(t)' ...
+%     'x3(t) = 0.3*x1(t-2)  + 0.6*x2(t-1)  + e3(t)' ...
 %     'x4(t) = -0.7*x4(t-3) + -0.7*x1(t-3) + 0.3*x5(t-3) + e4(t)' ...
-%     'x5(t) = 1*x5(t-1) + -0.4*x5(t-2) + 0.3*x4(t-2) + e5(t)' ...
+%     'x5(t) = 1*x5(t-1)    + -0.4*x5(t-2) + 0.3*x4(t-2) + e5(t)' ...
 %     };
 % A = sim_genVARModelFromEq(expr,3)
 % A =
@@ -43,6 +43,9 @@ function A = sim_genVARModelFromEq(expr,morder)
 %    data(:,:,tr) = arsim(zeros(1,M),A,C,Nl)';
 % end
 % eegplot(data,'srate',1); % visualize the simulated data
+%
+%
+% Example2: generate a time-varying VAR[2] model
 %
 % See Also: arsim(), est_fitMVAR()
 %
@@ -79,11 +82,32 @@ function A = sim_genVARModelFromEq(expr,morder)
 Nvars = length(expr);
 
 if nargin>1
-    A = zeros(Nvars,Nvars*morder);
+    % create cell array of zeros
+    A = repmat({0},Nvars,Nvars*morder);
 end
+
+fnstr ='{[\S]+}';
 
 for i = 1:Nvars
     eq = expr{i};
+    
+    % Identify all inline functions
+    % Specifically, we extract any string f(x) encapsulated by 
+    % curly-brackets '{f(x)}'
+    [matchstr] = regexp(eq,'{[\S]+}','match');
+    
+    % replace each function with an identifier '$i' designating that the
+    % ith equation will go here
+    for fi=1:length(matchstr)
+        eq = strtrim(strrep(eq,matchstr{fi},sprintf('$%d',fi)));
+    end
+    
+    % remove all whitespace
+    eq(isspace(eq))=[];
+%     
+%     for fi=1:length(matchstr)
+%         eq = [eq(1:matchstart(fi)-1) sprintf('$%d',fi) eq(matchend(fi)+1:end)];
+%     end
     
     terms = regexp(eq,'([=+*])','split');
     
@@ -92,6 +116,21 @@ for i = 1:Nvars
         vars = regexp(terms{k+1},'(\d+)','match');
         vars = str2num(char(vars));
         col = vars(1)+(vars(2)-1)*Nvars;
-        A(row,col) = str2double(terms{k});
+        
+        if strcmpi(terms{k}(1),'$')
+            % term is a function expression
+            A{row,col} = matchstr{str2double(terms{k}(2))}(2:end-1);
+        elseif ~isnan(str2double(terms{k}))
+            % term is a number
+            A{row,col} = str2double(terms{k});
+        else
+            % term is an expression to be directly evaluated
+            A{row,col} = eval(terms{k});
+        end
     end
+end
+
+% if A is all numeric, convert to standard array
+if all(cellfun(@(x)isnumeric(x),A))
+    A = cell2mat(A);
 end

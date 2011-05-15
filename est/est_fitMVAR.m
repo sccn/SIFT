@@ -152,7 +152,7 @@ for t=1:numWins
             data = nanpad(data,g.morder);
             [AR{t},RC{t},PE{t}] = mvar_vieiramorf(data, g.morder);
         case 'arfit'
-            if exist('armorf','file')
+            if exist('arfit','file')
                 RC{t} = [];
                 [w, AR{t}, PE{t} sbc, fpe, th{t}] = arfit(permute(EEG.CAT.srcdata(:,winpnts,:),[2 1 3]), g.morder, g.morder,'zero');
             else

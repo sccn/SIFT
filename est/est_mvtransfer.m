@@ -167,9 +167,11 @@ for n=1:nfreqs
         % complex non-normalized PDC
         % (Fourier transform of model coefficients)
         for k = 1:morder+1,
-            Conn.PDC(:,:,n) = Conn.PDC(:,:,n) + A(:,k*nchs+(1-nchs:0))*exp(z*(k-1)*freqs(n));
+            Conn.PDC(:,:,n) = Conn.PDC(:,:,n) + A(:,k*nchs+(1-nchs:0))*exp(-z*(k-1)*freqs(n));
         end
     end
+    
+%     imagesc(abs(Conn.PDC(:,:,n).*exp(1i*z)));
     
     if any(strcmpi('DTF',methodsneeded))
         % complex non-normalized DTF

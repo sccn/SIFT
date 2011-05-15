@@ -62,7 +62,7 @@ if nargout > 1, params = g; end
 g.winstep   = MODEL.winstep;
 g.winlen    = MODEL.winlen;
 params = g;
-
+if ~isfield(g,'freqs') || isempty(g.freqs), g.freqs = 1:floor(EEG.srate/2); end
 Conn = [];
 
 numWins = length(MODEL.AR);

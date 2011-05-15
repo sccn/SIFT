@@ -66,7 +66,7 @@ ndisc = 10^3;   % number of simulated samples to discard
 
 % simulate data from model
 % datasim = zeros(nchs,pnts,ntr);
-datasim =arsim(zeros(1,nchs),AR,C,pnts*ntr,ndisc);
+datasim =tvarsim(zeros(1,nchs),AR,C,[pnts ntr],ndisc);
 datasim = reshape(datasim',[nchs pnts ntr]);
 
 
