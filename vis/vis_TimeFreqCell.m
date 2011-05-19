@@ -507,10 +507,10 @@ for dir=1:numdirs
                 plot(g.alltimes,mean(Stat(:,:,2),1),'g' ,'LineWidth',g.linewidth);
                 plot(g.alltimes,mean(Stat(:,:,2),1),'k:','LineWidth',g.linewidth);
         end;
-        axis([min(g.alltimes) max(g.alltimes) min([Emin(:)' Stat(:)'])*1.2 max([Emax(:)' Stat(:)'])*1.2]);
+        axis([min(g.alltimes) max(g.alltimes) min([Emin(:)' Stat(:)'])*1.2-10^-5 max([Emax(:)' Stat(:)'])*1.2+10^-5]);
     else
         if ~all(isnan(Emin(:)))
-            axis([min(g.alltimes)-eps max(g.alltimes)+eps min(Emin)*1.2-eps max(Emax)*1.2+eps]);
+            axis([min(g.alltimes)-eps max(g.alltimes)+eps min(Emin)*1.2-10^-5 max(Emax)*1.2+10^-5]);
         end
     end;
     
@@ -577,11 +577,11 @@ for dir=1:numdirs
             end;
         end;
         if ~isnan(max(Emax))
-            axis([g.allfreqs(1) g.allfreqs(end) min([Emin(:)' Stat(:)'])*1.2 max([Emax(:)'  Stat(:)'])*1.2]);
+            axis([g.allfreqs(1) g.allfreqs(end) min([Emin(:)' Stat(:)'])*1.2-10^-5 max([Emax(:)'  Stat(:)'])*1.2+10^-5]);
         end;
     else             % plot marginal mean coherence only
         if ~isnan(max(Emax))
-            axis([g.allfreqs(1)-eps g.allfreqs(end)+eps min(Emin)*1.2-eps max(Emax)*1.2+eps]);
+            axis([g.allfreqs(1)-eps g.allfreqs(end)+eps min(Emin)*1.2-10^-5 max(Emax)*1.2+10^-5]);
         end;
     end
     

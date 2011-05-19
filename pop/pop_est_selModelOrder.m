@@ -99,7 +99,7 @@ if ~isfield(g,'icselector'), g.icselector = {'sbc','aic'}; end
 if ~isfield(g,'plot'), g.plot = 1; end
 
 % possible information criteria
-orderCriteria = {'AIC','FPE','SBC','HQ'};
+orderCriteria = {'AIC','FPE','SBC','HQ','RIS'};
 
 if ~isempty(g.morder) && length(g.morder) == 2
     pmin = g.morder(1);

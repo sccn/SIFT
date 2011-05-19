@@ -88,7 +88,7 @@ function [IC MODEL params] = est_selModelOrder(EEG,varargin)
 
 var = hlp_mergeVarargin(varargin{:});
 g = finputcheck(var, [hlp_getDefaultArglist('est'); ...
-                     {'icselector',          ''     {}   {'sbc','aic','fpe','hq'};}], ...
+                     {'icselector',          ''     {}   {'sbc','aic','fpe','hq','ris'};}], ...
                 'est_selModelOrder','ignore','quiet');
 if ischar(g), error(g); end
 if nargout > 2, params = g; end
@@ -130,7 +130,9 @@ end
 
 % initialize some variables
 % popt        = zeros(1,numWins);
-[sbc fpe aic hq]    = deal(nan*ones(pmax-pmin+1,numWins));
+[sbc fpe aic hq ris]    = deal(nan*ones(pmax-pmin+1,numWins));
+
+nparams = nbchan^2.*(pmin:pmax);
 
 for t=1:numWins
 
@@ -144,18 +146,21 @@ for t=1:numWins
         logdp(p-pmin+1) = log(det(MODEL.PE{t}(:,p*nbchan+(1:nbchan))*(npnts-p))); 
     end;
 
+    
     % Schwarz's Bayesian Criterion
-    sbc(:,t) = logdp + (log(ne).*(nbchan*nbchan*(pmin:pmax))./ne);   % TM
+    sbc(:,t) = logdp + (log(ne).*nparams./ne);   % TM
 
     % Akaike Information Criterion
-    aic(:,t) = logdp + 2.*(nbchan*nbchan*(pmin:pmax))./ne;   % TM
+    aic(:,t) = logdp + 2.*nparams./ne;   % TM
 
     % logarithm of Akaike's Final Prediction Error
     fpe(:,t) = logdp + nbchan*log(ne.*(ne+nbchan*(pmin:pmax))./(ne-nbchan*(pmin:pmax)));  % TM
 
     % Hannan-Quinn criterion
-    hq(:,t) = logdp + (nbchan*nbchan*(pmin:pmax)).*2.*log(log(ne))./ne;  % TM
+    hq(:,t) = logdp + nparams.*2.*log(log(ne))./ne;  % TM
 
+    % Rissanen criterion
+    ris(:,t) = logdp + (nparams./ne).*log(ne);
     
     for i=1:length(g.icselector)
         % get index iopt of order that minimizes the order selection 

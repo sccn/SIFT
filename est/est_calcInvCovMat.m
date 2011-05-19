@@ -122,7 +122,7 @@ switch mode
 
         Rinv = full(reshape(Rinv,Mp,Mp)\speye(Mp));
         
-    case 3    
+    case 3
         
         % Anderson-Moore/Barone Doubling Algorithm [1]
 

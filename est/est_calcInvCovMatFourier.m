@@ -81,7 +81,7 @@ end
 %% construct the V matrix for all freqs
 fi=0;
 COS=zeros(p^2,4); 
-freqs=(2*pi*foi)/fs;  % is this correct??
+freqs=(2*pi*foi)/fs; 
 V = zeros(length(freqs),N,N,2,2); % NOTE: V will end up (N,N,freqs,2,2)
 if verb, h=waitbar(0,'calculating V^-1...'); end
 for f=freqs

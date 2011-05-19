@@ -75,14 +75,15 @@ if isempty(g.morder) || length(g.morder)>2, error('invalid entry for field ''mor
  % combine structs, overwriting duplicates of g with 
 if ~isfield(g,'updatecoeff'), g.updatecoeff = 0.001; end
 if ~isfield(g,'updatemode'), g.updatemode = 1; end
-if ~isfield(g,'downsampleFactor'), g.downsampleFactor = 1; end;
-if ~isfield(g,'winstep'), g.winstep = []; end
+if ~isfield(g,'downsampleFactor'), g.downsampleFactor = []; end;
+if ~isfield(g,'constraints'), g.constraints = struct([]); end    % constraints.D and constraints.d are constraints of form Dx=d
 
-if ~isempty(g.winstep)
-    g.downsamplefactor = round(g.winstep*EEG.srate);
-else
-    g.winstep = g.downsampleFactor/EEG.srate;
+if isempty(g.downsampleFactor)
+    g.downsampleFactor = round(g.winstep*EEG.srate);
 end
+
+g.winstep = g.downsampleFactor/EEG.srate;
+
 
 %     g = catstruct(g,gvar); clear g2;
 
@@ -109,6 +110,9 @@ TimeConstant = MemoryLengthSamples/EEG.srate;
 if g.verb, 
     fprintf('The effective window length is approximately %0.5f seconds (%d samples)\n',TimeConstant,MemoryLengthSamples); 
     fprintf('Your step size is %0.3f ms\n',g.winstep*1000);
+    if ~isempty(g.constraints)
+        fprintf('Using constraints\n');
+    end
 end
     
 
@@ -116,7 +120,7 @@ end
  
 [nchs npnts] = size(EEG.CAT.srcdata);
 
-[VAR,residuals,Kalman,C] = mvaar(permute(EEG.CAT.srcdata,[2 1]),g.morder,g.updatecoeff,g.updatemode,[],g.verb,g.downsampleFactor);
+[VAR,residuals,Kalman,C] = mvaar(permute(EEG.CAT.srcdata,[2 1]),g.morder,g.updatecoeff,g.updatemode,[],g.verb,g.downsampleFactor,g.constraints);
 
 time = toc;
 
