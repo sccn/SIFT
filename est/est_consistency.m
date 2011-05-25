@@ -67,10 +67,10 @@ ndisc = 10^3;   % number of simulated samples to discard
 % simulate data from model
 % datasim = zeros(nchs,pnts,ntr);
 datasim =tvarsim(zeros(1,nchs),AR,C,[pnts ntr],ndisc);
-datasim = reshape(datasim',[nchs pnts ntr]);
+datasim = permute(datasim,[2 1 3]); %reshape(datasim',[nchs pnts ntr]);
 
 
-% calculate auto- and cross-correlation coefficients
+% calculate average auto- and cross-correlation coefficients
 Rs=zeros(2*(nlags+1)-1,nchs^2);
 Rr=Rs;
 for tr=1:ntr
