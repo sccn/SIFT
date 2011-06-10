@@ -1,4 +1,4 @@
-function [xout,e,Kalman,Q2out, Q1out] = mvaar(y,p,UC,mode,Kalman,verb,downsampleFactor,constraints)
+function [xout,Q2out,e,Kalman, Kout] = mvaar(y,p,UC,mode,Kalman,verb,downsampleFactor,constraints)
 % Multivariate (Vector) adaptive AR estimation base on a multidimensional
 % Kalman filer algorithm. A standard VAR model (A0=I) is implemented. The
 % state vector is defined as X=(A1|A2...|Ap)' and x=vec(X)
@@ -9,25 +9,33 @@ function [xout,e,Kalman,Q2out, Q1out] = mvaar(y,p,UC,mode,Kalman,verb,downsample
 %
 %		y(n)-A1(n)*y(n-1)-...-Ap(n)*y(n-p)=e(n)
 %
-%	The dimension of y(n) equals s
+%	The dimension of y(n) equals M
 %
 %	Input Parameters:
 %
-% 		y			Observed data or signal [npnts x nchs]
+% 		y			Observed data or signal [N x M] where N = epoch length
 % 		p			prescribed maximum model order (default 1)
 %		UC			update coefficient	(default 0.001)
 %		mode	 	update method of the process noise covariance matrix 0...7 ^
 %					correspond to S0...S7 (default 0)
 %       verb        verbosity
+%       downsampleFactor:   Starting from sample t=max(2,k), store only every k Kalman 
+%                           coefficients (states, etc) where k=downsampleFactor.
 %       constraints structure with fields .D and .d containing constraints
 %                   of the form Dx = d (see [1] below)
 %
 %	Output Parameters
 %
 %		e			prediction error of dimension s
-%		x			state vector of dimension s*s*p
-%		Q2			measurement noise covariance matrix of dimension s x s
-%       Q1          state noise covariance matrix
+%		x			state matrix of dimension [T x M*M*p] 
+%                   where T = ceil((N-downsampleFactor+q)/downsampleFactor)
+%                   where q = (downsampleFactor>1 ? 1 : 0)
+%                   - note that we never store the coefficient matrix for t=1
+%                   since this is always zero (we have no sample at t=0 from
+%                   which to compute the coefficient matrix for t=1)
+%		Q2			measurement noise covariance matrix of dimension M x M
+%       Kout        estimated state noise covariance matrix
+%       Kalman      Kalman structure (can be used as subsequent startup)
 %
 
 %       $Id: mvaar.m 5090 2008-06-05 08:12:04Z schloegl $
@@ -40,6 +48,7 @@ function [xout,e,Kalman,Q2out, Q1out] = mvaar(y,p,UC,mode,Kalman,verb,downsample
 %       01/23/2011 -- Modified for downsampled storage 
 %       04/13/2011 -- Optimized performance
 %       05/12/2011 -- Added projection onto constraint surface [1]
+%       05/20/2011 -- Added additional noise covariance update modes
 %       
 %       [1] Simon D (2010) Kalman Filtering with State Constraints: 
 %       A Survey of Linear and Nonlinear Algorithms. 
@@ -82,8 +91,8 @@ else
     Constr_d = constraints.d;
 end
 
-if ~any(mode==(0:7))
-    fprintf(2,'Invalid mode (0...7)\n');
+if ~any(mode==(0:8))
+    fprintf(2,'Invalid mode (0...8)\n');
     return
 end;
 
@@ -98,44 +107,44 @@ end
 
 % ye = zeros(size(y));	%prediction of y
 
-if nargout>1,
-    xout=zeros(L,floor(LEN/downsampleFactor));
-end;
-if nargout>3,
-    Q2out=zeros(M,M,floor(LEN/downsampleFactor));
+% size of downsampled storage
+dslen = ceil((LEN-downsampleFactor+(downsampleFactor>1))/downsampleFactor);
+
+xout=zeros(L,dslen);
+
+if nargout>1
+    Q2out=zeros(M,M,dslen);
 end
-if nargout>4,
-    Q1out = zeros(M,M,floor(LEN/downsampleFactor));
+if nargout>4
+    Kout = zeros(M,M,dslen);
 end;       
-if nargout>5
-    Kout = zeros(M,M,floor(LEN/downsampleFactor));
-end
 
 if verb==2
     h=waitbar(0,sprintf('fitting VAR[%d] model [mode=%s] ...', ...
               p, 'Kalman')); 
 end
 
-if nargin<5 || isempty(Kalman)
-    %Kalman Filter initialsiation (Kp (K predicted or a-priori) equals K(n+1,n) )
-    F   = eye(L);          % observation matrix
-    G   = zeros(L,M);      % Kalman Gain
-    x   = zeros(L,1);      % state vector
-    Kp  = eye(L);        
-    Q1  = eye(L);      % state noise covariance matrix
-    Q2  = eye(M);         % measurement noise covariance matrix
-    ye  = zeros(size(y)); % prediction of y
+%Kalman Filter initialsiation (Kp (K predicted or a-priori) equals K(n+1,n) )
+F   = eye(L);          % observation matrix
+G   = zeros(L,M);      % Kalman Gain
+x   = zeros(L,1);      % state vector
+Kp  = eye(L);        
+Q1  = eye(L);         % state noise covariance matrix
+Q2  = eye(M);         % measurement noise covariance matrix
+ye  = zeros(size(y)); % prediction of y
     
 %     Kalman=struct('F',eye(L),'H',zeros(M,L),'G',zeros(L,M),'x',zeros(L,1),'Kp',eye(L),'Q1',eye(L)*UC,'Q2',eye(M),'ye',zeros(size(y)));
-else
-    ye = Kalman.ye;
-    F  = Kalman.F;
-    Q1 = Kalman.Q1;
-    Kp = Kalman.Kp;
-    Q2 = Kalman.Q2;
-    x  = Kalman.x;
-    H  = Kalman.H;
-    G  = Kalman.G;
+if nargin>=4 && ~isempty(Kalman)
+    
+    if isfield(Kalman,'ye'), ye = Kalman.ye; end
+    if isfield(Kalman,'F'),  F  = Kalman.F;  end
+    if isfield(Kalman,'Q1'), Q1 = Kalman.Q1; end
+    if isfield(Kalman,'Kp'), Kp = Kalman.Kp; end
+    if isfield(Kalman,'Q2'), Q2 = Kalman.Q2; end
+    if isfield(Kalman,'x'),  x  = Kalman.x;  end
+    if isfield(Kalman,'H'),  H  = Kalman.H;  end
+    if isfield(Kalman,'G'),  G  = Kalman.G;  end
+    
 end
 
 upd = eye(L)/L*UC;		%diagonal matrix containing UC
@@ -160,7 +169,10 @@ elseif mode==6
     Q1 = eye(L)*UC^2;
 elseif mode==7
     Q1 = eye(L)*UC;
+elseif mode==8
+    Q1 = zeros(L);  % RLS algorithm (no process noise)
 end
+
 
 
 curval = 1;
@@ -185,7 +197,8 @@ for n = 2:LEN
     H=kron(eye(M),Yr);
     
     
-    %calculate prediction error
+    %calculate a-priori prediction error (1-step prediction error)
+    
     ye(n,:)=(H*x)';
     err=y(n,:)-ye(n,:);
     
@@ -222,7 +235,7 @@ for n = 2:LEN
         
         %current estimation of state x
         x=x+G*(err)';
-        
+            
         if doConstraints
             KD = K*Constr_D';
             
@@ -232,10 +245,8 @@ for n = 2:LEN
         
     end; % isnan(err)
     
-    if ~mod(n-1,downsampleFactor)
+    if ~mod(n,downsampleFactor)
         % store the current state
-        curval = curval + 1;
-        
         
         if 0; doConstraints;
             
@@ -248,25 +259,23 @@ for n = 2:LEN
             xout(:,curval) = x;
         end
 
-        if nargout>3,
+        if nargout>1
             Q2out(:,:,curval)=Q2;
         end;
         
-        if nargout>4,
-            Q1out(:,:,curval)=Q1;
-        end;
-        
-        if nargout>5
+        if nargout>4
             Kout(:,:,curval) = K;
         end
+        
+        curval = curval + 1;
     end
 end;
 
-if nargout > 1
+if nargout > 2
     e = y - ye;
 end
 
-if nargout > 2
+if nargout > 3
     Kalman.ye = ye;
     Kalman.F  = F;
     Kalman.Q1 = Q1;

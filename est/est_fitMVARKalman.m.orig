@@ -20,8 +20,8 @@ function [MODEL params] = est_fitMVARKalman(EEG,typeproc,varargin)
 %     'epochTimeLims'      time range to analyze (sec) where 0 = start of the epoch
 %     'verb'               verbosity level (0=no output, 1=text, 2=gui)
 %     'timer'              estimate time required to fit model
-%       downsampleFactor:   Starting from sample t=max(2,k), store only every k Kalman 
-%                           coefficients (states, etc) where k=downsampleFactor.
+%     'downsampleFactor'   store VAR coefficient matrices only for every Nth
+%                          timepoint, where N=downsampleFactor.
 %
 % Output:
 %
@@ -75,23 +75,20 @@ if isempty(g.morder) || length(g.morder)>2, error('invalid entry for field ''mor
  % combine structs, overwriting duplicates of g with 
 if ~isfield(g,'updatecoeff'), g.updatecoeff = 0.001; end
 if ~isfield(g,'updatemode'), g.updatemode = 1; end
-if ~isfield(g,'downsampleFactor'), g.downsampleFactor = []; end;
-if ~isfield(g,'constraints'), g.constraints = struct([]); end    % constraints.D and constraints.d are constraints of form Dx=d
-if ~isfield(g,'storage'), g.storage = {}; end
-if ~isfield(g,'Kalman'),  g.Kalman = []; end
+if ~isfield(g,'downsampleFactor'), g.downsampleFactor = 1; end;
+if ~isfield(g,'winstep'), g.winstep = []; end
 
-if isempty(g.downsampleFactor)
-    g.downsampleFactor = round(g.winstep*EEG.srate);
+if ~isempty(g.winstep)
+    g.downsamplefactor = round(g.winstep*EEG.srate);
+else
+    g.winstep = g.downsampleFactor/EEG.srate;
 end
-
-g.winstep = g.downsampleFactor/EEG.srate;
-
 
 %     g = catstruct(g,gvar); clear g2;
 
 if nargout > 1, params = g; end
 
-g.winStartIdx  = max(2,g.downsampleFactor):g.downsampleFactor:size(EEG.CAT.srcdata,2);
+g.winStartIdx  = 1:g.downsampleFactor:size(EEG.CAT.srcdata,2);
 numWins   = length(g.winStartIdx);
 
 [AR PE RC]  = deal(cell(1,numWins));
@@ -112,9 +109,6 @@ TimeConstant = MemoryLengthSamples/EEG.srate;
 if g.verb, 
     fprintf('The effective window length is approximately %0.5f seconds (%d samples)\n',TimeConstant,MemoryLengthSamples); 
     fprintf('Your step size is %0.3f ms\n',g.winstep*1000);
-    if ~isempty(g.constraints)
-        fprintf('Using constraints\n');
-    end
 end
     
 
@@ -122,28 +116,18 @@ end
  
 [nchs npnts] = size(EEG.CAT.srcdata);
 
-if isempty(g.storage)
-    [VAR MODEL.Q2] = mvaar(permute(EEG.CAT.srcdata,[2 1]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
-elseif ismember('residuals',lower(g.storage))
-    [VAR,MODEL.Q2, MODEL.residuals] = mvaar(permute(EEG.CAT.srcdata,[2 1]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
-elseif ismember('kalman',lower(g.storage));
-    [VAR,MODEL.Q2, MODEL.residuals] = mvaar(permute(EEG.CAT.srcdata,[2 1]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
-elseif ismember('state_covariance',lower(g.storage))
-    [VAR, MODEL.Q2,MODEL.residuals,MODEL.Kalman, MODEL.Q1] = mvaar(permute(EEG.CAT.srcdata,[2 1]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
-else
-    error('unknown storage option %s',g.storage{1});
-end
+[VAR,residuals,Kalman,C] = mvaar(permute(EEG.CAT.srcdata,[2 1]),g.morder,g.updatecoeff,g.updatemode,[],g.verb,g.downsampleFactor);
 
 time = toc;
 
-for t=1:size(VAR,1)
+for t=2:size(VAR,1)
     % store VAR coefficients and noise covariance matrices
-    AR{t} = reshape(VAR(t,:),nchs*g.morder,nchs).';
-    PE{t}  = MODEL.Q2(:,:,t);
-    RC{t} = [];
-    if g.timer, timeElapsed(t) = time/npnts; end
+    AR{t-1} = reshape(VAR(t,:),nchs*g.morder,nchs).';
+    PE{t-1}  = C(:,:,t);
+    RC{t-1} = [];
+    if g.timer, timeElapsed(t-1) = time/npnts; end
 end
-
+g.winStartIdx(1) = [];
 
 MODEL.AR = AR;
 MODEL.PE = PE;
@@ -158,6 +142,5 @@ MODEL.timeelapsed = timeElapsed;
 MODEL.updatecoeff = g.updatecoeff;
 MODEL.updatemode = g.updatemode;
 MODEL.downsampleFactor = g.downsampleFactor;
-
 % MODEL.normalize = g.normalize;
 

@@ -23,7 +23,7 @@ function [ARF,RCF,PE] = mvar_vieiramorf(Y, Pmax)
 %
 %
 % REFERENCES:
-%  [1] A. Schl\"ogl, Comparison of Multivariate Autoregressive Estimators.
+%  [1] A. Schlogl, Comparison of Multivariate Autoregressive Estimators.
 %       Signal processing, Elsevier B.V. (in press). 
 %       available at http://dx.doi.org/doi:10.1016/j.sigpro.2005.11.007
 %  [2] S.L. Marple "Digital Spectral Analysis with Applications" Prentice Hall, 1987.

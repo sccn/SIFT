@@ -31,7 +31,7 @@ function [cfg handles] = pop_vis_TimeFreqGrid(ALLEEG,varargin)
 %           >> vis_TimeFreqGrid(ALLEEG,cfg);          % TF-grid will now be recreated from command-line 
 %                                                     % exactly as specified in GUI 
 %
-% See Also: pop_vis_TimeFreqGrid() 
+% See Also: vis_TimeFreqGrid() 
 %
 % References: 
 % 
