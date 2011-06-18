@@ -1,4 +1,4 @@
-function [v]=tvarsim(w,A,C,n_ntr,ndisc,beta,alpha)
+function [v]=tvarsim(w,A,C,n_ntr,ndisc,beta,alpha,distribution)
 %ARSIM	Simulation of AR process.	
 %
 %  v=ARSIM(w,A,C,n) simulates n time steps of the AR(p) process
@@ -63,6 +63,9 @@ function [v]=tvarsim(w,A,C,n_ntr,ndisc,beta,alpha)
 %  Author: Tapio Schneider
 %          tapio@gps.caltech.edu
 
+if nargin < 8
+    distribution = 'gengauss';
+end
 if nargin < 7
     % gen. gaussian scale
     alpha = 1;
@@ -123,16 +126,21 @@ end
   % pseudo-random vectors with covariance matrix C=R'*R
   randvec = zeros([ndisc+n,m ntr]);
   
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  % These are the modifications performed by Germán Gómez-Herrero
-    %   for itr=1:ntr
-    %     randvec(:, :, itr) = randn([ndisc+n,m])*R;
-    %   end
-  for itr = 1:ntr
-    randvec(:,:,itr) = reshape(ggrnd((ndisc+n)*m,beta,alpha),ndisc+n,m)*R;
-  end
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+ if strcmpi(distribution,'hsec')
+     % draw from hyperbolic secant distribution
+     randvec = alpha + beta*log(tan(pi*rand(ndisc+n,m)/2));  % beta = 2/pi
+ else
+      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      % These are the modifications performed by Germán Gómez-Herrero
+        %   for itr=1:ntr
+        %     randvec(:, :, itr) = randn([ndisc+n,m])*R;
+        %   end
+      for itr = 1:ntr
+        randvec(:,:,itr) = reshape(ggrnd((ndisc+n)*m,beta,alpha),ndisc+n,m)*R;
+      end
+      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ end
+ 
   % Add intercept vector to random vectors
   randvec = randvec + repmat(w, [ndisc+n, 1, ntr]);
   

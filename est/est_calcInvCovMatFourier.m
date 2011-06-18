@@ -108,7 +108,7 @@ for f=freqs
     
     % now we multiply in the variances of the i's (E(i,i)) to generate the
     % full V matrix
-    Vm = kron(diag(E)',Vm);   % FIX? shouldn't Eii be multipled by each element of Vm p^2 times? e.g., Vm = kron(diag(p^2*E)',Vm);
+    Vm = kron(diag(E)',Vm);   % Vm = kron(diag(p^2*E)',Vm);
     
     % next, reshape to desired structure (NxNx2x2)
     V(fi,:,:,:,:) = permute(reshape(Vm',2,2,N,N),[3 4 1 2]);

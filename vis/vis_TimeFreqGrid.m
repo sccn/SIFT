@@ -412,6 +412,7 @@ switch lower(g.MatrixLayout.arg_selection)
                 % same estimator on upper/lower triangles, with different
                 % estimator on diagonal
                 % ... first plot diagonals...
+                g.arg_direct = 0;
                 figureHandles = vis_TimeFreqGrid('ALLEEG',ALLEEG,'Conn',Conn,g, ...
                         'FigureHandles', [g.fighandles], ...
                         'MatrixLayout',{'Partial','tril','none','diag',g.MatrixLayout.diag,'triu','none'});  
@@ -1152,8 +1153,9 @@ for ch_i=1:nch
 
             set(gca,'Ylim',g.clim);
             set(gca,'Xlim',[g.freqValues(1) g.freqValues(end)]);
+            set(gca,'tag','lineplot');
 %             set(gca,'userdata',struct('dat',squeeze(ConnMatrix(i,j,:,:)),'freqs',g.freqValues,'from',g.nodelabels(j),'to',g.nodelabels(i)));
-            try, axcopy(gca); catch; end
+%             try, axcopy(gca); catch; end
 %                 set([gca h],'buttondownfcn',cbfun);
 
         % MODE 3: Causality x Time (for single freq) lineplots
@@ -1183,7 +1185,8 @@ for ch_i=1:nch
 %                 set(gca,'Ylim',clim);
 %                 set(gca,'Xlim',[erWinCenterTimes(1) erWinCenterTimes(end)]);
 % %                 set(gca,'userdata',struct('dat',squeeze(ConnMatrix(i,j,g.freqValues,:)),'freqs',g.freqValues,'from',g.nodelabels(j),'to',g.nodelabels(i)));
-                try, axcopy(gca); catch; end
+                set(gca,'tag','lineplot');
+%                 try, axcopy(gca); catch; end
         end
       
     end
@@ -1200,6 +1203,12 @@ for ch_i=1:nch
     set(gca,'ycolor','r');
 end
            
+
+% axcopy all lineplots
+lineplots = findobj(gcf,'tag','lineplot');
+for i=1:length(lineplots)
+    axcopy(lineplots(i));
+end
 
 % axcopy all topoplots
 topos = findobj(gcf,'tag','topo');

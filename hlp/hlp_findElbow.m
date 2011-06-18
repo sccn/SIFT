@@ -1,4 +1,6 @@
 function [elbowVal elbowIdx] = hlp_findElbow(curve)
+% [elbowVal elbowIdx] = hlp_findElbow(curve)
+%
 % Find the 'elbow' in a curve. We do this by drawing a line from the first 
 % to the last point of the curve and then finding the data point that is 
 % farthest away from that line. Technically, if b is the vector from the 

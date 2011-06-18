@@ -72,6 +72,17 @@ g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_fitMVAR','ignore','quiet
 if ischar(g), error(g); end
 if isempty(g.epochTimeLims), g.epochTimeLims = [0 EEG.pnts/EEG.srate]; end
 if isempty(g.morder) || length(g.morder)>1, error('invalid entry for field ''morder.'' Make sure the model order is a single integer.'); end
+
+% initialize defaults for scsa
+scsadef = struct('lambda',100,'shrink_diagonal',true,'initAR',[],'loss','hs');
+if ~isfield(g,'scsa'), g.scsa = scsadef; end
+fnames = fieldnames(g.scsa);
+for f=1:length(fnames)
+    scsadef.(fnames{f}) = g.scsa.(fnames{f});
+end
+g.scsa = scsadef;
+
+
  % combine structs, overwriting duplicates of g with 
 %     g = catstruct(g,gvar); clear g2;
 if nargout > 1, params = g; end
@@ -117,9 +128,19 @@ else
     timeElapsed = [];
 end
 
-if ~ismember(g.algorithm,{'arfit','vieira-morf-ding'})
+if ~ismember(g.algorithm,{'arfit','vieira-morf-ding','scsa'})
     EEG.CAT.srcdata = permute(EEG.CAT.srcdata,[2 1 3]);  % time x chans x trials
 end
+
+if isequal(g.algorithm,'scsa') && ~strcmpi(class(EEG.CAT.srcdata),'double')
+    % convert data to double precision (necessary for kron)
+    EEG.CAT.srcdata = double(EEG.CAT.srcdata);
+end
+
+exist_mvarpll   = logical(exist('mvar_pll','file'));
+exist_armorf    = logical(exist('armorf','file'));
+exist_arfit     = logical(exist('arfit','file'));
+exist_scsa      = logical(exist('dalhsgl','file'));
 
 for t=1:numWins
     
@@ -131,7 +152,7 @@ for t=1:numWins
     
     switch lower(g.algorithm)
         case 'vieira-morf-pll'
-            if exist('mvar_pll','file')
+            if exist_mvarpll
                 data = squeeze(EEG.CAT.srcdata(winpnts,:,:));
                 data = nanpad(data,g.morder);
                 [AR{t},RC{t},PE{t}] = mvar_pll(gdouble(data), g.morder, 2);
@@ -139,7 +160,7 @@ for t=1:numWins
                 error('mvar_pll.m not found! mvar_pll option not available!');
             end
         case 'vieira-morf-ding'
-            if exist('armorf','file')
+            if exist_armorf
                 [AR{t},PE{t}] = armorf(reshape(EEG.CAT.srcdata(:,winpnts,:), ...
                                 [EEG.CAT.nbchan,EEG.trials*winLenPnts]),...
                                 EEG.trials,winLenPnts,g.morder);
@@ -152,12 +173,25 @@ for t=1:numWins
             data = nanpad(data,g.morder);
             [AR{t},RC{t},PE{t}] = mvar_vieiramorf(data, g.morder);
         case 'arfit'
-            if exist('arfit','file')
+            if exist_arfit
                 RC{t} = [];
                 [w, AR{t}, PE{t} sbc, fpe, th{t}] = arfit(permute(EEG.CAT.srcdata(:,winpnts,:),[2 1 3]), g.morder, g.morder,'zero');
             else
-                error('arfit.m not found! ARFIT option unavailable');
+                error('arfit.m not found! Please download ARFIT. ARFIT option unavailable');
             end
+        case 'scsa'
+            if exist_scsa
+                if iscell(g.scsa.initAR)
+                    AR0 = g.scsa.initAR{t};
+                else
+                    AR0 = g.scsa.initAR;
+                end
+                [AR{t} PE{t}] = mvar_dalSCSA(EEG.CAT.srcdata(:,winpnts,:),g.morder,g.scsa.lambda,AR0,g.scsa.shrink_diagonal,g.scsa.loss,'solver','cg','maxiter',10,'tol',1e-3);
+                RC{t} = [];
+            else
+                error('dalhsgl.m not found! Please download DAL 1.05 toolbox. SCSA option unavailable');
+            end
+            
         otherwise
             if exist('mvar','file')
                 % one of the other mvar modes...
@@ -184,6 +218,13 @@ for t=1:numWins
     end
     
     if g.timer, timeElapsed(t) = toc; end
+end
+
+if exist_scsa
+    % clear persistent variables
+    clear mvar_dalSCSA
+%     MODEL.ww = ww;
+    MODEL.lambda = g.scsa.lambda;
 end
 
 if g.verb, close(h); end

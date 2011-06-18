@@ -551,7 +551,8 @@ g = arg_define([0 2],varargin, ...
                 },'Options for saving the movie/figures','cat','MovieOutput'), ...
             arg({'mri'},'',[],'Dipplot MRI structure. Can be the name of matlab variable (in the base workspace) containing MRI structure. May also be a path to a Matlab file containing MRI structure. Default uses MNI brain.','type','char','shape','row'), ...
             arg({'coordformat','DipoleCoordinateFormat'},'spherical',{'spherical','mni'},'Coordinate format for dipplot','type','char','shape','row'), ...
-            arg({'dipplotopt','DipplotOptions'},'{}','','Additional dipplot options. Cell array of <''name'',value> pairs of additional options for dipplot (see ''doc dipplot'')','type','expression','shape','row') ...
+            arg({'dipplotopt','DipplotOptions'},'{}','','Additional dipplot options. Cell array of <''name'',value> pairs of additional options for dipplot (see ''doc dipplot'')','type','expression','shape','row'), ...
+            arg_nogui('renderBrainMovie',true,[],'Special option which determines whether to actually render the brainmovie (or just return values)') ...
             }, ...
     'Additonal options for rendering the brainmovie','cat','DisplayProperties') ...
     );
@@ -894,13 +895,13 @@ for cnd = 1:length(g.Conn)
         % compute desired graph measure for this node and map to size
         % we add eps=10^-16 just to ensure that values are never exactly
         % zero (or they will get set to NaN later)
-        NodeSize(ch1,:) = computeGraphMeasure(causality,ch1,g.BMopts.selected,g.nodeSizeMapping)+eps;
+        NodeSize(ch1,:) = hlp_computeGraphMeasure(causality,ch1,g.BMopts.selected,g.nodeSizeMapping)+eps;
         
         if strcmp(g.nodeSizeMapping,g.nodeColorMapping)
             NodeColor(ch1,:) = NodeSize(ch1,:);
         else
             % compute desired graph measure for this node and map to color
-            NodeColor(ch1,:) = computeGraphMeasure(causality,ch1,g.BMopts.selected,g.nodeColorMapping)+eps;
+            NodeColor(ch1,:) = hlp_computeGraphMeasure(causality,ch1,g.BMopts.selected,g.nodeColorMapping)+eps;
         end
                 
         if g.resample
@@ -919,6 +920,14 @@ for cnd = 1:length(g.Conn)
     EdgeSize(EdgeSize==0)   = nan;
     EdgeColor(EdgeColor==0) = nan;
     
+    
+    if nargout>2
+        BMout.NodeSize  = NodeSize;
+        BMout.NodeColor = NodeColor;
+        BMout.EdgeSize  = EdgeSize;
+        BMout.EdgeColor = EdgeColor;
+    end
+        
 
     % convert to Brainmovie format
     % ----------------------------
@@ -1134,10 +1143,12 @@ bmargs = hlp_struct2varargin(hlp_flattenStruct(BMopts,'exclude',{'mri','csf'}),'
                              'rotationpath3d','AngleFactor',...
                              'PhaseFactor'});
 
-% Call BrainMovie3D
-brainmovie3d_causal( ...
-    NodeSizeCell,NodeColorCell,EdgeSizeCell,EdgeColorCell, ...
-    BrainMovieTimeRangeInMs,1,g.BMopts.selected,bmargs{:});
+if g.renderBrainMovie
+    % Call BrainMovie3D
+    brainmovie3d_causal( ...
+        NodeSizeCell,NodeColorCell,EdgeSizeCell,EdgeColorCell, ...
+        BrainMovieTimeRangeInMs,1,g.BMopts.selected,bmargs{:});
+end
 
 % EOF
 
@@ -1146,46 +1157,6 @@ brainmovie3d_causal( ...
 
 
 
-function NodeValue = computeGraphMeasure(causality,ch1,selectedvars,graphMeasure)
-
-
-% get indices of all nodes we will plot, except the current one
-othervars = setdiff(selectedvars,ch1);
-
-switch lower(graphMeasure)
-    case 'none'
-        NodeValue = zeros(1,size(causality,3));
-    case 'outflow'
-        % Compute outflow from ch1 in each freq
-        NodeValue = squeeze(sum(causality(othervars,ch1,:),1));
-    case 'inflow'
-        % Compute inflow to ch1 in each freq
-        NodeValue = squeeze(sum(causality(ch1,othervars,:),2));
-    case 'causalflow'
-        outflow =   squeeze(sum(causality(othervars,ch1,:),1));
-        inflow  =   squeeze(sum(causality(ch1,othervars,:),2));
-        NodeValue = outflow - inflow;
-    case 'outdegree'
-        % Compute number of outgoing edges from ch1 in each freq
-        NodeValue = squeeze(sum(causality(othervars,ch1,:),1));
-    case 'indegree'
-        % number of incoming edges to ch1 in each freq
-        NodeValue = squeeze(sum(logical(causality(ch1,othervars,:)),2));
-    case 'causaldegree'
-        % outdegree - indegree 
-        outflow =   squeeze(sum(logical(causality(othervars,ch1,:)),1));
-        inflow  =   squeeze(sum(logical(causality(ch1,othervars,:)),2));
-        NodeValue = outflow - inflow;
-    case 'asymmetryratio'
-        % 1 if all edges are outgoing, -1 if all edges are incoming.
-        % 0 if balanced
-        outflow =   squeeze(sum(causality(othervars,ch1,:),1));
-        inflow  =   squeeze(sum(causality(ch1,othervars,:),2));
-        NodeValue = (outflow - inflow)./(outflow+inflow);
-    otherwise
-        % user wants to map a different Conn measure to this
-        % (e.g., ERSP)
-end
         
         
 
