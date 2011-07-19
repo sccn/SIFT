@@ -9,9 +9,9 @@ pop_editoptions;
 % Now we will replace the ICA soution with a "fake" solution that always
 % copies the channel data into the ICA component (icaact) field
 % WARNING, THIS WILL *DELETE* YOUR ICA SOLUTION
-EEG.etc.icaweights_beforeIdentity = EEG.icaweights;
-EEG.etc.icasphere_beforeIdentity = EEG.icasphere;
-EEG.etc.icawinv_beforeIdentity = EEG.icawinv;
+% EEG.etc.icaweights_beforeIdentity = EEG.icaweights;
+% EEG.etc.icasphere_beforeIdentity = EEG.icasphere;
+% EEG.etc.icawinv_beforeIdentity = EEG.icawinv;
 
 [EEG.icaweights EEG.icasphere EEG.icawinv] = deal(eye(EEG.nbchan));
 
@@ -57,6 +57,9 @@ ModelOrder = ceil(mean(IC{1}.sbc.popt));
 [EEG cfg] = pop_est_fitMVAR(EEG,0,'algorithm','vieira-morf','morder',ModelOrder,'winlen',WindowLengthSec,'winstep',WindowStepSizeSec,'verb',1);
 
 % ALLEEG.CAT.MODEL now contains the model parameters
+
+% Alternately, use a Kalman filter
+% EEG.CAT.MODEL = est_fitMVARKalman(EEG,0,'updatecoeff',0.0005,'updatemode',2,'morder',ModelOrder,'verb',2,'downsampleFactor',50);
 
 %% (Optional) Validate the fitted model
 [whitestats PC stability] = pop_est_validateMVAR(EEG,0,'checkWhiteness',true,'whitenessCriteria',{'Ljung-Box','ACF','Box-Pierce','Li-McLeod'},...
