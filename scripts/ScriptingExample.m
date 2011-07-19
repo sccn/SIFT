@@ -61,6 +61,9 @@ ModelOrder = ceil(mean(IC{1}.sbc.popt));
 % Alternately, use a Kalman filter
 % EEG.CAT.MODEL = est_fitMVARKalman(EEG,0,'updatecoeff',0.0005,'updatemode',2,'morder',ModelOrder,'verb',2,'downsampleFactor',50);
 
+% Or use SCSA
+% [EEG] = pop_est_fitMVAR(EEG,0,'algorithm','scsa','morder',ModelOrder,'winlen',WindowLengthSec,'winstep',WindowStepSizeSec,'verb',1,'scsa',struct('lambda',70,'shrink_diagonal',true,'loss','hs'));
+
 %% (Optional) Validate the fitted model
 [whitestats PC stability] = pop_est_validateMVAR(EEG,0,'checkWhiteness',true,'whitenessCriteria',{'Ljung-Box','ACF','Box-Pierce','Li-McLeod'},...
                                                 'checkConsistency',true,'checkStability',true,'alpha',0.05,'prctWinToSample',20,'verb',2,'plot',0);

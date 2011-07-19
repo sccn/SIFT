@@ -12,7 +12,7 @@ function [MODEL params] = est_fitMVAR(EEG,typeproc,varargin)
 % Optional:
 %
 % 'algorithm',         string denoting which algorithm to use for model
-%                       fitting ('vieira-morf','arfit')
+%                       fitting ('vieira-morf','arfit','scsa')
 % 'winStartIdx'        vector of sample points (start of windows) at which to estimate windowed VAR model
 % 'morder',            VAR model order
 % 'winlen',            window length (sec)
