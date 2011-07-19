@@ -34,7 +34,14 @@ WindowStepSizeSec = 0.02;
 %% Preprocess the data
 ComponentsToKeep = strtrim(cellstr(num2str(Components')));
 
-[EEG config] = pre_prepData('ALLEEG',ALLEEG(1),'VerbosityLevel',2,'NewSamplingRate',256,'NormalizeData',{'Method',{'time','ensemble'}},'SelectComponents',{'ComponentsToKeep',ComponentsToKeep});
+% [EEG config] = pre_prepData('ALLEEG',ALLEEG(1),'VerbosityLevel',2,'NewSamplingRate',256,'NormalizeData',{'Method',{'time','ensemble'}},'SelectComponents',{'ComponentsToKeep',ComponentsToKeep});
+
+EEG.CAT.srcdata = EEG.icaact;
+EEG.CAT.curComps = 1:size(EEG.CAT.srcdata,1);
+EEG.CAT.curComponentNames = strtrim(cellstr(num2str(EEG.CAT.curComps')));
+EEG.CAT.nbchan = size(EEG.CAT.srcdata,1);
+EEG.CAT.MODEL = [];
+EEG.CAT.configs = struct([]);
 
 % gui version
 % EEG2 = pop_pre_prepData(ALLEEG(1),0,'VerbosityLevel',2,'NormalizeData',{'Method',{'time','ensemble'}},'SelectComponents',{'ComponentsToKeep',{'10','13'}});
