@@ -488,6 +488,7 @@ for dir=1:numdirs
     %    Emax = mean(ConnOrig,1);  % max of data collapsed across time
     %    Emin = Emax;
     
+    plotdat = [];
     [dummy idx] = max(abs(ConnOrig));
     for i=1:length(idx)   % CRAPPY CODE!!
         plotdat(i) = ConnOrig(idx(i),i);

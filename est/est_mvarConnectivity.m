@@ -77,29 +77,11 @@ if g.verb
         return;
     end
 end
-% try
-%     prealloc = 2*ones(1,length(g.connmethods)*numWins*length(g.freqs)*nchs^2,'single');
-% catch,
-%     errordlg2('Insuficient memory available to allocate variables');
-%     return;
-% end
-% clear prealloc;
-% pause(0.1);
 
 if g.verb
     h1=waitbar(0,sprintf('estimating connectivity %s...', ...
         fastif(isempty(EEG.condition),'',['for ' EEG.condition]))); 
 end
-
-% initialize connectivity object
-% try
-%     for m=g.connmethods
-%         Conn.(m{1}) = zeros(nchs,nchs,length(g.freqs),numWins);
-%     end
-% catch
-%     errordlg2('Insuficient memory available to allocate variables');
-%     return;
-% end
 
 for t=1:numWins
     

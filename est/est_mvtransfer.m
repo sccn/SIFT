@@ -108,6 +108,7 @@ dependencies = {...
                 'Coh',      {'iCoh'};
                 'S',        {'Coh','GGC','GGC2'};
                 'pCoh',     {'dDTF','dDTF08'};
+                'pCoh2',    {};
                 'mCoh',     {};
                 'RPDC',     {};
                 'GPDC',     {};
@@ -116,7 +117,7 @@ dependencies = {...
                 'dtf_denom' {'ffDTF','nDTF'};
                 'DTF',      {'nDTF','ffDTF','dDTF08','dtf_denom','S'};
                 'Sinv',     {'mCoh','pCoh','PDCF'};
-                'PDC',      {'DTF','G','nPDC','GPDC','RPDC','PDCF'};
+                'PDC',      {'DTF','G','nPDC','GPDC','RPDC','PDCF','pCoh2'};
                 'Rinv',     {'RPDC'}};
             
 % list of all possible intermediate (and final) estimators we might want to
@@ -203,6 +204,13 @@ for n=1:nfreqs
         % complex partial coherency
         autospect = diag(Conn.Sinv(:,:,n));
         Conn.pCoh(:,:,n) = Conn.Sinv(:,:,n)./sqrt(repmat(autospect,[1 nchs]).*repmat(autospect',[nchs 1]));
+    end
+    
+    if any(strcmpi('pCoh2',methodsneeded))
+        % complex partial coherency
+        Sinv = double(inverse(Conn.S(:,:,n)));
+        autospect = diag(Sinv);
+        Conn.pCoh2(:,:,n) = Sinv./sqrt(repmat(autospect,[1 nchs]).*repmat(autospect',[nchs 1]));
     end
     
     if any(strcmpi('iCoh',methodsneeded))

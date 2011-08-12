@@ -1,4 +1,4 @@
-function handles = vis_plotOrderCriteria(IC,conditions,icselector)
+function handles = vis_plotOrderCriteria(IC,conditions,icselector,minimizer)
 % Visualize the results of model order selection as computed by
 % est_selModelOrder()
 % 
@@ -9,13 +9,17 @@ function handles = vis_plotOrderCriteria(IC,conditions,icselector)
 %                       (see pop_est_selModelOrder())
 %
 % Optional: 
-%       ALLEEG:         Array of EEG structures for all conditions (only
-%                       used to obtain additional information about the 
-%                       dataset for plotting). 
-%                       Default: []
+%       conditions:     Cell array of strings containing names of
+%                       conditions for figure labeling
+%                       Default: {}
 %       icselector:     Cell array of string denoting which information
 %                       criteria to plot (must be fields of IC{.}).
 %                       Default: all selectors in IC structure
+%       minimizer:      'min' - find model order that minimizes info crit.
+%                       'elbow' - find model order corresponding to elbow
+%                                 of info crit. plot
+%                       Default: 'min'
+%                       
 % Output:
 %
 %       Figures will be rendered showing model selection results for each
@@ -52,8 +56,12 @@ if nargin<2
     conditions = [];
 end
 
-if nargin<3
+if nargin<3 || isempty(icselector)
     icselector = IC{1}.selector;
+end
+
+if nargin<4
+    minimizer = 'min';
 end
 
 for cond = 1:length(IC)
@@ -68,7 +76,7 @@ for cond = 1:length(IC)
 
     % plot the results
     % ----------------------
-    handles(cond) = figure('name',sprintf('%s - Model Order Selection Results',conditions{cond}));
+    handles(cond) = figure('name',sprintf('%s - Model Order Selection Results (%s)',conditions{cond},fastif(strcmpi(minimizer,'min'),'min ic','elbow ic')));
     for i=1:numinfocriteria
         allinfocrit(i,:) = mean(IC{cond}.(lower(icselector{i})).ic,2);
     end
@@ -101,7 +109,14 @@ for cond = 1:length(IC)
     % make markers at minima
     for i=1:numinfocriteria
         sel = icselector{i};
-        [minic popt] = min(allinfocrit(i,:)); %ceil(mean(IC{cond}.(lower(sel)).popt));
+        
+        switch minimizer
+            case 'min'
+                [minic popt] = min(allinfocrit(i,:)); %ceil(mean(IC{cond}.(lower(sel)).popt));
+            case 'elbow'
+                [minic popt] = hlp_findElbow(allinfocrit(i,:));
+        end
+        
 %         minic = allinfocrit(i,popt);
         plot(popt+IC{cond}.pmin-1,minic,'rs','markersize',10,'MarkerEdgeColor','k','markerfacecolor',defcolororder(i,:));
         lmin = vline(popt+IC{cond}.pmin-1);
@@ -136,9 +151,17 @@ for cond = 1:length(IC)
         for i=1:numinfocriteria
             ax=subplot(numrows,numcols,i+numcols);
             xScale = IC{cond}.pmin:IC{cond}.pmax;
-            bar(xScale,histc(IC{cond}.(lower(icselector{i})).popt,xScale),'k');
-            popt = ceil(mean(IC{cond}.(lower(icselector{i})).popt));
-            poptstd = ceil(std(IC{cond}.(lower(icselector{i})).popt));
+            
+            switch minimizer
+                case 'min'
+                    bar(xScale,histc(IC{cond}.(lower(icselector{i})).popt,xScale),'k');
+                    popt = ceil(mean(IC{cond}.(lower(icselector{i})).popt));
+                    poptstd = ceil(std(IC{cond}.(lower(icselector{i})).popt));
+                case 'elbow'
+                    bar(xScale,histc(IC{cond}.(lower(icselector{i})).pelbow,xScale),'k');
+                    popt = ceil(mean(IC{cond}.(lower(icselector{i})).pelbow));
+                    poptstd = ceil(std(IC{cond}.(lower(icselector{i})).pelbow));
+            end
             axes(ax);
             lmin = vline(popt,'--',[num2str(popt) '+-' num2str(poptstd)],1.05);
             set(lmin,'color',defcolororder(i,:),'linestyle','--','linewidth',2);

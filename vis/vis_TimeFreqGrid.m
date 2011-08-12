@@ -507,7 +507,6 @@ if strcmpi(g.topoplot,'dipole')
     elseif evalin('base',['exist(''' g.dipplot.mri ''',''var'')'])==1
         % MRI variable is in workspace, so copy it
         g.dipplot.mri = evalin('base',g.dipplot.mri);
-
         if ~isfield(g.dipplot.mri,'anatomy')
             error('MRI structure is invalid format (see ''dipplot'' for more info)');
         end
