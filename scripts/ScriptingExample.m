@@ -52,7 +52,7 @@ EEG = eeg_checkset(EEG,'ica');
 
 %% STEP 2: Define key Processing Parameters
 
-Components = [8 11]; %13 19 20 23 38 39];   % these are the components/channels to which we'll fit our multivariate model
+Components = [8 11 13 19 20 23 38 39];   % these are the components/channels to which we'll fit our multivariate model
 WindowLengthSec = 0.5;                   % sliding window length in seconds
 WindowStepSizeSec = 0.25;                % sliding window step size in seconds
 NewSamplingRate = [];                    % new sampling rate (if downsampling)
@@ -156,14 +156,14 @@ handles = vis_plotModelValidation(whitestats,PC,stability);
 [EEG conncfg] = pop_est_mvarConnectivity(EEG,'verb',true,'freqs',(3 : 45),'connmethods',{'dDTF08','nDTF','Coh','S','pCoh','nPDC'},'absvalsq',true,'spectraldecibels',true);
 
 
-%% STEP 8: Compute Statistics
+%% STEP 8: Compute Statistics (This step is slow)
 
-% reload the datasets
+% reload the datasets (or use original, un-preprocessed copy)
 EEGfresh = pop_loadset;
 
 % first we obtain the bootstrap distributions for each condition
-[PConn(1)] = stat_bootstrap(EEGfresh(1), 100, struct('conncfg',conncfg,'modfitcfg',modfitcfg,'prepcfg',prepcfg(1)));
-[PConn(2)] = stat_bootstrap(EEGfresh(2), 100, struct('conncfg',conncfg,'modfitcfg',modfitcfg,'prepcfg',prepcfg(2)));
+[PConn(1)] = stat_bootstrap(EEGfresh(1), 200, struct('conncfg',conncfg,'modfitcfg',modfitcfg,'prepcfg',prepcfg(1)));
+[PConn(2)] = stat_bootstrap(EEGfresh(2), 200, struct('conncfg',conncfg,'modfitcfg',modfitcfg,'prepcfg',prepcfg(2)));
 
 % next we compute the between-condition pvalues
 Stats = stat_bootSigTest(PConn,'fdr');
@@ -171,7 +171,7 @@ Stats = stat_bootSigTest(PConn,'fdr');
 
 %% STEP 9: Visualize the Connectivity estimates in a Time-Frequency Grid
 
-[figureHandles tfgridcfg] = vis_TimeFreqGrid('ALLEEG',EEG,'Conn',EEG.CAT.Conn,'Stats',Stats,'MatrixLayout',{'Partial','UpperTriangle', 'dDTF08', 'LowerTriangle','dDTF08','Diagonal','S'},'ColorLimits',99.9,'Baseline',[-1.75 -0.5],'Smooth2D',true);
+[figureHandles tfgridcfg] = vis_TimeFreqGrid('ALLEEG',EEG,'Conn',EEG.CAT.Conn,'MatrixLayout',{'Partial','UpperTriangle', 'dDTF08', 'LowerTriangle','dDTF08','Diagonal','S'},'ColorLimits',99.9,'Baseline',[-1.75 -0.5],'Smooth2D',true);
 
 % You can also partially populate the GUI via a call to the pop_ function:
 %
