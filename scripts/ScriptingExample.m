@@ -52,9 +52,9 @@ EEG = eeg_checkset(EEG,'ica');
 
 %% STEP 2: Define key Processing Parameters
 
-Components = [8 11 13 19 20 23 38 39];   % these are the components/channels to which we'll fit our multivariate model
+Components = [8 11]; %13 19 20 23 38 39];   % these are the components/channels to which we'll fit our multivariate model
 WindowLengthSec = 0.5;                   % sliding window length in seconds
-WindowStepSizeSec = 0.03;                % sliding window step size in seconds
+WindowStepSizeSec = 0.25;                % sliding window step size in seconds
 NewSamplingRate = [];                    % new sampling rate (if downsampling)
 
 
@@ -153,18 +153,32 @@ handles = vis_plotModelValidation(whitestats,PC,stability);
 % frequencies (here 3-45 Hz). See 'doc est_mvarConnectivity' for a complete
 % list of available connectivity and spectral estimators.
 
-EEG = pop_est_mvarConnectivity(EEG,'verb',true,'freqs',(3 : 45),'connmethods',{'dDTF08','nDTF','Coh','S','pCoh','nPDC'},'absvalsq',true,'spectraldecibels',true);
+[EEG conncfg] = pop_est_mvarConnectivity(EEG,'verb',true,'freqs',(3 : 45),'connmethods',{'dDTF08','nDTF','Coh','S','pCoh','nPDC'},'absvalsq',true,'spectraldecibels',true);
 
-%% STEP 8: Visualize the Connectivity estimates in a Time-Frequency Grid
 
-[figureHandles tfgridcfg] = vis_TimeFreqGrid('ALLEEG',EEG,'Conn',EEG.CAT.Conn,'MatrixLayout',{'Partial','UpperTriangle', 'dDTF08', 'LowerTriangle','dDTF08','Diagonal','S'},'ColorLimits',99.9,'Baseline',[-1.75 -0.5],'Smooth2D',true);
+%% STEP 8: Compute Statistics
+
+% reload the datasets
+EEGfresh = pop_loadset;
+
+% first we obtain the bootstrap distributions for each condition
+[PConn(1)] = stat_bootstrap(EEGfresh(1), 100, struct('conncfg',conncfg,'modfitcfg',modfitcfg,'prepcfg',prepcfg(1)));
+[PConn(2)] = stat_bootstrap(EEGfresh(2), 100, struct('conncfg',conncfg,'modfitcfg',modfitcfg,'prepcfg',prepcfg(2)));
+
+% next we compute the between-condition pvalues
+Stats = stat_bootSigTest(PConn,'fdr');
+
+
+%% STEP 9: Visualize the Connectivity estimates in a Time-Frequency Grid
+
+[figureHandles tfgridcfg] = vis_TimeFreqGrid('ALLEEG',EEG,'Conn',EEG.CAT.Conn,'Stats',Stats,'MatrixLayout',{'Partial','UpperTriangle', 'dDTF08', 'LowerTriangle','dDTF08','Diagonal','S'},'ColorLimits',99.9,'Baseline',[-1.75 -0.5],'Smooth2D',true);
 
 % You can also partially populate the GUI via a call to the pop_ function:
 %
 %[figureHandles tfgridcfg] = pop_vis_TimeFreqGrid(EEG,'MatrixLayout',{'Partial','UpperTriangle', 'dDTF08', 'LowerTriangle','dDTF08','Diagonal','S'},'ColorLimits',99.9,'Baseline',[-1.75 -0.5],'Smooth2D',true);
 
 
-%% STEP 9: Visualize the Connectivity estimates in a 3D Brain-Movie
+%% STEP 10: Visualize the Connectivity estimates in a 3D Brain-Movie
 
 cfg=pop_vis_causalBrainMovie3D(EEG,'ConnectivityMethod','dDTF08','FreqCollapseMethod','integrate','FrequenciesToCollapse',(3:8),'NodeColorMapping','CausalFlow','FooterPanelDisplaySpec',{'ICA_ERPenvelope',{'icaenvelopevars', '8'},{'backprojectedchans' 'B2'}},'BrainMovieOptions',{'RenderCorticalSurface',{'VolumeMeshFile' 'standard_BEM_vol.mat', 'Transparency' 0.7}});    %
 
