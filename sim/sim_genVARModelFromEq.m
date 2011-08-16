@@ -2,12 +2,16 @@
 function A = sim_genVARModelFromEq(expr,morder)
 % 
 % Generate VAR model coefficient matrix from text-based system of equations
-% The model can then be realized using the arsim() function from ARfit [2]
+% The model can then be realized using the tvarsim() function modified from 
+% ARfit [2].
+% If the expr specification requests time-varying coefficients, then this
+% function will return inline function placeholders for coefficients, which
+% can be evaluated to actual coefficient matrices by sim_genTVARcoeffs().
 %
 % Inputs:
 %
 %   expr:       A cell vector containing each equation as a string (one
-%               equation per cell element). See Example for format.
+%               equation per cell element). See Examples for format.
 %   morder:     The model order
 % 
 % Outputs:
@@ -32,7 +36,7 @@ function A = sim_genVARModelFromEq(expr,morder)
 %          0         0         0         0         0         0         0         0         0         0   -0.7000         0         0   -0.7000    0.3000
 %          0         0         0         0    1.0000         0         0         0    0.3000   -0.4000         0         0         0         0         0
 %
-% % Now generate some data from the model (this requires arsim.m from ARfit package)
+% % Now generate some data from the model (this requires arsim.m or tvarsim.m)
 %
 % M   = size(A,1);        % number of variables
 % Nl  = 1000;             % length of each trial
@@ -45,9 +49,10 @@ function A = sim_genVARModelFromEq(expr,morder)
 % eegplot(data,'srate',1); % visualize the simulated data
 %
 %
-% Example2: generate a time-varying VAR[2] model
+% Example 2: generate a time-varying VAR[2] model
+% 
 %
-% See Also: arsim(), est_fitMVAR()
+% See Also: tvarsim(), est_fitMVAR(), sim_genTVARcoeffs()
 %
 % References:
 %
