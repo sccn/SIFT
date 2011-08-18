@@ -124,7 +124,7 @@ dependencies = {...
 % calculate. 
 alldescriptors = dependencies(:,1);
 
-methodsneeded = alldescriptors(isneeded(alldescriptors,connmethods,dependencies));                
+methodsneeded = alldescriptors(find(isneeded(alldescriptors,connmethods,dependencies)));                
 univariate_measures = {'mCoh'};  % list of measures that are univariate (nchs x freqs)
 singleton_measures = {'DC'};     % list of measures that do not depend on frequency (nchs x 1)
 
