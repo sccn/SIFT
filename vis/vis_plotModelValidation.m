@@ -4,28 +4,28 @@ function handles = vis_plotModelValidation(whitestats,PCstats,stabilitystats,var
 %
 % Inputs:
 %
-%       whitestats:     Cell array of structs each containing results of 
+%       whitestats:     Cell array of structs each containing results of
 %                       tests for whiteness of residuals for a single
 %                       dataset/condition
 %                       (as output by est_checkMVARWhiteness())
 %                       If not available, pass in an empty matrix to skip
 %                       plotting this result.
-%       PCstats:        Cell array of structs each containing results of 
+%       PCstats:        Cell array of structs each containing results of
 %                       tests for consistency of the model for a single
 %                       dataset/condition
 %                       (as output by est_checkMVARConsistency())
 %                       If not available, pass in an empty matrix to skip
 %                       plotting this result.
-%       stabilitystats: Cell array of structs each containing results of 
+%       stabilitystats: Cell array of structs each containing results of
 %                       tests for stability of the model for a single
 %                       dataset/condition
 %                       (as output by est_checkMVARStability())
 %                       If not available, pass in an empty matrix to skip
 %                       plotting this result.
-%       
+%
 %
 % Optional:
-%   
+%
 %       conditions:     Cell array of condition labels
 %                       e.g. conditions = {ALLEEG.condition}
 %
@@ -37,13 +37,13 @@ function handles = vis_plotModelValidation(whitestats,PCstats,stabilitystats,var
 % See Also: pop_est_validateMVAR(),est_checkMVARWhiteness(),
 %           est_checkMVARStability(), est_checkMVARConsistency()
 %
-% References: 
-% 
+% References:
+%
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
 %   Theoretical Handbook and User Manual. Chapter 6.
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift
-% 
-% Author: Tim Mullen, 2010, SCCN/INC, UCSD. 
+%
+% Author: Tim Mullen, 2010, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
@@ -70,7 +70,7 @@ function handles = vis_plotModelValidation(whitestats,PCstats,stabilitystats,var
 whitenessCriteria = {};
 
 % find the names of all whiteness tests stored in whitestats
-if ~isempty(whitestats{1}) 
+if ~isempty(whitestats{1})
     fn = fieldnames(whitestats{1});
     for i=1:length(fn)
         if isfield(whitestats{1}.(fn{i}),'fullname')
@@ -81,16 +81,16 @@ end
 
 g = finputcheck(varargin, ...
     {'whitenessCriteria'   'cell'  whitenessCriteria   whitenessCriteria; ...
-      'checkWhiteness',     'boolean'   []          true; ...
-      'checkConsistency'    'boolean'   []          true; ...
-      'checkStability'      'boolean'   []          true; ...
-      'conditions'          'cell'      {}          {}; ...
-      },'mode','ignore','quiet');
-    
+    'checkWhiteness',     'boolean'   []          true; ...
+    'checkConsistency'    'boolean'   []          true; ...
+    'checkStability'      'boolean'   []          true; ...
+    'conditions'          'cell'      {}          {}; ...
+    },'mode','ignore','quiet');
 
-if isempty(whitestats),         g.checkWhiteness    = false;    end
-if isempty(PCstats),            g.checkConsistency  = false;    end
-if isempty(stabilitystats),     g.checkStability    = false;    end
+
+if isempty(whitestats{1}),         g.checkWhiteness    = false;    end
+if isempty(PCstats{1}),            g.checkConsistency  = false;    end
+if isempty(stabilitystats{1}),     g.checkStability    = false;    end
 
 num_conds = max([length(whitestats),length(PCstats),length(stabilitystats)]);
 
@@ -98,7 +98,7 @@ numrows = sum([g.checkWhiteness g.checkConsistency g.checkStability]);
 numcols = 1;
 
 for cond = 1:num_conds
-
+    
     if isempty(g.conditions)
         g.conditions{cond} = sprintf('Condition %d',cond);
     end
@@ -110,7 +110,7 @@ for cond = 1:num_conds
     if g.checkWhiteness
         
         if ~iscell(whitestats), whitestats = {whitestats}; end
-
+        
         subplot(numrows,numcols,curplot);
         for i = 1:length(g.whitenessCriteria)
             wcstr = lower(hlp_variableize(g.whitenessCriteria{i}));
@@ -118,7 +118,7 @@ for cond = 1:num_conds
             pvals(i,:) = wc.pval;
             lgnd{i} = sprintf('%s (%d/%d white)',wc.fullname, sum(wc.w),length(wc.w));
         end
-
+        
         if size(pvals,2)>1
             % more than one window -- make lineplot
             plot(1:length(whitestats{cond}.winStartIdx),pvals');
@@ -128,30 +128,30 @@ for cond = 1:num_conds
             % single window -- make barplot
             h = bar(pvals);
             ch = get(h,'Children');
-
+            
             set(gca,'xticklabel',lgnd);
             colors = [[1 0 0];[0 0 1];[0 1 0];[0 0 0];[1 0 1];[0 1 1]];
             colors = colors(1:length(pvals),:);
             set(ch,'FaceVertexCData',colors);
-
+            
         end
-
+        
         set(gca,'xlim',[0 length(whitestats{cond}.winStartIdx)+1],'Ylim',[max(0,min(pvals(:))-0.5), min(1,max(pvals(:))+0.5)]);
-        hl=hline(whitestats{cond}.alpha); 
+        hl=hline(whitestats{cond}.alpha);
         set(hl,'linestyle','--','linewidth',2);
         ylabel({'Significance of whiteness','(larger is better)'});
         axcopy(gca);
-
+        
         curplot=curplot+1;
     end
-
+    
     if g.checkConsistency
         
         if ~iscell(PCstats), PCstats = {PCstats}; end
         
         ax=subplot(numrows,numcols,curplot);
         if length(PCstats{cond}.PC)>2
-            % more than one window -- make lineplot       
+            % more than one window -- make lineplot
             plot(1:length(PCstats{cond}.winStartIdx),PCstats{cond}.PC);
             axes(ax);
             text(0.98,0.9,sprintf('Mean PC: %0.2f%%',mean(PCstats{cond}.PC)), ...
@@ -168,7 +168,7 @@ for cond = 1:num_conds
         axcopy(gca);
         curplot = curplot+1;
     end
-
+    
     if g.checkStability
         
         if ~iscell(stabilitystats), stabilitystats = {stabilitystats}; end
@@ -176,7 +176,7 @@ for cond = 1:num_conds
         % plot stability results
         subplot(numrows,numcols,curplot);
         if length(stabilitystats{cond}.stability)>2
-            % more than one window -- make lineplot    
+            % more than one window -- make lineplot
             %boxplot(real(lambda)');
             maxlambda = max(real(stabilitystats{cond}.lambda),[],2);
             plot(1:length(stabilitystats{cond}.winStartIdx),maxlambda);
@@ -186,11 +186,11 @@ for cond = 1:num_conds
             maxlambda = max(real(stabilitystats{cond}.lambda(:)));
             bar(maxlambda);
         end
-
-
-    %     set(gca,'ylim',[max(0,0.7*min(abs(lambda(:)))) max(1.3,1.3*max(abs(lambda(:))))]);
+        
+        
+        %     set(gca,'ylim',[max(0,0.7*min(abs(lambda(:)))) max(1.3,1.3*max(abs(lambda(:))))]);
         set(gca,'xlim',[0 length(stabilitystats{cond}.winStartIdx)+1],'ylim',[1.2*min(maxlambda(:)) max(0.01,1.3*max(maxlambda(:)))]);
-    %     axis auto
+        %     axis auto
         hl=hline(0);
         set(hl,'linestyle','--','linewidth',2);
         ylabel({'Stability Index','(should be < 0)'});
@@ -198,7 +198,7 @@ for cond = 1:num_conds
         legend(sprintf('(%d/%d stable)',numstable,length(stabilitystats{cond}.stability)));
         axcopy(gca);
     end
-
+    
     try, icadefs; set(gcf, 'color', BACKCOLOR); catch, end;
     
 end

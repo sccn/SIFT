@@ -15,7 +15,7 @@ function IC = pop_est_selModelOrder(ALLEEG,typeproc,varargin)
 %
 % Optional:            arguments to est_selModelOrder()
 %
-%     'icselector'         cell array of strings denoting which model order 
+%     'icselector'         cell array of strings denoting which model order
 %                          selection criteria to estimate
 %     'downdate'           [true, false] whether or not to use downdated noise
 %                          covariance matrices
@@ -31,7 +31,7 @@ function IC = pop_est_selModelOrder(ALLEEG,typeproc,varargin)
 %     'verb',              verbosity level (0=no output, 1=text, 2=gui)
 %     'normalize'          cell array containing one or more of
 %                           {'temporal', 'ensemble'}. This performs ensemble
-%                           normalization or temporal normalization (or both) 
+%                           normalization or temporal normalization (or both)
 %                           within each window
 %
 % Output:
@@ -49,11 +49,11 @@ function IC = pop_est_selModelOrder(ALLEEG,typeproc,varargin)
 %                           .minic      - the minimum of ic across model
 %                                         orders
 %                           .popt       - the model order that minimizes ic
-% 
+%
 % See Also: est_selModelOrder()
 %
-% References: 
-% 
+% References:
+%
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
 %   Theoretical Handbook and User Manual. Chapter 6.
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift
@@ -61,7 +61,7 @@ function IC = pop_est_selModelOrder(ALLEEG,typeproc,varargin)
 % [2] Lutkepohl, H. (2007) New Introduction to Time Series Analysis.
 %   Springer.
 %
-% Author: Tim Mullen, 2010, SCCN/INC, UCSD. 
+% Author: Tim Mullen, 2010, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
@@ -87,9 +87,9 @@ IC = {};
 % display help if not enough arguments
 % ------------------------------------
 if nargin < 2
-	help pop_est_selModelOrder;
-	return;
-end;	
+    help pop_est_selModelOrder;
+    return;
+end;
 lastcom = [];
 
 var = hlp_mergeVarargin(varargin{:});
@@ -118,26 +118,26 @@ end
 % pop up window
 % -------------
 if popup
-% 	[txt vars] = gethelpvar('pop_est_selModelOrder.m');
-	
-	geomhoriz = {1 1 1 1 [3 1 0.5 1] [3 2.5] };
+    % 	[txt vars] = gethelpvar('pop_est_selModelOrder.m');
+    
+    geomhoriz = {1 1 1 1 [3 1 0.5 1] [3 2.5] };
     uilist = { ...
-               { 'Style', 'text', 'string', 'Select order criteria to estimate' }...
-               { 'Style', 'text', 'string', '(hold Ctrl to select multiple)' }...
-               { 'Style', 'listbox', 'string', orderCriteria, 'tag', 'lstOrderCriteria','Value',1,'Min',1,'Max',20} ...
-               { 'Style', 'checkbox', 'string', 'Downdate model', 'value', fastif(any(ismember({'arfit','vieira-morf-cpp'},g.algorithm)),false,true),'tag', 'chkDowndate','enable',fastif(any(ismember({'arfit','vieira-morf-cpp'},g.algorithm)),'off','on')} ...
-               { 'Style', 'text', 'string', 'model order range: ' }...
-               { 'Style', 'edit', 'string', pmin, 'tag','edtMin'}...
-               { 'Style', 'text', 'string', '-'} ...
-               { 'Style', 'edit', 'string', pmax, 'tag', 'edtMax' }...
-               { 'Style', 'text', 'string', '% windows to sample'} ...
-               { 'Style', 'edit', 'string', 20, 'tag','prctWinToSample' } ...
-			 };
-
-	[ tmp1 tmp2 strhalt result ] = inputgui( 'geometry', geomhoriz, 'geomvert',[1 1 3.5 1 1 1], ...
-                        'uilist',uilist, 'helpcom','pophelp(''pop_est_selModelOrder'');', ...
-					    'title','Plot Information Criteria');
-	if isempty( tmp1 ), return; end;
+        { 'Style', 'text', 'string', 'Select order criteria to estimate' }...
+        { 'Style', 'text', 'string', '(hold Ctrl to select multiple)' }...
+        { 'Style', 'listbox', 'string', orderCriteria, 'tag', 'lstOrderCriteria','Value',1,'Min',1,'Max',20} ...
+        { 'Style', 'checkbox', 'string', 'Downdate model', 'value', fastif(any(ismember({'arfit','vieira-morf-cpp'},g.algorithm)),false,true),'tag', 'chkDowndate','enable',fastif(any(ismember({'arfit','vieira-morf-cpp'},g.algorithm)),'off','on')} ...
+        { 'Style', 'text', 'string', 'model order range: ' }...
+        { 'Style', 'edit', 'string', pmin, 'tag','edtMin'}...
+        { 'Style', 'text', 'string', '-'} ...
+        { 'Style', 'edit', 'string', pmax, 'tag', 'edtMax' }...
+        { 'Style', 'text', 'string', '% windows to sample'} ...
+        { 'Style', 'edit', 'string', 20, 'tag','prctWinToSample' } ...
+        };
+    
+    [ tmp1 tmp2 strhalt result ] = inputgui( 'geometry', geomhoriz, 'geomvert',[1 1 3.5 1 1 1], ...
+        'uilist',uilist, 'helpcom','pophelp(''pop_est_selModelOrder'');', ...
+        'title','Plot Information Criteria');
+    if isempty( tmp1 ), return; end;
     
     if ~isempty(result.prctWinToSample)
         g.prctWinToSample = str2num(result.prctWinToSample);
@@ -166,10 +166,10 @@ end
 for cond=1:length(ALLEEG)
     % calculate the information criteria
     IC{cond} = est_selModelOrder(ALLEEG(cond),g);
-
+    
     if g.plot
         
-        vis_plotOrderCriteria(IC,{ALLEEG.condition},g.icselector);
+        vis_plotOrderCriteria(IC(cond),{ALLEEG.condition},g.icselector);
         
     end
     
@@ -177,5 +177,5 @@ end
 
 end
 
-   
+
 

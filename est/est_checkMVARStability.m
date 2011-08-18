@@ -9,7 +9,7 @@ function [stats] = est_checkMVARStability(EEG,MODEL,typeproc,varargin)
 %   EEG:        EEGLAB data structure
 %   MODEL:      SIFT MODEL structure
 %   typeproc:   reserved for future use. Use 0
-%   
+%
 % Optional:
 %
 %   <Name,Value> pairs containing model fitting parameters. See
@@ -17,20 +17,20 @@ function [stats] = est_checkMVARStability(EEG,MODEL,typeproc,varargin)
 %
 % Outputs:
 %
-%   stats          
+%   stats
 %       .stability:  [numwindows x 1] vector of results of stability tests. 1
 %                    indicates stable VAR process for that window, 0 indicates
 %                    an unstable VAR process.
-% 
+%
 %       .lambda:     [numwindows x nchs*morder] matrix of eigenvalues of VAR
 %                    process. All eigenvalues should be < 1 for stable VAR process
 %
 %
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
-%     Theoretical Handbook and User Manual. Chapters 3,6. 
+%     Theoretical Handbook and User Manual. Chapters 3,6.
 %     Available at: http://www.sccn.ucsd.edu/wiki/Sift
 % [2] Lutkepohl, H. (2007) New Introduction to Time Series Analysis.
-%     Springer. 
+%     Springer.
 %
 % Author: Tim Mullen 2010, SCCN/INC, UCSD
 % Email:  tim@sccn.ucsd.edu
@@ -57,14 +57,14 @@ if ischar(g), error(g); end
 
 
 % window size in points
-winLenPnts = floor(MODEL.winlen*EEG.srate); 
+winLenPnts = floor(MODEL.winlen*EEG.srate);
 
 if isempty(g.winStartIdx)
     % starting point of each window (points)
-    g.winStartIdx  = floor(MODEL.winStartTimes*EEG.srate)+1;    
+    g.winStartIdx  = floor(MODEL.winStartTimes*EEG.srate)+1;
 end
 
-if g.prctWinToSample<100 
+if g.prctWinToSample<100
     % randomly select percentage of windows to work with
     randwin = randperm(length(g.winStartIdx));
     randwin = sort(randwin(1:ceil(length(g.winStartIdx)*g.prctWinToSample/100)));
@@ -77,7 +77,7 @@ end
 if g.verb, h=waitbar(0,sprintf('checking stability...\nCondition: %s',EEG.condition)); end
 
 numWins = length(g.winStartIdx);
-stats.stability = zeros(1,numWins); 
+stats.stability = zeros(1,numWins);
 [nchs Mp] = size(MODEL.AR{1});
 stats.lambda = zeros(numWins,Mp);
 %lambda = [];
@@ -86,7 +86,7 @@ for t=1:numWins
     A = [MODEL.AR{t} ; [eye(nchs*g.morder-nchs,nchs*g.morder-nchs) zeros(nchs*g.morder-nchs,nchs)]];
     stats.lambda(t,:) = log(abs(eig(A)));
     stats.stability(t) = all(stats.lambda(t,:)<0);
-    if g.verb, 
+    if g.verb,
         waitbar(t/numWins,h,sprintf('checking stability (%d/%d)...\nCondition: %s',t,numWins,EEG.condition));
     end
 end

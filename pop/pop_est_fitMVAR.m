@@ -23,13 +23,13 @@ function varargout = pop_est_fitMVAR(ALLEEG,typeproc,varargin)
 %
 % See Also: est_fitMVAR()
 %
-% References: 
-% 
+% References:
+%
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
 %   Theoretical Handbook and User Manual. Chapter 6.
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift
-% 
-% Author: Tim Mullen, 2010, SCCN/INC, UCSD. 
+%
+% Author: Tim Mullen, 2010, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
@@ -136,7 +136,7 @@ if ischar(ALLEEG)
             fprintf('===================================================\n');
             fprintf('MVAR PARAMETER SUMMARY FOR CONDITION: %s\n',ALLEEG(cond).condition);
             fprintf('===================================================\n');
-            checkcode = checkMVARParams(ALLEEG(cond),g);
+            checkcode = est_dispMVARParamCheck(ALLEEG(cond),g);
             fprintf('\n\n')
             
             if isobject(checkcode)
@@ -144,7 +144,7 @@ if ischar(ALLEEG)
                 return;
             end
         end
-
+        
         switch checkcode
             case 'error'
                 % generate error
@@ -224,7 +224,7 @@ if popup
             fprintf('===================================================\n');
             fprintf('MVAR PARAMETER SUMMARY FOR CONDITION: %s\n',ALLEEG(cond).condition);
             fprintf('===================================================\n');
-            checkcode = checkMVARParams(ALLEEG(cond),g);
+            checkcode = est_dispMVARParamCheck(ALLEEG(cond),g);
             fprintf('\n\n')
             
             if isobject(checkcode)
@@ -233,7 +233,7 @@ if popup
                 continue;
             end
         end
-
+        
         switch checkcode
             case 'error'
                 % generate error
@@ -249,7 +249,7 @@ if popup
                 % no warnings, exit loop;
                 cont=false;
         end
-
+        
     end;
     
     close(fig);
@@ -275,45 +275,3 @@ else
 end
 
 
-
-
-% perform sanity checks on MVAR parameters
-function checkcode = checkMVARParams(ALLEEG,g)
-
-    checkcode = 'ok';
-    
-    % check that parameters are OK
-    try
-        [infostring warnstring errstring] = est_checkMVARParams(ALLEEG,g);
-    catch err
-%         errordlg2(err.message,'Error in MVAR configuration!');
-        checkcode = err;
-        return;
-    end
-
-
-    if g.verb>0
-        % display summary on command line
-        for str=1:length(infostring)
-            if ~isempty(errstring{str})
-                fprintf('ERROR\t');
-            elseif ~isempty(warnstring{str})
-                fprintf('WARNING\t');
-            else
-                fprintf('OK\t');
-            end
-            fprintf(infostring{str});
-            fprintf(warnstring{str});
-            fprintf(errstring{str});
-            fprintf('\n');
-        end
-    end
-    
-    if ~all(ismember(errstring,''))
-        checkcode = 'error';
-    elseif ~all(ismember(warnstring,''))
-        checkcode = 'warning';
-    end
-    
-    
-    

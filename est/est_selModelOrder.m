@@ -10,7 +10,7 @@ function [IC MODEL params] = est_selModelOrder(EEG,varargin)
 %
 % Optional:
 %
-% 'icselector'         cell array of strings denoting which model order 
+% 'icselector'         cell array of strings denoting which model order
 %                      selection criteria to estimate
 %                      'aic': Akaike Information Criterion
 %                      'sbc': Swartz Bayes Criterion
@@ -23,11 +23,11 @@ function [IC MODEL params] = est_selModelOrder(EEG,varargin)
 % 'winlen',            window length (sec)
 % 'winstep',           window step size (sec)
 % 'epochTimeLims',     time range to analyze (sec) where 0 = start of the epoch
-% 'prctWinToSample',   percent of time windows to randomly select  
+% 'prctWinToSample',   percent of time windows to randomly select
 % 'verb',              verbosity level (0=no output, 1=text, 2=gui)
 % 'normalize'          cell array containing one or more of
 %                      {'temporal', 'ensemble'}. This performs ensemble
-%                      normalization or temporal normalization (or both) 
+%                      normalization or temporal normalization (or both)
 %                      within each window
 %
 % Output:
@@ -58,14 +58,14 @@ function [IC MODEL params] = est_selModelOrder(EEG,varargin)
 % See Also: pop_est_selModelOrder(), pop_est_fitMVAR(), hlp_findElbow()
 %
 % References:
-% 
+%
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
-%   Theoretical Handbook and User Manual. Chapters 3,6. 
+%   Theoretical Handbook and User Manual. Chapters 3,6.
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift
 % [2] Lutkepohl, H. (2007) New Introduction to Time Series Analysis.
 %   Springer.
 %
-% Author: Tim Mullen 2010, SCCN/INC, UCSD. 
+% Author: Tim Mullen 2010, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
@@ -88,8 +88,8 @@ function [IC MODEL params] = est_selModelOrder(EEG,varargin)
 
 var = hlp_mergeVarargin(varargin{:});
 g = finputcheck(var, [hlp_getDefaultArglist('est'); ...
-                     {'icselector',          ''     {}   {'sbc','aic','fpe','hq','ris'};}], ...
-                'est_selModelOrder','ignore','quiet');
+    {'icselector',          ''     {}   {'sbc','aic','fpe','hq','ris'};}], ...
+    'est_selModelOrder','ignore','quiet');
 if ischar(g), error(g); end
 if nargout > 2, params = g; end
 
@@ -106,8 +106,6 @@ if ~isempty(g.icselector) && ischar(g.icselector)
     g.icselector = {g.icselector};
 end
 
-% if params.verb, h=waitbar(0,'selecting model order...'); end
-% data = permute(EEG.data,[2 1 3]);
 if ismember(g.algorithm,{'vieira-morf-cpp','arfit'})
     % for these methods, we have to fit a separate MODEL for each model order
     for p=pmin:pmax
@@ -116,7 +114,7 @@ if ismember(g.algorithm,{'vieira-morf-cpp','arfit'})
     numWins         = length(VARtmp(1).winStartTimes);
     winStartTimes   = VARtmp(1).winStartTimes;
     for t=1:numWins
-        for p=pmin:pmax, 
+        for p=pmin:pmax,
             % extract noise covariance matrix for each model order and window
             MODEL.PE{t}(:,p*nbchan+(1:nbchan)) = VARtmp(p-pmin+1).PE{t}(end-nbchan+1:end,1:nbchan);
         end
@@ -129,55 +127,53 @@ else
 end
 
 % initialize some variables
-% popt        = zeros(1,numWins);
 [sbc fpe aic hq ris]    = deal(nan*ones(pmax-pmin+1,numWins));
-
 nparams = nbchan^2.*(pmin:pmax);
 
 for t=1:numWins
-
+    
     % CALCULATE INFORMATION CRITERIA
     
     ne = npnts-(pmin:pmax);
     logdp = zeros(1,pmax-pmin+1);
     
-    for p=pmin:pmax, 
+    for p=pmin:pmax,
         % Get logarithm of determinant for each model order
-        logdp(p-pmin+1) = log(det(MODEL.PE{t}(:,p*nbchan+(1:nbchan))*(npnts-p))); 
+        logdp(p-pmin+1) = log(det(MODEL.PE{t}(:,p*nbchan+(1:nbchan))*(npnts-p)));
     end;
-
+    
     
     % Schwarz's Bayesian Criterion
     sbc(:,t) = logdp + (log(ne).*nparams./ne);   % TM
-
+    
     % Akaike Information Criterion
     aic(:,t) = logdp + 2.*nparams./ne;   % TM
-
+    
     % logarithm of Akaike's Final Prediction Error
     fpe(:,t) = logdp + nbchan*log(ne.*(ne+nbchan*(pmin:pmax))./(ne-nbchan*(pmin:pmax)));  % TM
-
+    
     % Hannan-Quinn criterion
     hq(:,t) = logdp + nparams.*2.*log(log(ne))./ne;  % TM
-
+    
     % Rissanen criterion
     ris(:,t) = logdp + (nparams./ne).*log(ne);
     
     for i=1:length(g.icselector)
-        % get index iopt of order that minimizes the order selection 
+        % get index iopt of order that minimizes the order selection
         % criterion specified in g.icselector
         sel = g.icselector{i};
         ic = eval([sel '(:,t);']);
         [minic.(sel)(t) iopt] = min(ic);
-        popt.(sel)(t) = pmin + iopt-1; % estimated optimum order 
+        popt.(sel)(t) = pmin + iopt-1; % estimated optimum order
         
         
-        % get model order corresponding to the "elbow" of the order  
+        % get model order corresponding to the "elbow" of the order
         % selection criterion. An "elbow" is found using a geometric
         % heuristic (see hlp_findElbow() for details)
         [elbowic.(sel)(t) iopt] = hlp_findElbow(ic);
-        pelbow.(sel)(t) = pmin + iopt-1; % estimated optimum order 
+        pelbow.(sel)(t) = pmin + iopt-1; % estimated optimum order
     end
-   
+    
 end
 
 % store the information criteria in output structure
@@ -193,6 +189,6 @@ end
 IC.selector = g.icselector;
 IC.pmin = pmin;
 IC.pmax = pmax;
-IC.winStartTimes = winStartTimes;   
+IC.winStartTimes = winStartTimes;
 
 

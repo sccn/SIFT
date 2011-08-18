@@ -124,7 +124,7 @@ dependencies = {...
 % calculate. 
 alldescriptors = dependencies(:,1);
 
-methodsneeded = alldescriptors(find(isneeded(alldescriptors,connmethods,dependencies)));                
+methodsneeded = alldescriptors(isneeded(alldescriptors,connmethods,dependencies));                
 univariate_measures = {'mCoh'};  % list of measures that are univariate (nchs x freqs)
 singleton_measures = {'DC'};     % list of measures that do not depend on frequency (nchs x 1)
 
@@ -136,7 +136,6 @@ z = 2*pi*1i/srate;
 
 
 I = eye(nchs);
-A = [I -AR];
 Cinv=inverse(C);
 
 % initialize objects
@@ -155,25 +154,20 @@ for i=1:length(tmp)
     % nchs x 1 measures
     Conn.(tmp{i}) = zeros(nchs,1);
 end
-
-% if any(strcmpi('Sinv',methodsneeded))
-%     detSinv = zeros(nfreqs,1);
-% end
  
-ddc2 = diag(diag(C).^(-1/2)); 
+sqrtinvcov = diag(diag(C).^(-1/2)); 
 
 for n=1:nfreqs
      
     if any(strcmpi('PDC',methodsneeded))
         % complex non-normalized PDC
         % (Fourier transform of model coefficients)
-        for k = 1:morder+1,
-            Conn.PDC(:,:,n) = Conn.PDC(:,:,n) + A(:,k*nchs+(1-nchs:0))*exp(-z*(k-1)*freqs(n));
+        for k = 1:morder
+            Conn.PDC(:,:,n) = Conn.PDC(:,:,n) + AR(:,(1:nchs)+(k-1)*nchs)*exp(-z*k*freqs(n));
         end
+        Conn.PDC(:,:,n) = I-Conn.PDC(:,:,n);
     end
-    
-%     imagesc(abs(Conn.PDC(:,:,n).*exp(1i*z)));
-    
+        
     if any(strcmpi('DTF',methodsneeded))
         % complex non-normalized DTF
         Conn.DTF(:,:,n)  = inverse(Conn.PDC(:,:,n));
@@ -206,13 +200,6 @@ for n=1:nfreqs
         Conn.pCoh(:,:,n) = Conn.Sinv(:,:,n)./sqrt(repmat(autospect,[1 nchs]).*repmat(autospect',[nchs 1]));
     end
     
-    if any(strcmpi('pCoh2',methodsneeded))
-        % complex partial coherency
-        Sinv = double(inverse(Conn.S(:,:,n)));
-        autospect = diag(Sinv);
-        Conn.pCoh2(:,:,n) = Sinv./sqrt(repmat(autospect,[1 nchs]).*repmat(autospect',[nchs 1]));
-    end
-    
     if any(strcmpi('iCoh',methodsneeded))
         Conn.iCoh(:,:,n) = imag(Conn.Coh(:,:,n));
     end
@@ -220,7 +207,7 @@ for n=1:nfreqs
     
     if any(strcmpi('GPDC',methodsneeded))
         % generalized PDC
-        gtmp = abs(ddc2*Conn.PDC(:,:,n));
+        gtmp = abs(sqrtinvcov*Conn.PDC(:,:,n));
         gtmp_denom =diag(gtmp'*gtmp)';
         Conn.GPDC(:,:,n) = gtmp./sqrt(gtmp_denom(ones(1,nchs),:));
     end
@@ -318,7 +305,7 @@ if any(strcmpi('GGC',methodsneeded))
 end
 
 if any(strcmpi('GGC2',methodsneeded))
-    % Bivariate Granger-Geweke Causality (similar to Bessler et al. 2007)
+    % Bivariate Granger-Geweke Causality (similar to Bressler et al. 2007)
     for i=1:nchs
         for j=1:nchs
             Conn.GGC2(i,j,:) = log( absS(i,i,:)./ ...
