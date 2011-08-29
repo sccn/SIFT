@@ -119,8 +119,7 @@ dependencies = {...
     'DTF',      {'nDTF','ffDTF','dDTF08','dtf_denom','S'};
     'Sinv',     {'mCoh','pCoh','PDCF'};
     'PDC',      {'DTF','G','nPDC','GPDC','RPDC','PDCF','pCoh2','pdc_denom'};
-    'Rinv',     {'RPDC','Vpdc'};
-    'Vpdc',     {}};
+    'Rinv',     {'RPDC'}};
 
 % list of all possible intermediate (and final) estimators we might want to
 % calculate.
@@ -222,8 +221,7 @@ for n=1:nfreqs
     end
     
     if any(strcmpi('pdc_denom',methodsneeded))
-        tmp = diag(abs(Conn.PDC(:,:,n))'*abs(Conn.PDC(:,:,n)))';
-        Conn.pdc_denom(:,:,n) = tmp(ones(1,nchs),:);
+        Conn.pdc_denom = diag(abs(Conn.PDC(:,:,n))'*abs(Conn.PDC(:,:,n)))';
     end
     
     if any(strcmpi('PDCF',methodsneeded))
@@ -271,11 +269,6 @@ end
 if any(strcmpi('Rinv',methodsneeded))
     % inverse covariance matrix
     Conn.Rinv = est_calcInvCovMat(AR,C);
-end
-
-if any(strcmpi('Vpdc',methodsneeded))
-    % used for computing alpha-significance levels of the PDC
-    Conn.Vpdc = est_calcInvCovMatFourierPDC(Conn.Rinv,C,freqs,srate,nchs,morder,0);
 end
 
 if any(strcmpi('RPDC',methodsneeded))

@@ -10,8 +10,7 @@ function [Conn params] = est_mvarConnectivity(EEG,MODEL,varargin)
 %   EEG:        EEGLAB data structure
 %   MODEL:      VAR model returned by est_fitMVAR or other SIFT model-fitting
 %               routine
-%   connmethods: A cell array of connectivity method names compatible with
-%               the names in est_mvtransfer().
+%   connmethods: A cell array of connectivity methods compatible with the names in
 %               
 %
 % Optional:
@@ -30,7 +29,7 @@ function [Conn params] = est_mvarConnectivity(EEG,MODEL,varargin)
 %                         event onset
 %   params                parameters used
 %
-% See Also: pop_est_mvarConnectivity(), pop_est_fitMVAR(), est_mvtransfer()
+% See Also: pop_est_mvarConnectivity(), pop_est_fitMVAR(),
 %
 % References:
 %
@@ -60,7 +59,7 @@ function [Conn params] = est_mvarConnectivity(EEG,MODEL,varargin)
 var = hlp_mergeVarargin(varargin{:});
 g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_mvarConnectivity','ignore');
 if ischar(g), error(g); end
-if ~isfield(g,'connmethods') || isempty(g.connmethods), error('you must provide a list of connectivity methods!'); end
+if ~isfield(g,'connmethods'), error('you must provide a list of connectivity methods!'); end
 g.connmethods = unique(g.connmethods);
 if nargout > 1, params = g; end
 g.winstep   = MODEL.winstep;

@@ -29,4 +29,4 @@ function names = hlp_getConnMethodNames(Conn)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     names = fieldnames(Conn(1));
-    names = setdiff(names,{'winCenterTimes','erWinCenterTimes','freqs'});
+    names = setdiff(names,{'winCenterTimes','erWinCenterTimes','freqs','mode'});

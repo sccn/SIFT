@@ -68,7 +68,7 @@ if g.winstep==0
     error('Step size must be greater than 0\n');
 end
 
-if floor(g.winlen*1000) > floor((EEG.xmax-EEG.xmin)*1000)
+if floor(g.winlen*1000) > floor((EEG.xmax-EEG.xmin+1)*1000)
     error('Winlen cannot be greater than the trial length (%0.1f sec)\n',EEG.xmax-EEG.xmin);
 end
 

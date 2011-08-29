@@ -351,8 +351,8 @@ for dir=1:numdirs
     % perform statistical thresholding
     % zero out (and 'green out') nonsignif. ConnOrig values
     if g.applyThreshold
-%         switch g.thresholding.arg_selection
-%             case 'Statistics'
+        switch g.thresholding.arg_selection
+            case 'Statistics'
                 Stat = squeeze(g.StatsMatrix(dir,:,:,:,:));
 
                 switch g.thresholding.alpha.sigthreshmethod
@@ -369,10 +369,10 @@ for dir=1:numdirs
                         Conn (~Stat) = 0;
                         Stat = [];
                 end
-%             case 'Simple'
+            case 'Simple'
                 
                 
-%         end
+        end
         
     end
     
@@ -682,7 +682,7 @@ switch lower(g.topoplot)
 end
 
 
-try icadefs; set(gcf, 'color', BACKCOLOR); catch, end;
+try, icadefs; set(gcf, 'color', BACKCOLOR); catch, end;
 
 
 
@@ -694,7 +694,7 @@ if (~isempty(g.titleString)) % plot titleString
     set(h(13),'FontSize',g.titleFontSize)
 end
 
-try axcopy(gcf); catch, end;
+try, axcopy(gcf); catch, end;
 
 
 

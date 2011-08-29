@@ -89,5 +89,5 @@ for k=1:length(g.method)
             normdata = normdata./repmat(std(data,0,2),[1 pnts 1]);
     end
 end
-if g.verb, fprintf('Done!'); end
+if g.verb, fprintf('Done!\n'); end
 % warning(ws);

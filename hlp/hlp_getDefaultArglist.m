@@ -37,7 +37,7 @@ function params = hlp_getDefaultArglist(prefix)
                      'epochTimeLims',        'real'        []        [];   ...        % time range to analyze (sec) where 0 = start of the epoch
                      'prctWinToSample',         'real'        [0 100]   100; ...         % percent of time windows to randomly select  
                      'verb',                'real'       [0 2]       2; ...         % verbosity level (0=no output, 1=text, 2=gui)
-                     'timer'                'boolean'    []         1; ...       % estimate time required to fit model
+                     'timer'                'boolean'    []         0; ...       % estimate time required to fit model
                      'normalize',           ''           {'ensemble','time',{'time','ensemble'},''}   '';    ...     % normalization 'time' | 'ensemble' | 'both'
                      'icselector',          ''       {'sbc','aic','fpe','hq'}   {'sbc','aic'}    % information criteria to use for selecting model order
                      };

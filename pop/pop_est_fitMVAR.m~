@@ -260,7 +260,7 @@ end
 
 % fit the MVAR model
 for cond=1:length(ALLEEG)
-    if g.verb, fprintf('analyzing condition %s...\n',ALLEEG(cond).condition); end
+    fprintf('analyzing condition %s...\n',ALLEEG(cond).condition);
     [ALLEEG(cond).CAT.MODEL] = est_fitMVAR(ALLEEG(cond),typeproc,g);
 end
 

@@ -91,17 +91,7 @@ function [EEGprep args] = pre_prepData(varargin)
 %         Method:            Normalize windows across time, ensemble, or both                                                      
 %                            Possible values: 'ensemble','time'                                                                    
 %                            Default value  : 'ensemble'                                                                           
-%                            Input Data Type: boolean                                                                              
-% 
-%         VerbosityLevel:    Verbosity level. 0 = no output, 1 = text, 2 = graphical                                               
-%                            Possible values: 0,1,2                                                                                
-%                            Default value  : 0                                                                                    
-%                            Input Data Type: real number (double)                                                                 
-% 
-%         Method:            Normalize windows across time, ensemble, or both                                                      
-%                            Possible values: 'ensemble','time'                                                                    
-%                            Default value  : 'ensemble'                                                                           
-%                            Input Data Type: boolean                                                                              
+%                            Input Data Type: boolean                                                                                                                                                                                                                        
 % 
 %     TrialSubsetToUse:      Subset of trial indices to use                                                                        
 %                            Input Data Type: real number (double)                                                                 
@@ -175,7 +165,7 @@ end
 verb = arg_extract(varargin,'verb');
 if isempty(verb), verb=0; end
 
-g = arg_define([0 1], varargin, ...
+g = arg_define([0 Inf], varargin, ...
         arg_norep('ALLEEG',mandatory), ...
         arg({'verb','VerbosityLevel'},0,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical'), ...
         arg_nogui({'backupOriginalData'},false,[],'Keep a nonnormalized copy of the data'), ...
@@ -241,7 +231,7 @@ for cond=1:length(ALLEEG)
     
     % select components
     g.EEG.CAT.srcdata = g.EEG.icaact;
-    g.EEG = pre_selectcomps('EEG',g.EEG,g.selectComponents);
+    g.EEG = pre_selectcomps('EEG',g.EEG,g.selectComponents,'verb',g.verb);
     g.EEG.CAT.nbchan = size(g.EEG.CAT.srcdata,1);
     
     % now also process the original dataset without normalization
@@ -291,12 +281,12 @@ function g = hlp_preprocess(g)
             if g.verb, disp('Selecting trials...'); end
             g.EEG = pop_select(g.EEG,'trial',g.newtrials);
     %         g.EEG.CAT.pre.newtrials = g.newtrials;
-            if g.verb, disp('Done!'); end
+            if g.verb, fprintf('Done!\n'); end
         end
 
         % detrend or center data
         if g.detrend.arg_selection
-            g.EEG = pre_detrend('EEG',g.EEG,g.detrend);
+            g.EEG = pre_detrend('EEG',g.EEG,g.detrend,'verb',g.verb);
         end
 
 %         filter data
@@ -307,12 +297,12 @@ function g = hlp_preprocess(g)
             if g.filter(1), g.EEG = pop_eegfilt(g.EEG,g.filter(1),0); end % highpass
                 
     %         g.EEG.CAT.pre.filtered = g.filter;
-            if g.verb, disp('Done!'); end
+            if g.verb, fprintf('Done!\n'); end
         end
 
 
         % re-epoch data
-        if g.newtlims
+        if ~isempty(g.newtlims)
             if g.verb, disp(['Updating time limits to ' num2str(g.newtlims)]); end
             g.EEG = pop_select(g.EEG,'time',g.newtlims);
     %         [dummy g.eventp] = min(abs(g.EEG.times));
@@ -327,7 +317,7 @@ function g = hlp_preprocess(g)
     %             g.varg.winlen = g.EEG.pnts/g.EEG.srate;
     %         end
     %         g.varg.endp = g.EEG.pnts;
-            if g.verb, disp('Done!'); end
+            if g.verb, fprintf('Done!\n'); end
         end
 
         % resample
@@ -336,13 +326,13 @@ function g = hlp_preprocess(g)
             
             g.EEG = pop_resample(g.EEG,g.resample);
     %         g.EEG.CAT.pre.resampled = srorig;
-            if g.verb, disp('Done!'); end
+            if g.verb, fprintf('Done!\n'); end
         end
 
         
         % difference
         if g.diff.arg_selection
-            g.EEG = pre_diffData('EEG',g.EEG,g.diff);
+            g.EEG = pre_diffData('EEG',g.EEG,g.diff,'verb',g.verb);
         end
 
         % remove bad segments of data
@@ -360,6 +350,6 @@ function g = hlp_preprocess(g)
         
         % normalize ica activations
         if g.normalize.arg_selection
-            g.EEG.icaact = pre_normData('data',g.EEG.icaact,g.normalize);
+            g.EEG.icaact = pre_normData('data',g.EEG.icaact,g.normalize,'verb',g.verb);
         end
         
