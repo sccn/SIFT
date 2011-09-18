@@ -49,7 +49,7 @@ function Conn2 = hlp_rmbaseline(Conn,baseline,varargin)
 if isstruct(Conn)
     % Conn is connectivity object
     if nargin<3
-        connmethods = setdiff(fieldnames(Conn),{'winCenterTimes','erWinCenterTimes','freqs'});
+        connmethods = hlp_getConnMethodNames(Conn);
     elseif iscell(varargin{3})
         connmethods = varargin{1};
     else

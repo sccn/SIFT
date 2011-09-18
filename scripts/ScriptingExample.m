@@ -3,7 +3,7 @@
 %%% SIFT Version: 0.5-alpha                                             %%%
 %%%                                                                     %%%
 %%% This example demonstrates how to use SIFT from the command-line or  %%%
-%%% in a script. This example applies to SIFT 0.5-alpha.                %%%
+%%% in a script. This example applies to SIFT 0.7-alpha.                %%%
 %%% For additional information on the below steps, please consult the   %%%
 %%% SIFT manual located at http://sccn.ucsd.edu/wiki/SIFT               %%%
 %%% Author: Tim Mullen (C) 2011, SCCN, INC, UCSD                        %%%
@@ -13,7 +13,7 @@
 
 %% STEP 1: Load Data
 
-% We will begin by loading up the 'RespWrong.set' dataset located in the 
+% We will begin by loading up the 'RespWrong.set' and 'RespCorr.set' datasets located in the 
 % /Data/ folder within the Sample Data package
 % (you can download this package from the SIFT website or at 
 % ftp://sccn.ucsd.edu/pub/tim/SIFT/SIFT_SampleData.zip)
@@ -53,16 +53,16 @@ EEG = eeg_checkset(EEG,'ica');
 %% STEP 2: Define key Processing Parameters
 
 Components = [8 11 13 19 20 23 38 39];   % these are the components/channels to which we'll fit our multivariate model
-WindowLengthSec = 0.5;                   % sliding window length in seconds
-WindowStepSizeSec = 0.25;                % sliding window step size in seconds
+WindowLengthSec = 0.4;                   % sliding window length in seconds
+WindowStepSizeSec = 0.03;                % sliding window step size in seconds
 NewSamplingRate = [];                    % new sampling rate (if downsampling)
-
+EpochTimeRange = [-1 1.25];              % this is the time range (in seconds) to analyze (relative to event at t=0)
 
 %% STEP 3: Pre-process the data
 
 ComponentsToKeep = strtrim(cellstr(num2str(Components')));  % convert list of components to cell array of strings
 
-[EEG prepcfg] = pre_prepData('ALLEEG',EEG,'VerbosityLevel',2,'NewSamplingRate',NewSamplingRate,'NormalizeData',{'Method',{'ensemble'}},'SelectComponents',{'ComponentsToKeep',ComponentsToKeep});
+[EEG prepcfg] = pre_prepData('ALLEEG',EEG,'VerbosityLevel',2,'NewSamplingRate',NewSamplingRate,'EpochTimeRange',EpochTimeRange,'NormalizeData',{'Method',{'ensemble'}},'SelectComponents',{'ComponentsToKeep',ComponentsToKeep});
 
 %% STEP 4: Identify the optimal model order
 
@@ -99,6 +99,12 @@ ModelOrder = ceil(mean(IC{1}.hq.popt));
 
 
 %% STEP 5: Fit the VAR model
+
+% Here we can check that our selected parameters make sense
+fprintf('===================================================\n');
+fprintf('MVAR PARAMETER SUMMARY FOR CONDITION: %s\n',EEG.condition);
+fprintf('===================================================\n');
+est_dispMVARParamCheck(EEG,struct('morder',ModelOrder','winlen',WindowLengthSec,'winstep',WindowStepSizeSec,'verb',1));
 
 % Once we have identified our optimal model order, we can fit our VAR model.
 
@@ -153,26 +159,90 @@ handles = vis_plotModelValidation(whitestats,PC,stability);
 % frequencies (here 3-45 Hz). See 'doc est_mvarConnectivity' for a complete
 % list of available connectivity and spectral estimators.
 
-[EEG conncfg] = pop_est_mvarConnectivity(EEG,'verb',true,'freqs',(3 : 45),'connmethods',{'dDTF08','nDTF','Coh','S','pCoh','nPDC'},'absvalsq',true,'spectraldecibels',true);
+[EEG conncfg] = pop_est_mvarConnectivity(EEG,'verb',true,'freqs',(1 : 50),'connmethods',{'dDTF08','S','nPDC','RPDC'},'absvalsq',true,'spectraldecibels',true);
 
 
-%% STEP 8: Compute Statistics (This step is slow)
+%% OPTIONAL STEP 8: Compute Statistics (This step is slow)
 
-% reload the datasets (or use original, un-preprocessed copy)
-EEGfresh = pop_loadset;
+% reload each of the datasets in the exact same order they appear in ALLEEG
+% (or use original, un-preprocessed copy)
+for cnd=1:length(EEG)
+    EEGfresh(cnd) = pop_loadset;
+end
 
 % first we obtain the bootstrap distributions for each condition
-[PConn(1)] = stat_bootstrap(EEGfresh(1), 200, struct('conncfg',conncfg,'modfitcfg',modfitcfg,'prepcfg',prepcfg(1)));
-[PConn(2)] = stat_bootstrap(EEGfresh(2), 200, struct('conncfg',conncfg,'modfitcfg',modfitcfg,'prepcfg',prepcfg(2)));
+for cnd=1:length(EEG)
+    PConn_boot(cnd) = stat_surrogate('ALLEEG',EEGfresh(cnd),'configs',struct('prepData',prepcfg(1),'fitMVAR',modfitcfg,'mvarConnectivity',conncfg),'Mode',{'Bootstrap', 'NumPermutations', 5},'AutoSave',{'FileNamePrefix','SIFT_bootstrap','AutoSaveFrequency',10},'VerbosityLevel',2);
+end
 
-% next we compute the between-condition pvalues
-Stats = stat_bootSigTest(PConn,'fdr');
+% replace connectivity object with estimate of bootstrap mean
+for cnd=1:length(EEG)
+    EEG(cnd).CAT.Conn = stat_getDistribMean(PConn_boot(cnd));
+end
+
+%% NOTE: we can also obtain the phase-randomized null distributions for each condition
+for cnd=1:length(EEG)
+    PConn_phase(cnd) = stat_surrogate('ALLEEG',EEGfresh(cnd),'configs',struct('prepData',prepcfg(1),'fitMVAR',modfitcfg,'mvarConnectivity',conncfg),'Mode',{'PhaseRand', 'NumPermutations', 5},'AutoSave',{'FileNamePrefix','SIFT_bootstrap','AutoSaveFrequency',10},'VerbosityLevel',2);
+end
+
+%% next we compute p-values and confidence intervals
+% (CHOOSE ONE OF THE FOLLOWING)
+
+%% 1) Between-condition test:
+%     For conditions A and B, the null hypothesis is either
+%     A(i,j)<=B(i,j), for a one-sided test, or
+%     A(i,j)=B(i,j), for a two-sided test
+%     A p-value for rejection of the null hypothesis can be
+%     obtained by taking the difference of the distributions
+%     computing the probability
+%     that a sample from the difference distribution is non-zero
+StatsHab = stat_surrogateStats('BootstrapConnectivity',PConn_boot,'StatisticalTest',{'Hab'},'MultipleComparisonCorrection','none','ConfidenceIntervals',true,'Alpha',0.05,'VerbosityLevel',1);
+
+%% 2) Devation from baseline test
+%     For conditions A, the null hypothesis is
+%     C(i,j)=baseline_mean(C). This is a two-sided test.
+%     A p-value for rejection of the null hypothesis can be
+%     obtained by obtaining the distribution of the difference from
+%     baseline mean and computing the probability
+%     that a sample from this distribution is non-zero
+for cnd=1:length(EEG)
+    StatsHbase(cnd) = stat_surrogateStats('BootstrapConnectivity',PConn_boot(cnd),'StatisticalTest',{'Hbase' 'Baseline', [-1 -0.25]},'MultipleComparisonCorrection','none','ConfidenceIntervals',true,'Alpha',0.05,'VerbosityLevel',1);
+end
+
+%% 3) Presence of absolute connectivity
+%     We are testing with respect to a phase-randomized null
+%     distribution. A p-value for rejection of the null hypothesis
+%     can be obtained by computing the probability that the
+%     observed connectivity is a random sample from the null distribution
+for cnd=1:length(EEG)
+    StatsHnull(cnd) = stat_surrogateStats('BootstrapConnectivity',EEG(cnd).CAT.Conn,'NullDistribution',PConn_phase(cnd),'StatisticalTest',{'Hnull'},'MultipleComparisonCorrection','none','ConfidenceIntervals',true,'Alpha',0.05,'VerbosityLevel',1);
+end
+
+%% OPTIONAL STEP 8b: Compute analytic statistics
+% This computes analytic alpha-significance thresholds, p-values, and confidence
+% intervals for select connectivity estimators (RPDC, nPDC).
+% These are asymptotic estimators and may not be accurate for small sample
+% sizes. However, they are very fast and usually a reasonable estimate.
+StatsAnalytic = stat_analyticStats('ALLEEG',EEG,'Estimator',{'RPDC','nPDC'},'Alpha', 0.01,'verb',true);
 
 
 %% STEP 9: Visualize the Connectivity estimates in a Time-Frequency Grid
 
-[figureHandles tfgridcfg] = vis_TimeFreqGrid('ALLEEG',EEG,'Conn',EEG.CAT.Conn,'MatrixLayout',{'Partial','UpperTriangle', 'dDTF08', 'LowerTriangle','dDTF08','Diagonal','S'},'ColorLimits',99.9,'Baseline',[-1.75 -0.5],'Smooth2D',true);
+% this plots the difference between conditions
+[figureHandles tfgridcfg] = vis_TimeFreqGrid('ALLEEG',EEG,'Conn',[EEG(1).CAT.Conn EEG(2).CAT.Conn],'MatrixLayout',{'Partial','UpperTriangle', 'dDTF08', 'LowerTriangle','dDTF08','Diagonal','S'},'ColorLimits',99.9,'FrequencyScale','log','Baseline',[],'Smooth2D',false);
 
+%% Or if stats are present we can threshold between-cond difference
+[figureHandles tfgridcfg] = vis_TimeFreqGrid('ALLEEG',EEG,'Conn',[EEG(1).CAT.Conn EEG(2).CAT.Conn],'Stats',StatsHab,'MatrixLayout',{'Partial','UpperTriangle', 'dDTF08', 'LowerTriangle','dDTF08','Diagonal','S'},'ColorLimits',99.9,'FrequencyScale','log','Baseline',[],'Smooth2D',false,'Thresholding',{'Statistics','ThresholdingMethod','pval','PlotConfidenceIntervals',true},'BackgroundColor',[0 0 0],'TextColor',[1 1 1],'LineColor',[1 1 1]);
+
+%% this plots the deviation from baseline (with stats)
+for cnd=1:length(EEG)
+    [figureHandles tfgridcfg] = vis_TimeFreqGrid('ALLEEG',EEG(cnd),'Conn',EEG(cnd).CAT.Conn,'Stats',StatsHbase(cnd),'MatrixLayout',{'Partial','UpperTriangle', 'dDTF08', 'LowerTriangle','dDTF08','Diagonal','S'},'ColorLimits',99.9,'FrequencyScale','log','Baseline',[-1.75 -0.5],'Smooth2D',false,'Thresholding',{'Statistics','ThresholdingMethod','pval','PlotConfidenceIntervals',true},'BackgroundColor',[0 0 0],'TextColor',[1 1 1],'LineColor',[1 1 1]);
+end
+
+%% this plots a single condition with phase-randomization thresholding
+for cnd=1:length(EEG)
+    [figureHandles tfgridcfg] = vis_TimeFreqGrid('ALLEEG',EEG(cnd),'Conn',EEG(cnd).CAT.Conn,'Stats',StatsHnull(cnd),'MatrixLayout',{'Partial','UpperTriangle', 'dDTF08', 'LowerTriangle','dDTF08','Diagonal','S'},'ColorLimits',99.9,'FrequencyScale','log','Baseline',[],'Smooth2D',false,'Thresholding',{'Statistics','ThresholdingMethod','pval','PlotConfidenceIntervals',true},'BackgroundColor',[0 0 0],'TextColor',[1 1 1],'LineColor',[1 1 1]);
+end
 % You can also partially populate the GUI via a call to the pop_ function:
 %
 %[figureHandles tfgridcfg] = pop_vis_TimeFreqGrid(EEG,'MatrixLayout',{'Partial','UpperTriangle', 'dDTF08', 'LowerTriangle','dDTF08','Diagonal','S'},'ColorLimits',99.9,'Baseline',[-1.75 -0.5],'Smooth2D',true);
@@ -180,6 +250,6 @@ Stats = stat_bootSigTest(PConn,'fdr');
 
 %% STEP 10: Visualize the Connectivity estimates in a 3D Brain-Movie
 
-cfg=pop_vis_causalBrainMovie3D(EEG,'ConnectivityMethod','dDTF08','FreqCollapseMethod','integrate','FrequenciesToCollapse',(3:8),'NodeColorMapping','CausalFlow','FooterPanelDisplaySpec',{'ICA_ERPenvelope',{'icaenvelopevars', '8'},{'backprojectedchans' 'B2'}},'BrainMovieOptions',{'RenderCorticalSurface',{'VolumeMeshFile' 'standard_BEM_vol.mat', 'Transparency' 0.7}});    %
+cfg=pop_vis_causalBrainMovie3D(EEG(1),'ConnectivityMethod','dDTF08','FreqCollapseMethod','integrate','FrequenciesToCollapse',(3:8),'NodeColorMapping','CausalFlow','FooterPanelDisplaySpec',{'ICA_ERPenvelope',{'icaenvelopevars', '8'},{'backprojectedchans' 'B2'}},'BrainMovieOptions',{'RenderCorticalSurface',{'VolumeMeshFile' 'standard_BEM_vol.mat', 'Transparency' 0.7}});    %
 
 

@@ -90,11 +90,14 @@ end
 for cnd=1:length(ALLEEG);
     Conn(cnd) = ALLEEG(cnd).CAT.Conn;
     ALLEEG(cnd).CAT.Conn = [];
+    
+    % make row array
+    ALLEEG(cnd).CAT.curComponentNames = ALLEEG(cnd).CAT.curComponentNames(:)';
 end
 
 
 % render the GUI
-[PGh figh] = gui_causalBrainMovie3D(ALLEEG,Conn,varargin{:});
+[PGh figh] = gui_causalBrainMovie3D(ALLEEG,Conn,struct('arg_direct',0),varargin{:});
 
 if isempty(PGh)
     % user chose to cancel

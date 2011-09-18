@@ -96,7 +96,10 @@ for cnd=1:length(ALLEEG);
     ALLEEG(cnd).CAT.Conn = [];
 end
 
+hasStats = all(arrayfun(@hasStatsField, ALLEEG));
+
 % render the GUI
+if hasStats, varargin = [varargin 'Stats',ALLEEG(1).CAT.Stats]; end
 [PGh figh] = gui_TimeFreqGrid(ALLEEG,Conn,varargin{:});
 
 if isempty(PGh)
@@ -112,7 +115,29 @@ cfg = arg_tovals(ps,false);
 % save([fnpath SLASH '@configs' SLASH 'tfgrid.cfg'],'cfg');
 
 % execute the low-level function
-handles = vis_TimeFreqGrid('ALLEEG',ALLEEG,'Conn',Conn,cfg);
+if length(ALLEEG)==2 && ~cfg.plotCondDiff.arg_selection
+    % there is more than one condition and user wants to 
+    % plot each condition sequentially
+    for cnd=1:length(ALLEEG)
+        if hasStats
+            handles{cnd} = vis_TimeFreqGrid('ALLEEG',ALLEEG(cnd),'Conn',Conn(cnd),'Stats',ALLEEG(cnd).CAT.Stats,cfg);
+        else
+            handles{cnd} = vis_TimeFreqGrid('ALLEEG',ALLEEG(cnd),'Conn',Conn(cnd),cfg);
+        end
+    end
+else
+    
+    % either user wants to plot condition difference 
+    % or there is only one condition
+    if hasStats
+            handles = vis_TimeFreqGrid('ALLEEG',ALLEEG,'Conn',Conn,'Stats',ALLEEG(1).CAT.Stats,cfg);
+        else
+            handles = vis_TimeFreqGrid('ALLEEG',ALLEEG,'Conn',Conn,cfg);
+    end
+end
 
+
+function x = hasStatsField(EEG)
+    x = isfield(EEG.CAT,'Stats');
 
 

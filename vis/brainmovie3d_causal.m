@@ -571,7 +571,7 @@ if ~isempty(g.envelope) && isempty(g.times)
 end;
 if ~isempty(g.condtitle)
     if iscell(g.condtitle), g.condtitle = strvcat(g.condtitle{:}); end;
-    if size( g.condtitle,1 ) ~= nbconditions
+    if ~isempty(g.condtitle) && size( g.condtitle,1 ) ~= nbconditions
         fprintf('Error: The number of rows in the title array(%d) must match the number of conditions (%d)\n', size(g.condtitle,1), nbconditions); return;
     end;
 end;

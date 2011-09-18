@@ -181,6 +181,7 @@ if ~isempty(varargin)
     clear stats;
 end
 
+StatThreshMethods = {'pval','thresh','logical'};
 
 g = arg_define([0 Inf],varargin, ...
     arg_norep({'ConnMatrix','ConnectivityMatrix'},mandatory), ...
@@ -196,6 +197,7 @@ g = arg_define([0 Inf],varargin, ...
     arg({'timeRange','TimeRange'},[],[],'Time Range to plot','cat','DisplayProperties'), ...
     arg({'freqValues','Frequencies'},[],[],'Frequencies to plot','cat','DisplayProperties'), ...
     arg({'baseline','Baseline'},[],[],'Time range of baseline [Min Max] (sec). Will subtract baseline from each point. Leave blank for no baseline.','cat','DataProcessing'), ...
+    arg({'smooth','Smooth2D'},false,[],'Smooth time-freq image. This will apply nearest-neighbor interpolation.','cat','DataProcessing'), ...
     arg({'freqscale','FrequencyScale'},'linear',{'log','linear'},'Frequency Scale. Make the y-scale logarithmic or linear','cat','DisplayProperties'), ...
     arg({'linewidth','LineWidth'},2,[1 Inf],'Linewidth for marginals','cat','DisplayProperties'), ...
     arg({'events','EventMarkers'},[],[],'Event marker time and style. Specify event markers with a cell array of {time linecolor linestyle linewidth} cell arrays. Ex. { { 0.2 ''y'' '':'' 2} { 1.5 ''r'' '':'' 2}} will render two dotted-line event makers, yellow at 200 ms and red at 1500 ms','type','expression','shape','row','cat','DisplayProperties'), ...
@@ -219,10 +221,12 @@ g = arg_define([0 Inf],varargin, ...
     arg_norep({'dummy1'},[],[],'dummy') ...
     }, ...
     'Statistics' {...
+    arg({'plotci','PlotConfidenceIntervals'},false,[],'Plot confidence intervals (if available). Does not apply to for time-frequency images.'), ...
+    arg({'sigthreshmethod','ThresholdingMethod'},StatThreshMethods{1},StatThreshMethods,'Method to use for significance masking') ...
     arg({'alpha','AlphaSignificance'},0.05,[0 1],'P-value threshold for significance. e.g., 0.05 for p<0.05') ...
     }, ...
     'Simple' {...
-    arg({'prcthresh','PercentileThreshold'},100,[],'Percentile threshold. If of form [percentile, dimension], percentile is applied elementwise across the specified dimension.','shape','row','cat','Thresholding'), ...
+    arg({'prcthresh','PercentileThreshold'},0,[],'Percentile threshold. If of form [percentile, dimension], percentile is applied elementwise across the specified dimension.','type','denserealdouble','shape','row','cat','Thresholding'), ...
     arg({'absthresh','AbsoluteThreshold'},[],[],'Exact threshold.','cat','Thresholding') ...
     } ...
     }, 'Thresholding options. You can choose to use statistics (passed in as ''stats'' structure), or simple percentile or absolute thresholds.','cat','Thresholding') ...
@@ -232,8 +236,8 @@ g = arg_define([0 Inf],varargin, ...
 % ---------------------------------------------------
 g.applyThreshold = ~strcmpi(g.thresholding.arg_selection,'none');
 
-if (g.applyThreshold && islogical(g.StatsMatrix)), g.thresholding.alpha.sigthreshmethod = 'logical'; end
-    
+if (g.applyThreshold && islogical(g.StatsMatrix)), g.thresholding.sigthreshmethod = 'logical'; end
+
 if ndims(g.ConnMatrix) == 2
     % make ConnMatrix a [1 x N x M] matrix
     tmp          = [];
@@ -289,8 +293,6 @@ end
 
 cmaplen = length(g.colormap);
 
-% Rangle = angle(ConnOrig);
-
 if g.bidir
     ordinate(1)  = 0.67;
     ordinate(2)  = 0.1;
@@ -306,13 +308,7 @@ end
 figure('name',g.titleString,'DefaultAxesFontSize',g.axesFontSize); %,'color',g.backgroundColor
 colormap(g.colormap);
 
-% COLORMAP
-%    map=hsv(300); % install circular color map - green=0, yellow, orng, red, violet = max
-%    %                                         cyan, blue, violet = min
 map = g.colormap;
-% % cmapmid =  floor(cmaplen/2)+1;
-% map = flipud([map(251:end,:);map(1:250,:)]);
-% map(151,:) = map(151,:)*0.9; % tone down the (0=) green!
 
 pos = get(gca,'position'); % plot relative to current axes
 q = [pos(1) pos(2) 0 0];
@@ -351,11 +347,19 @@ for dir=1:numdirs
     % perform statistical thresholding
     % zero out (and 'green out') nonsignif. ConnOrig values
     if g.applyThreshold
-%         switch g.thresholding.arg_selection
-%             case 'Statistics'
-                Stat = squeeze(g.StatsMatrix(dir,:,:,:,:));
-
-                switch g.thresholding.alpha.sigthreshmethod
+        
+        Stat = squeeze(g.StatsMatrix(dir,:,:,:,:));
+                
+        if dims(Stat)==1
+            % expand Stat to dimensions of Conn
+            Stat = repmat(Stat(:),[size(Conn,1) size(Conn,2)]);
+        end
+        
+        switch g.thresholding.arg_selection
+            case 'Statistics'
+                
+                
+                switch g.thresholding.sigthreshmethod
                     case 'pval'
                         Conn (Stat > (1-g.thresholding.alpha.alpha)) = 0;
                         Stat = [];
@@ -363,16 +367,19 @@ for dir=1:numdirs
                         switch dims(Stat)
                             case 3, Conn  (Conn > Stat(:,:,1) & (Conn < Stat(:,:,2))) = 0;
                             case 2, Conn  (Conn < Stat) = 0;
-                            case 1, Conn  (Conn < repmat(Stat(:),[1 size(Conn,2)])) = 0;
+                            case 1, Conn  (Conn < repmat(Stat(:),[size(Conn,1) size(Conn,2)])) = 0;
                         end;
                     case 'logical'
                         Conn (~Stat) = 0;
                         Stat = [];
                 end
-%             case 'Simple'
-                
-                
-%         end
+            case 'Simple'
+                switch dims(Stat)
+                    case 3, Conn  (Conn > Stat(:,:,1) & (Conn < Stat(:,:,2))) = 0;
+                    case 2, Conn  (Conn < Stat) = 0;
+                    case 1, Conn  (Conn < repmat(Stat(:),[size(Conn,1) size(Conn,2)])) = 0;
+                end;
+        end
         
     end
     
@@ -387,6 +394,7 @@ for dir=1:numdirs
         IntegrConn  = ConnOrig;
         IntegrFreqs = g.allfreqs';
     else
+        
         [IntegrFreqs IntegrConn] = logimagesc(g.alltimes,origFreqs,Conn);
         try     set(gca,'Clim',max(Conn(:))*[-1 1]);
         catch,  set(gca,'Clim',[-1 1]); end
@@ -428,11 +436,20 @@ for dir=1:numdirs
         ch1=2; ch2=1;
     end
     
-    if ~isempty(str2num(g.nodelabels{ch1}))
-        ltext = sprintf('IC%s -> IC%s',g.nodelabels{ch1},g.nodelabels{ch2});
+    if g.bidir || ~isequal(g.nodelabels{ch1},g.nodelabels{ch2})
+        if ~isempty(str2num(g.nodelabels{ch1}))
+            ltext = sprintf('IC%s -> IC%s',g.nodelabels{ch1},g.nodelabels{ch2});
+        else
+            ltext = sprintf('%s -> %s',g.nodelabels{ch1},g.nodelabels{ch2});
+        end
     else
-        ltext = sprintf('%s -> %s',g.nodelabels{ch1},g.nodelabels{ch2});
+        if ~isempty(str2num(g.nodelabels{ch1}))
+            ltext = sprintf('IC%s',g.nodelabels{ch1});
+        else
+            ltext = sprintf('%s',g.nodelabels{ch1});
+        end
     end
+    
     text(0.98,0.92,ltext,'parent',gca,'units','normalized','fontweight','bold','fontsize',g.axesFontSize,'horizontalalignment','right','backgroundcolor',[1 1 1],'edgecolor',[0.3 0.3 0.3]);
     
     
@@ -443,39 +460,42 @@ for dir=1:numdirs
     h(8) = axes('Position',[.95 ordinate(dir) .05 height].*s+q);
     
     cbar(h(8),1:length(map),[tmpscale(1) tmpscale(2)]);
-    
+    ylabel(g.connmethod);
     
     % Plot bottom marginal
     % ----------------------------
-    
+    StatMarginal = [];
     
     h(10) = axes('Units','Normalized','Position',[.1 ordinate(dir)-0.1 .8 .1].*s+q);
-    Emax = trapz(IntegrFreqs,IntegrConn); % envelope of infoflow at each time point
-    Emin = Emax;
+    ConnMarginal = trapz(IntegrFreqs,IntegrConn); % integrate across frequency for each time point
     
-    %    plot(g.alltimes,Emin, g.alltimes, Emax, 'LineWidth',g.linewidth); hold on;
-    plot(g.alltimes,Emax,'LineWidth',g.linewidth); hold on;
+    %    plot(g.alltimes,ConnMarginal, g.alltimes, ConnMarginal, 'LineWidth',g.linewidth); hold on;
+    plot(g.alltimes,ConnMarginal,'LineWidth',g.linewidth); hold on;
     vlh = vline([0 0]);
     set(vlh,'LineWidth',0.7);
     
-    % plot bootstrap significance limits (base mean +/-)
+    % plot bootstrap significance limits
     if ~isempty(g.StatsMatrix) && dims(Stat) > 1
         switch dims(Stat)
             case 2,
-                plot(g.alltimes,trapz(g.allfreqs,Stat(:,:)),'g' ,'LineWidth',g.linewidth);
-                plot(g.alltimes,trapz(g.allfreqs,Stat(:,:)),'k:','LineWidth',g.linewidth);
+                StatMarginal = trapz(g.allfreqs,Stat)';
+                
             case 3,
-                plot(g.alltimes,trapz(g.allfreqs,Stat(:,:,1)),'g' ,'LineWidth',g.linewidth);
-                plot(g.alltimes,trapz(g.allfreqs,Stat(:,:,1)),'k:','LineWidth',g.linewidth);
-                plot(g.alltimes,trapz(g.allfreqs,Stat(:,:,2)),'g' ,'LineWidth',g.linewidth);
-                plot(g.alltimes,trapz(g.allfreqs,Stat(:,:,2)),'k:','LineWidth',g.linewidth);
+                StatMarginal(:,1) = trapz(g.allfreqs,squeeze(Stat(:,:,1)));
+                StatMarginal(:,2) = trapz(g.allfreqs,squeeze(Stat(:,:,2)));
         end;
-        axmin = min([Emin(:)' Stat(:)']);
-        axis([min(g.alltimes) max(g.alltimes) (sign(axmin)-0.2)*abs(axmin)-10^-5 max([Emax(:)' Stat(:)'])*1.2+10^-5]);
+        
+        for i=1:size(StatMarginal,2)
+            plot(g.alltimes,StatMarginal(:,i),'g' ,'LineWidth',g.linewidth);
+            plot(g.alltimes,StatMarginal(:,i),'k:','LineWidth',g.linewidth);
+        end
+        
+        axmin = min([ConnMarginal(:)' Stat(:)']);
+        axis([min(g.alltimes) max(g.alltimes) (sign(axmin)-0.2)*abs(axmin)-10^-5 max([ConnMarginal(:)' StatMarginal(:)'])*1.2+10^-5]);
     else
-        if ~all(isnan(Emin(:)))
-            axmin = min(Emin);
-            axis([min(g.alltimes)-eps max(g.alltimes)+eps (sign(axmin)-0.2)*abs(axmin)-10^-5 max(Emax)*1.2+10^-5]);
+        if ~all(isnan(ConnMarginal(:)))
+            axmin = min(ConnMarginal);
+            axis([min(g.alltimes)-eps max(g.alltimes)+eps (sign(axmin)-0.2)*abs(axmin)-10^-5 max(ConnMarginal)*1.2+10^-5]);
         end
     end;
     
@@ -487,16 +507,15 @@ for dir=1:numdirs
     
     % Create left marginal
     % ---------------------------
-    
+    StatMarginal = [];
     h(11) = axes('Units','Normalized','Position',[0 ordinate(dir) .1 height].*s+q);
     
-    Emax = trapz(g.alltimes,ConnOrig,2);  % integrate across time
-    Emin = Emax; %min(ConnOrig,[],2);
+    ConnMarginal = trapz(g.alltimes,ConnOrig,2);  % integrate across time
     
     if ~strcmpi(g.freqscale, 'log')
-        plot(g.allfreqs,Emax,'b','LineWidth',g.linewidth); % plot baseline
+        plot(g.allfreqs,ConnMarginal,'b','LineWidth',g.linewidth); % plot baseline
     else
-        semilogx(g.allfreqs,Emax,'b','LineWidth',g.linewidth); % plot baseline
+        semilogx(g.allfreqs,ConnMarginal,'b','LineWidth',g.linewidth); % plot baseline
         set(h(11),'View',[90 90])
         divs = linspace(log(g.allfreqs(1)), log(g.allfreqs(end)), 10);
         set(gca, 'xtickmode', 'manual');
@@ -506,45 +525,42 @@ for dir=1:numdirs
     end;
     if g.applyThreshold && ~isempty(Stat) % plot bootstrap significance limits (base max +/-)
         hold on
+        
+        switch dims(Stat)
+            case 1,
+                StatMarginal = Stat(:);
+            case 2,
+                StatMarginal = trapz(g.alltimes,Stat(:,:),2);
+                
+            case 3,
+                StatMarginal(:,1) = trapz(g.alltimes,squeeze(Stat(:,:,1)),2);
+                StatMarginal(:,2) = trapz(g.alltimes,squeeze(Stat(:,:,2)),2);
+        end
+        
         if ~strcmpi(g.freqscale, 'log')
-            switch dims(Stat)
-                case 1,
-                    plot(g.allfreqs,Stat(:),'g' ,'LineWidth',g.linewidth);
-                    plot(g.allfreqs,Stat(:),'k:','LineWidth',g.linewidth);
-                case 2,
-                    plot(g.allfreqs,trapz(g.alltimes,Stat(:,:),2),'g' ,'LineWidth',g.linewidth);
-                    plot(g.allfreqs,trapz(g.alltimes,Stat(:,:),2),'k:','LineWidth',g.linewidth);
-                case 3,
-                    plot(g.allfreqs,trapz(g.alltimes,Stat(:,:,1),2),'g' ,'LineWidth',g.linewidth);
-                    plot(g.allfreqs,trapz(g.alltimes,Stat(:,:,1),2),'k:','LineWidth',g.linewidth);
-                    plot(g.allfreqs,trapz(g.alltimes,Stat(:,:,2),2),'g' ,'LineWidth',g.linewidth);
-                    plot(g.allfreqs,trapz(g.alltimes,Stat(:,:,2),2),'k:','LineWidth',g.linewidth);
+            
+            for i=1:size(StatMarginal,2)
+                plot(g.allfreqs,StatMarginal(:,i),'g' ,'LineWidth',g.linewidth);
+                plot(g.allfreqs,StatMarginal(:,i),'k:','LineWidth',g.linewidth);
             end
+            
         else
-            switch dims(Stat)
-                case 1,
-                    semilogy(g.allfreqs,Stat(:),'g' ,'LineWidth',g.linewidth);
-                    semilogy(g.allfreqs,Stat(:),'k:','LineWidth',g.linewidth);
-                case 2,
-                    semilogy(g.allfreqs,trapz(g.alltimes,Stat(:,:),2),'g' ,'LineWidth',g.linewidth);
-                    semilogy(g.allfreqs,trapz(g.alltimes,Stat(:,:),2),'k:','LineWidth',g.linewidth);
-                case 3,
-                    semilogy(g.allfreqs,trapz(g.alltimes,Stat(:,:,1),2),'g' ,'LineWidth',g.linewidth);
-                    semilogy(g.allfreqs,trapz(g.alltimes,Stat(:,:,1),2),'k:','LineWidth',g.linewidth);
-                    semilogy(g.allfreqs,trapz(g.alltimes,Stat(:,:,2),2),'g' ,'LineWidth',g.linewidth);
-                    semilogy(g.allfreqs,trapz(g.alltimes,Stat(:,:,2),2),'k:','LineWidth',g.linewidth);
-            end;
+            
+            for i=1:size(StatMarginal,2)
+                semilogy(g.allfreqs,StatMarginal(:,i),'g' ,'LineWidth',g.linewidth);
+                semilogy(g.allfreqs,StatMarginal(:,i),'k:','LineWidth',g.linewidth);
+            end
         end;
-        if ~isnan(max(Emax))
-            axmin = min([Emin(:)' Stat(:)']);
+        if ~isnan(max(ConnMarginal))
+            axmin = min([ConnMarginal(:)' Stat(:)']);
             axis([g.allfreqs(1) g.allfreqs(end) ...
-                (sign(axmin)-0.2)*abs(axmin)-10^-5   max([Emax(:)'  Stat(:)'])*1.2+10^-5]);
+                (sign(axmin)-0.2)*abs(axmin)-10^-5   max([ConnMarginal(:)'  Stat(:)'])*1.2+10^-5]);
         end;
     else
-        if ~isnan(max(Emax))
-            axmin = min(Emin);
+        if ~isnan(max(ConnMarginal))
+            axmin = min(ConnMarginal);
             axis([g.allfreqs(1) g.allfreqs(end) ...
-                (sign(axmin)-0.2)*abs(axmin)-10^-5   max(Emax(:))*1.2+10^-5]);
+                (sign(axmin)-0.2)*abs(axmin)-10^-5   max(ConnMarginal(:))*1.2+10^-5]);
         end;
     end
     
@@ -593,29 +609,41 @@ for i=1:length(botMargAx)
     
 end
 
-%%%%%%%%%%%%%%% plot topoplot() and/or dipoles %%%%%%%%%%%%%%%%%%%%%%%
-
+% ------------------------------------
+% | plot topoplot() and/or dipoles
+% ------------------------------------
+FromSourcePlotPos   = [-.1 .43 .2 .14];
+ToSourcePlotPos     = [.9 .43 .2 .14];
+SingleSourcePlotPos = [-.1 -.1 .2 .14];
 switch lower(g.topoplot)
+    
     case 'topoplot'
-        h(15) = subplot('Position',[-.1 .43 .2 .14].*s+q);
-        if size(g.topovec,2) <= 2
-            topoplot(g.topovec(1),g.elocs,'electrodes','off', ...
-                'style', 'blank', 'emarkersize1chan', 10, 'chaninfo', g.chaninfo);
-        else
-            topoplot(g.topovec(1,:),g.elocs,'electrodes','off', 'chaninfo', g.chaninfo);
-        end;
-        dippos = get(h(15),'position');
-        lpos = dippos([1 2])+[dippos(3)/2 2*dippos(4)];
-        if ~isempty(str2num(g.nodelabels{ch2}))
-            ltext = sprintf('IC%s',g.nodelabels{ch2});
-        else
-            ltext = sprintf('%s',g.nodelabels{ch2});
-        end
-        text(1.2,0.5,ltext,'horizontalalignment','left','units','normalized','parent',h(15),'fontweight','bold','fontsize',g.axesFontSize);
-        axis('square')
-        %         axcopy(gca);
         
-        h(16) = subplot('Position',[.9 .43 .2 .14].*s+q);
+        if g.bidir
+            h(15) = subplot('Position',FromSourcePlotPos.*s+q);
+            if size(g.topovec,2) <= 2
+                topoplot(g.topovec(1),g.elocs,'electrodes','off', ...
+                    'style', 'blank', 'emarkersize1chan', 10, 'chaninfo', g.chaninfo);
+            else
+                topoplot(g.topovec(1,:),g.elocs,'electrodes','off', 'chaninfo', g.chaninfo);
+            end;
+            dippos = get(h(15),'position');
+            lpos = dippos([1 2])+[dippos(3)/2 2*dippos(4)];
+            if ~isempty(str2num(g.nodelabels{ch2}))
+                ltext = sprintf('IC%s',g.nodelabels{ch2});
+            else
+                ltext = sprintf('%s',g.nodelabels{ch2});
+            end
+            text(1.2,0.5,ltext,'horizontalalignment','left','units','normalized','parent',h(15),'fontweight','bold','fontsize',g.axesFontSize);
+            axis('square')
+        end
+        
+        if g.bidir
+            h(16) = subplot('Position',ToSourcePlotPos.*s+q);
+        else
+            h(16) = subplot('Position',SingleSourcePlotPos.*s+q);
+        end
+
         if size(g.topovec,2) <= 2
             topoplot(g.topovec(2),g.elocs,'electrodes','off', ...
                 'style', 'blank', 'emarkersize1chan', 10, 'chaninfo', g.chaninfo);
@@ -632,34 +660,42 @@ switch lower(g.topoplot)
         end
         text(-0.2,0.5,ltext,'horizontalalignment','right','units','normalized','parent',h(16),'fontweight','bold','fontsize',g.axesFontSize);
         axis('square')
-        %         axcopy(gca);
+        
     case 'dipole'
-        h(15) = subplot('Position',[-.1 .43 .2 .14].*s+q);
-        %         dipplot(g.dipfitstruct(1),'color',{'r'},'verbose','off', ...
-        %             'dipolelength',0.01,'dipolesize',20,'view',[1 0 0], ...
-        %             'projimg', 'off', 'projlines', 'on', 'axistight',  ...
-        %             'on', 'cornermri', 'on', 'normlen', 'on','gui','off');
         
-        % view [1 0 0] % saggital
-        % view [0 -0.99 0.01] for zeynep model
-        pop_dipplot(struct('dipfit',g.dipfitstruct),1,'color',{'r'},'verbose','off','dipolelength',0.01,...
-            'dipolesize',20,'view',[1 0 0],'projimg', 'off',  ...
-            'projlines', 'on', 'axistight', 'on',            ...
-            'cornermri', 'on', 'normlen', 'on','gui','off','mri',g.dipplot.mri,'coordformat',g.dipplot.coordformat);
-        
-        if ~isempty(str2num(g.nodelabels{1}))
-            ltext = sprintf('IC%s',g.nodelabels{1});
-        else
-            ltext = g.nodelabels{1};
+        if g.bidir
+            h(15) = subplot('Position',FromSourcePlotPos.*s+q);
+            %         dipplot(g.dipfitstruct(1),'color',{'r'},'verbose','off', ...
+            %             'dipolelength',0.01,'dipolesize',20,'view',[1 0 0], ...
+            %             'projimg', 'off', 'projlines', 'on', 'axistight',  ...
+            %             'on', 'cornermri', 'on', 'normlen', 'on','gui','off');
+
+            % view [1 0 0] % saggital
+            % view [0 -0.99 0.01] for zeynep model
+            pop_dipplot(struct('dipfit',g.dipfitstruct),1,'color',{'r'},'verbose','off','dipolelength',0.01,...
+                'dipolesize',20,'view',[1 0 0],'projimg', 'off',  ...
+                'projlines', 'on', 'axistight', 'on',            ...
+                'cornermri', 'on', 'normlen', 'on','gui','off','mri',g.dipplot.mri,'coordformat',g.dipplot.coordformat);
+
+            if ~isempty(str2num(g.nodelabels{1}))
+                ltext = sprintf('IC%s',g.nodelabels{1});
+            else
+                ltext = g.nodelabels{1};
+            end
+            dippos = get(h(15),'position');
+            lpos = dippos([1 2])+[dippos(3)/2 2*dippos(4)];
+            text(1.2,0.5,ltext,'horizontalalignment','left','units','normalized','parent',h(15),'fontweight','bold','fontsize',g.axesFontSize);
+
+            %         ylabel(g.nodelabels{1});
+            %         axcopy(gca);
         end
-        dippos = get(h(15),'position');
-        lpos = dippos([1 2])+[dippos(3)/2 2*dippos(4)];
-        text(1.2,0.5,ltext,'horizontalalignment','left','units','normalized','parent',h(15),'fontweight','bold','fontsize',g.axesFontSize);
         
-        %         ylabel(g.nodelabels{1});
-        %         axcopy(gca);
         
-        h(16) = subplot('Position',[.9 .43 .2 .14].*s+q);
+        if g.bidir
+            h(16) = subplot('Position',ToSourcePlotPos.*s+q);
+        else
+            h(16) = subplot('Position',SingleSourcePlotPos.*s+q);
+        end
         %         dipplot(g.dipfitstruct(2),'color',{'r'},'verbose','off', ...
         %             'dipolelength',0.01,'dipolesize',20,'view',[1 0 0], ...
         %             'projimg', 'off', 'projlines', 'on', 'axistight',  ...
@@ -682,7 +718,11 @@ switch lower(g.topoplot)
 end
 
 
-try icadefs; set(gcf, 'color', BACKCOLOR); catch, end;
+try 
+    icadefs
+    set(gcf, 'color', BACKCOLOR); 
+catch err
+end;
 
 
 

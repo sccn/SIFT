@@ -415,23 +415,24 @@ if ~isempty(ALLEEG)
 end
 
 % extract stats
-if isfield(varargin{1},'icaact') && length(varargin)==2
-    stats = [];
-elseif isfield(varargin{1},'icaact') && ~isempty(varargin(3:end))
-    stats = arg_extract(varargin(3:end),'stats');
-elseif ~isempty(varargin(3:end))
-    stats = arg_extract(varargin,'stats');
-elseif isempty(varargin(3:end))
-    stats = [];
-end
+% if isfield(varargin{1},'icaact') && length(varargin)==2
+%     stats = [];
+% elseif isfield(varargin{1},'icaact') && ~isempty(varargin(3:end))
+%     stats = arg_extract(varargin(3:end),'stats');
+% elseif ~isempty(varargin(3:end))
+%     stats = arg_extract(varargin,'stats');
+% elseif isempty(varargin(3:end))
+%     stats = [];
+% end
+% 
+% if isempty(stats)
+%     usestatsdef = [];  % false
+% else
+%     usestatsdef = {};  % true
+% end
+% clear stats;
 
-if isempty(stats)
-    usestatsdef = [];  % false
-else
-    usestatsdef = {};  % true
-end
-clear stats;
-
+usestatsdef = [];  % false
 
 % if length(varargin)>1 && iscell(varargin{1})
 %     % arg_guidialog called the function...
@@ -450,15 +451,15 @@ clear stats;
 %      freqrange timerange connnames] = deal([]);
 % end
 
-
+% ensure we have row vectors
+MyComponentNames = MyComponentNames(:)';
+MyChannelNames = MyChannelNames(:)';
 
 
 NodeColorMappingOpts = {'None','Outflow','Inflow','CausalFlow','Outdegree','Indegree','CausalDegree','AsymmetryRatio'};
 NodeSizeMappingOpts = {'None','Outflow','Inflow','CausalFlow','Outdegree','Indegree','CausalDegree','AsymmetryRatio'};
 EdgeColorMappingOpts = {'None','Connectivity','PeakFreq','Directionality'};
 EdgeSizeMappingOpts = {'None','ConnMagnitude','Connectivity'};
-
-% arg_nogui({'stats','Stats'},[],[],'A structure containing statistics.'), ...
 
 g = arg_define([0 2],varargin, ...
     arg_norep({'ALLEEG'},mandatory),...
@@ -704,7 +705,7 @@ N=g.ALLEEG(1).CAT.nbchan;
 nodeIndicesToExclude = find(~ismember(1:N,g.BMopts.selected));
 
 % get the indices of frequencies to collapse
-freqIndices = getindex(g.Conn(1).freqs,g.freqsToCollapse);
+freqIndicesToCollapse = getindex(g.Conn(1).freqs,g.freqsToCollapse);
 
 % get indices of desired time windows ...
 timeIndices =  getindex(erWinCenterTimes,g.timeRange(1)):getindex(erWinCenterTimes,g.timeRange(2));
@@ -713,7 +714,6 @@ timeIndices =  getindex(erWinCenterTimes,g.timeRange(1)):getindex(erWinCenterTim
 BrainMovieTimeRangeInMs = 1000*erWinCenterTimes(timeIndices);
 
 % ---------------------------------------------
-
 
 
 % TRANSFORM DATA INTO BRAINMOVIE FORMAT
@@ -777,10 +777,24 @@ for cnd = 1:length(g.Conn)
             % extract data
             causality = squeeze(Conn(ch1,ch2,:,:));
             
+%             % make row vector if necessary
+%             if any(size(causality)==1)
+%                 causality = causality(:)';
+%             end
+            
             % collapse matrix across frequencies
-            [causality peakidx] = hlp_collapseFrequencies( causality, ...
-              g.collapsefun,freqIndices,timeIndices,g.freqsToCollapse(2)-g.freqsToCollapse(1));
-
+            if length(g.freqsToCollapse)>1
+                [causality peakidx] = hlp_collapseFrequencies( causality, ...
+                  g.collapsefun,freqIndicesToCollapse,timeIndices,g.freqsToCollapse(2)-g.freqsToCollapse(1));
+            elseif size(causality,2)==1
+                % only one frequency
+                causality = causality(:,freqIndicesToCollapse);
+                peakidx = freqIndicesToCollapse;
+            else
+                % multiple freqs, but only one frequency selected
+                causality = causality(freqIndicesToCollapse,:);
+                peakidx = freqIndicesToCollapse;
+            end
 
              
 %                 interp1(1:1:size(causality,2), ...
@@ -878,7 +892,7 @@ for cnd = 1:length(g.Conn)
                 for ch2=1:N
                     [causality(ch1,ch2,:)] = hlp_collapseFrequencies( ...
                             squeeze(Conn(ch1,ch2,:,:)), g.collapsefun, ...
-                            freqIndices,timeIndices,g.freqsToCollapse(2)-g.freqsToCollapse(1));
+                            freqIndicesToCollapse,timeIndices,g.freqsToCollapse(2)-g.freqsToCollapse(1));
                 end
              end
         end

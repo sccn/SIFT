@@ -48,7 +48,7 @@ function [infostring warnstring errstring] = est_checkMVARParams(EEG, varargin)
 
 
 var = hlp_mergeVarargin(varargin{:});
-g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_checkMVARParams','ignore');
+g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_checkMVARParams','ignore','quiet');
 if ischar(g), error(g); end
 if isempty(g.epochTimeLims), g.epochTimeLims = [0 EEG.pnts/EEG.srate]; end
 

@@ -245,6 +245,7 @@ figureHandles = [];
 
 % extract some stuff from inputs for arg defaults
 Conn = arg_extract(varargin,'Conn',2);
+numConds = length(Conn);
 if ~isempty(Conn)
     Conn = Conn(1);
     ConnNames   = hlp_getConnMethodNames(Conn);
@@ -287,7 +288,53 @@ if ~isempty(ALLEEG)
         sourceMarginOptions = [sourceMarginOptions 'dipole'];
     end
     
+    % get the condition names
+    for cnd=1:length(ALLEEG)
+        conditionNames{cnd} = ALLEEG(cnd).condition;
+        setNames{cnd}       = ALLEEG(cnd).setname;
+        fileNames{cnd}      = ALLEEG(cnd).filename;
+    end
+    
+    % set up condition difference order defaults
+    if length(ALLEEG)==2
+        if ~any(cellfun(@isempty,conditionNames))
+            % use condition names for labeling
+            CondDiffOrderDefaults = ...
+                {sprintf('%s-%s',conditionNames{1},conditionNames{2}), ...
+                sprintf('%s-%s',conditionNames{2},conditionNames{1})};
+            CondLabels = conditionNames;
+        elseif ~any(cellfun(@isempty,setNames))
+            % use set names for labeling
+            CondDiffOrderDefaults = ...
+                {sprintf('%s-%s',setNames{1},setNames{2}), ...
+                sprintf('%s-%s',setNames{2},setNames{1})};
+            CondLabels = setNames;
+        elseif ~any(cellfun(@isempty,fileNames))
+            % use set filenames for labeling
+            CondDiffOrderDefaults = ...
+                {sprintf('%s-%s',fileNames{1},fileNames{2}), ...
+                sprintf('%s-%s',fileNames{2},fileNames{1})};
+            CondLabels = fileNames;
+        else
+            % use set numbers for labeling
+            CondDiffOrderDefaults = {'Set 1 - Set 2','Set 2 - Set 1'};
+            CondLabels = {'Set 1','Set 2'};
+        end
+    else
+        CondDiffOrderDefaults = {''};
+        if ~isempty(conditionNames{1})
+            CondLabels = conditionNames;
+        elseif ~isempty(setNames{1})
+            CondLabels = setNames;
+        elseif ~isempty(fileNames{1})
+            CondLabels = fileNames;
+        else
+            CondLabels = {'Set 1'};
+        end
+    end
+    
     clear ALLEEG
+    
 else
     sourceMarginOptions = {'none','topoplot','dipole'};
 end
@@ -316,10 +363,16 @@ clear stats;
 
 % setup the argument list
 % -----------------------------------------------------
-
 g = arg_define([0 2],varargin, ...
     arg_norep({'ALLEEG'},mandatory),...
     arg_norep({'Conn'},mandatory),...
+    fastif(numConds==2,...
+    arg_subtoggle({'plotCondDiff','PlotConditionDifference'},{}, ...
+    {...
+    arg({'condOrder','ConditionOrder'},CondDiffOrderDefaults{1},CondDiffOrderDefaults,'Order in which to take difference.') ...
+    }, 'Plot difference between selected conditions','cat','DisplayProperties'), ...
+    arg_nogui({'plotCondDiff','PlotConditionDifference'},struct('arg_selection',false),[],'dummy value') ...
+    ), ...
     arg_norep({'stats','Stats'},[],[],'A structure containing statistics.'), ...
     arg_nogui({'vismode','VisualizationMode'},'TimeXFrequency',{'TimeXFrequency','TimeXCausality','FrequencyXCausality'},'Visualization Modes. Create Time-Frequency imageplots, Causality x Frequency plots (collapsing across time), Causality x Time plots (collapsing across frequency)'), ...
     arg_norep({'connmethods'},ConnNames{1},ConnNames,'Connectivity Measures to visualize','shape','row'), ...
@@ -340,7 +393,6 @@ g = arg_define([0 2],varargin, ...
     arg({'timeRange','TimesToPlot'},timedef,[],'[Min Max] Time range to image (sec). Leave blank to use all timewindows','shape','row','type','denserealdouble','cat','DisplayProperties'), ...
     arg({'freqValues','FrequenciesToPlot'},freqdef,[],'Vector of frequencies (Hz) to image. Leave blank to use all frequencies','type','expression','shape','row','cat','DisplayProperties'), ...
     arg_nogui({'windows','TimeWindowsToPlot'},[],[],'Time window centers (sec). If a vector of times, will plot a separate curve for each specified time','shape','row','cat','DisplayProperties'),...
-    arg_nogui({'plotci','PlotConfidenceIntervals'},false,[],'Plot confidence intervals (if available). Does not apply to for time-frequency images.'), ...
     arg_subtoggle({'pcontour','PlotContour'},[], ...
     {...
     arg({'contourcolor','ContourColor'},[0 0 0],[],'Contour Color. Can use any allowable Matlab color specification (see ''help ColorSpec'').','shape','row','type','expression','cat','DisplayProperties') ...
@@ -350,6 +402,7 @@ g = arg_define([0 2],varargin, ...
     arg_norep({'dummy1'},[],[],'dummy') ...
     }, ...
     'Statistics' {...
+    arg({'plotci','PlotConfidenceIntervals'},false,[],'Plot confidence intervals (if available). Does not apply to for time-frequency images.'), ...
     arg({'sigthreshmethod','ThresholdingMethod'},StatThreshMethods{1},StatThreshMethods,'Method to use for significance masking') ...
     arg({'alpha','AlphaSignificance'},0.05,[0 1],'P-value threshold for significance. e.g., 0.05 for p<0.05') ...
     }, ...
@@ -398,6 +451,13 @@ g = arg_define([0 2],varargin, ...
 arg_toworkspace(data);
 clear data;
 
+% initialize default variables
+gridmargin  = [0.05 0.05];                      % margin (normalized units) around grid of subplots [horiz vert]
+pmargin     = 0.005;                            % margin between subplots
+OFFSET      = 0; 0.05;
+colorlist   = {'k','g','b','c','m','y','r'};    % list of colors for sequential overlapping plots of different time windows
+StatsMatrix = [];
+TwoSidedThresholding = false;
 
 
 % handle plotting multiple estimators on the grid
@@ -473,8 +533,14 @@ switch lower(g.MatrixLayout.arg_selection)
         end
 end
 
+% if ~isstruct(g.plotCondDiff) && g.plotCondDiff==0
+%     g.plotCondDiff.arg_selection = 0;
+% elseif g.plotCondDiff==0
+%     g = rmfield(g,'plotCondDiff');
+%     g.plotCondDiff.arg_selection = 0;
+% end
 
-
+% determine connectivity method
 if isempty(g.connmethods)
     % if no connectivity methods specified, select all of them
     g.connmethods   = hlp_getConnMethodNames(Conn(1));          end
@@ -483,8 +549,67 @@ if isempty(g.freqValues)
 if isempty(g.timeRange)
     g.timeRange     = timedef;                                  end
 
-
 CEstimator = g.connmethods;
+
+
+
+% check if confidence intervals are present
+if strcmpi(g.thresholding.arg_selection,'statistics') && g.thresholding.plotci ...
+    && ~willPlotStatCI(g,CEstimator)
+        fprintf('No confidence intervals found for estimator %s -- ignoring...\n',CEstimator);
+        g.thresholding.plotci = false;
+end
+% if ~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics') ...
+%     && ~isfield(g.stats.(CEstimator),'ci') || isempty(g.stats.(CEstimator).ci)
+%         fprintf('No confidence intervals found -- ignoring...\n');
+%         g.thresholding.plotci = false;
+% end
+
+% if user chose to plot stats, but none present, inform user
+if strcmpi(g.thresholding.arg_selection,'statistics') && ~willPlotStats(g,CEstimator)
+    fprintf('No statistics found for estimator ''%s.'' This estimator will be unthresholded.\n',CEstimator);
+    g.thresholding = struct('arg_direct',0,'arg_selection','None');
+end
+
+% if we have stats, inform user if significance threshold used for confidence
+% intervals is not the same as the p-value they have selected for plotting
+if ~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics') ...
+        && g.thresholding.plotci && strcmpi(g.thresholding.sigthreshmethod,'pval') ...
+        && g.stats.alpha ~= g.thresholding.alpha
+    
+        error(['The chosen significance level of alpha=' num2str(g.thresholding.alpha) ...
+               ' does not match those of your confidence intervals (alpha=' num2str(g.stats.alpha) ')' char(10) ...
+               'You may resolve this by doing one of the following: ' char(10) ...
+               '(1) recompute your confidence intervals' char(10) ...
+               '(2) disable the PlotConfidenceIntervals option' char(10) ...
+               '(3) select another p-value for thresholding']);
+end
+       
+if length(ALLEEG)<2
+    g.plotCondDiff = struct('arg_selection',false);
+end
+
+% establish the order for difference plots
+if isfield(g,'plotCondDiff') && g.plotCondDiff.arg_selection
+    
+    if strcmpi(g.plotCondDiff.condOrder,CondDiffOrderDefaults{2})
+        % reverse order
+        CondLabels = CondLabels(end:-1:1);
+        ALLEEG = ALLEEG(end:-1:1);
+        Conn = Conn(end:-1:1);
+        
+        % also need to invert confidence intervals (flip about 0) for statistics
+        % (p-value will remain the same, since this is a two-sided test)
+        if willPlotStatCI(g,CEstimator)
+            
+            % flip ci about y=0
+            g.stats.(CEstimator).ci = -g.stats.(CEstimator).ci;
+            
+        end
+        
+    end
+end
+
 
 
 % do some error checking
@@ -539,30 +664,20 @@ if strcmpi(g.topoplot,'dipole')
 end
 
 
-% INITIALIZE DEFAULT VARS
-%--------------------------------------------------------------------------
-gridmargin  = [0.05 0.05];                      % margin (normalized units) around grid of subplots [horiz vert]
-pmargin     = 0.005;                            % margin between subplots
-OFFSET      = 0; 0.05;
-colorlist   = {'k','g','b','c','m','y','r'};    % list of colors for sequential overlapping plots of different time windows
-StatsMatrix = [];
-TwoSidedThresholding = false;
-
-% setup some labels
+% set up figure labels
 if length(Conn)>1
     if length(ALLEEG)<2
         error('To get between-condition labels, ALLEEG must contain datasets for both conditions');
     end
     condstring = sprintf('(%s) - (%s)', ...
-        ALLEEG(1).condition, ...
-        ALLEEG(2).condition);
+        CondLabels{1}, ...
+        CondLabels{2});
 else
     condstring = sprintf('(%s)', ...
-        ALLEEG(1).condition);
+        CondLabels{1});
 end
 
 % set up the node labels
-% ---------------------------------
 if isempty(g.nodelabels)
     if isfield(ALLEEG(1).CAT,'curComponentNames') && ~isempty(ALLEEG(1).CAT.curComponentNames)
         g.nodelabels = ALLEEG(1).CAT.curComponentNames;
@@ -576,7 +691,7 @@ if isempty(g.nodelabels)
 end
 
 % determine whether or not we will plot sources on row-col margins
-g.PlotSourceOnMargin = true; ~strcmpi(g.topoplot,'none');
+g.PlotSourceOnMargin = true; %~strcmpi(g.topoplot,'none');
 
 % extract some variables for convenience
 nch   = ALLEEG(1).CAT.nbchan;
@@ -594,13 +709,9 @@ g.erWinCenterTimesSelected  = erWinCenterTimes;
 freqIndices = getindex(Conn(1).freqs,g.freqValues);
 
 
-% select time and frequency range from Connectivity ...
-for i=1:length(Conn)
-    Conn(i).(CEstimator) = Conn(i).(CEstimator)(:,:,freqIndices,timeIndices);
-end
-
-% ... and from Statistics (if it exists)
-if ~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics')
+% select time and frequency range from Statistics (if it exists) ...
+if willPlotStats(g,CEstimator)
+        
     if ~isequal(size(g.stats.(CEstimator).(g.thresholding.sigthreshmethod)),size(Conn(1).(CEstimator)))
         error('Stats matrix must be same size as Connectivity matrix');
     end
@@ -609,10 +720,16 @@ if ~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics')
         = g.stats.(CEstimator).(g.thresholding.sigthreshmethod)(:,:,freqIndices,timeIndices);
     
     % select window for confidence interval
-    if g.plotci && isfield(g.stats.(CEstimator),'ci')
+    if willPlotStatCI(g,CEstimator)
         g.stats.(CEstimator).ci = g.stats.(CEstimator).ci(:,:,:,freqIndices,timeIndices);
     end
 end
+
+% ... and from Connectivity
+for i=1:length(Conn)
+    Conn(i).(CEstimator) = Conn(i).(CEstimator)(:,:,freqIndices,timeIndices);
+end
+
 
 
 % do logarithmic transform if desired
@@ -636,10 +753,10 @@ if ~isempty(g.yord), freqValues = g.yord; end
 %     g.winstep = 1;
 % end
 
-
-% create the Time Frequency Grid [nch x nch] for current connectivity measure
-%--------------------------------------------------------------------------
-
+% ---------------------------------------------------------------------------
+% | Set up the Time Frequency Grid [nch x nch]
+% | for current connectivity measure
+% ---------------------------------------------------------------------------
 sz = size(Conn(1).(CEstimator));
 
 if sz(2)==1 && sz(1)~=sz(2)
@@ -721,11 +838,19 @@ if ~strcmpi(g.msubset,'all')
             Dd(Dd==0)=nan;
     end
     ConnMatrix=ConnMatrix.*(repmat(Dd,[1,1,size(ConnMatrix,3),size(ConnMatrix,4)]));
+%     if willPlotStatCI(g,CEstimator)
+%         for k=1:2
+%             g.stats.(CEstimator).ci(k,:,:,:,:) ...
+%                 = squeeze(g.stats.(CEstimator).ci(k,:,:,:,:) ...
+%                 .*(repmat(Dd,[1,size(g.stats.(CEstimator).ci,4),size(g.stats.(CEstimator).ci,5)])));
+%         end
+%     end
 end
 
 
-% Apply statistics and thresholding
-%--------------------------------------------------------------------
+% ----------------------------------------------------------------
+% | Apply statistics and thresholding
+% ----------------------------------------------------------------
 if any(ConnMatrix(:)<0), TwoSidedThresholding = true; end
 
 switch lower(g.thresholding.arg_selection)
@@ -807,8 +932,8 @@ switch lower(g.thresholding.arg_selection)
         
 end
 
-
-% Apply significance mask
+% ---------------------------------------------------------------
+% | Apply significance mask
 % ---------------------------------------------------------------
 
 % preserve the original connectivity matrix
@@ -855,7 +980,6 @@ if ~isempty(StatsMatrix) && isempty(g.windows) && ~g.pcontour.arg_selection
     end
     
 end
-% ---------------------------------------------------------------
 
 
 if ~isempty(g.windows)
@@ -871,26 +995,33 @@ if ~isempty(g.windows)
     OrigConnMatrix = OrigConnMatrix(:,:,:,windowIndex);
     
     % select window for confidence interval
-    if ~isempty(g.stats) && isfield(g.stats.(CEstimator),'ci') && g.plotci
+    if ~isempty(g.stats) && isfield(g.stats.(CEstimator),'ci') && g.thresholding.plotci
         g.stats.(CEstimator).ci = g.stats.(CEstimator).ci(:,:,:,:,windowIndex);
     end
     
 end
-% ---------------------------------------------------------------------
 
 
 [nch nch nfreqs ntime] = size(ConnMatrix);
 
 
+
 % set up the color limits
-% ---------------------------------
 if ~isempty(g.clim)
     if isscalar(g.clim)
         % use percentile colorlimits
         if ~TwoSidedThresholding %all(ConnMatrix(~isnan(ConnMatrix))>=0)
-            g.clim=[0 prctile(ConnMatrix(:),g.clim)];
+            if 0 %willPlotStatCI(g,CEstimator) && ndims(squeeze(ConnMatrix))<4
+                g.clim=[0 prctile(g.stats.(CEstimator).ci(2,:),g.clim)];
+            else
+                g.clim=[0 prctile(ConnMatrix(:),g.clim)];
+            end
         else
-            maxprc=prctile(abs(ConnMatrix(:)),g.clim);
+            if 0 %willPlotStatCI(g,CEstimator) && ndims(squeeze(ConnMatrix))<4
+                maxprc=prctile(abs(g.stats.(CEstimator).ci(:)),g.clim);
+            else
+                maxprc=prctile(abs(ConnMatrix(:)),g.clim);
+            end
             g.clim=[-maxprc maxprc];
         end
     end
@@ -900,12 +1031,9 @@ if any(isnan(g.clim)) || diff(g.clim)<=0
     g.clim = [0 1];  % clims are nan or non-increasing
 end
 
-%     nodelabels = cell(size(ALLEEG(1).CAT.params.newchans));
-%     for i=1:length(ALLEEG(1).chanlocs), nodelabels{i} = ALLEEG(1).chanlocs(i).labels; end
-
-
-% plot the source locations or topoplots on marginal
-% ---------------------------------
+% ------------------------------------------------------------------
+% | Plot the source locations or topoplots on marginal
+% ------------------------------------------------------------------
 if ~strcmpi(g.topoplot,'none')
     
     subplot1(sub2ind([numSubplotRows,numSubplotCols],1,1));
@@ -954,8 +1082,10 @@ end
 % backup frequency values for logimagesc
 origFreqValues = g.freqValues;
 
-% Plot the causality:
-% column ch_j --> row ch_i
+% ---------------------------------
+% | Plot Information Flow
+% | column ch_j --> row ch_i
+% ---------------------------------
 for ch_i=1:nch
     for ch_j=1:nch
         
@@ -993,11 +1123,12 @@ for ch_i=1:nch
             continue;
         end
         
-        
-        % MODE1: Time x Frequency Images
-        % -----------------------------------------------------
+
         if ntime > 1 && nfreqs > 1 && isempty(g.windows)
-            
+            % ---------------------------------
+            % | Format is Time x Frequency
+            % ---------------------------------
+        
             C=squeeze(ConnMatrix(i,j,:,:));
             
             if g.smooth
@@ -1046,7 +1177,8 @@ for ch_i=1:nch
             
             
             
-            % prepare the subplot function
+            % Prepare the arguments for vis_TimeFreqCell()
+            % This function will be called when user clicks on subplot
             subargs.topovec     = squeeze(ALLEEG(1).icawinv(:,ALLEEG(1).CAT.curComps([j i])))';
             if ~isempty(ALLEEG(1).dipfit)
                 subargs.dipfitstruct = ALLEEG(1).dipfit;
@@ -1079,12 +1211,10 @@ for ch_i=1:nch
             subargs.backgroundColor = g.backgroundColor;
             subargs.clim            = g.clim;
             subargs.thresholding    = g.thresholding;
-            subargs.bidir           = true;
+            subargs.bidir           = fastif(i==j,false,true);
             subargs.connmethod      = CEstimator;
             subargs.nodelabels      = g.nodelabels([j i]);
             subargs.dipplot         = g.dipplot;
-            
-            %             subplotargs = hlp_varargin2struct({g.subplotargs subargs});
             
             set(gca,'userdata',subargs)
             set([gca h],'buttondownfcn','vis_TimeFreqCell(get(gca,''UserData''));');
@@ -1144,9 +1274,11 @@ for ch_i=1:nch
             end
             
             
-            % MODE 2: Causality x Frequency lineplots
-            % -----------------------------------------------------
         elseif nfreqs > 1
+            % ---------------------------------
+            % | Format is Causality x Frequency
+            % ---------------------------------
+            
             
             if isequal(size(StatsMatrix),size(ConnMatrix))
                 S = squeeze(StatsMatrix(i,j,:,:));
@@ -1159,7 +1291,8 @@ for ch_i=1:nch
                 % plot a set of causality x frequency traces for each time window
                 
                 % plot confidence intervals
-                if ~isempty(g.stats) && isfield(g.stats.(CEstimator),'ci') && g.plotci
+                if ~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics') ...
+                        && isfield(g.stats.(CEstimator),'ci') && g.thresholding.plotci
                     ci = g.stats.(CEstimator).ci;
                     if ndims(ci)>=4 && size(ci,1)==2
                         % asymmetric confidence intervals
@@ -1207,65 +1340,129 @@ for ch_i=1:nch
                     else
                         h=plot(g.freqValues,squeeze(OrigConnMatrix(i,j,:,:)),'color',g.linecolor);
                     end
-                    %                     set(gca,'color',1-g.linecolor);
-                    %                         h=area(g.freqValues,squeeze(ConnMatrix(i,j,:,:)));
                 else
                     if strcmpi(g.freqscale,'log')
                         h = semilogx(g.freqValues,squeeze(OrigConnMatrix(i,j,:,tt)),'color',colorlist{mod(tt-1,length(colorlist))+1});
                     else
                         h=plot(g.freqValues,squeeze(OrigConnMatrix(i,j,:,tt)),'color',colorlist{mod(tt-1,length(colorlist))+1});
                     end
-                    %                     set(gca,'color',1-g.linecolor);
                 end
                 
                 
             end
             
+            if g.plotCondDiff.arg_selection || ~isempty(g.baseline)
+                % make line at zero
+                zh = hline(0);
+                set(zh,'color',g.linecolor,'linestyle','-.')
+            end
+                
             
             hold off
             
             set(gca,'Ylim',g.clim);
             set(gca,'Xlim',[g.freqValues(1) g.freqValues(end)]);
             set(gca,'tag','lineplot');
-            %             set(gca,'userdata',struct('dat',squeeze(ConnMatrix(i,j,:,:)),'freqs',g.freqValues,'from',g.nodelabels(j),'to',g.nodelabels(i)));
-            %             try, axcopy(gca); catch; end
-            %                 set([gca h],'buttondownfcn',cbfun);
             
-            % MODE 3: Causality x Time (for single freq) lineplots
-            % -----------------------------------------------------
+            
         elseif ntime > 1
-            %                 if isequal(size(StatsMatrix),size(ConnMatrix)), S = squeeze(StatsMatrix(i,j,:,:));
-            %                 else S = StatsMatrix; end
-            S = [];
+            % ---------------------------------
+            % | Format is Causality x Time
+            % ---------------------------------
             
             hold on
-            if nfreqs==1
-                h=plot(erWinCenterTimes,squeeze(ConnMatrix(i,j,:,:)));
+            
+            if isequal(size(StatsMatrix),size(ConnMatrix))
+                S = squeeze(StatsMatrix(i,j,:,:));
             else
-                %h=plot(erWinCenterTimes,squeeze(ConnMatrix(i,j,:,:)),colorlist{mod(tt-1,length(colorlist))+1});
+                S = StatsMatrix;
             end
             
-            %                 % plot threshold (if available)
-            %                 if ~isempty(S)
-            %                     if isscalar(S)
-            %                         plot(erWinCenterTimes,S(ones(1,length(erWinCenterTimes))),'r:');
-            %                     elseif isvector(S)
-            %                         plot(erWinCenterTimes,S,'r:');
-            %                     end
-            %                 end
-            %                 hold off
-            %
-            %                 set(gca,'Ylim',clim);
-            %                 set(gca,'Xlim',[erWinCenterTimes(1) erWinCenterTimes(end)]);
-            % %                 set(gca,'userdata',struct('dat',squeeze(ConnMatrix(i,j,g.freqValues,:)),'freqs',g.freqValues,'from',g.nodelabels(j),'to',g.nodelabels(i)));
+            for ff=1:nfreqs
+                % plot a set of causality x frequency traces for each time window
+                
+                % plot confidence intervals
+                if ~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics') ...
+                    && isfield(g.stats.(CEstimator),'ci') && g.thresholding.plotci
+                    ci = g.stats.(CEstimator).ci;
+                    if ndims(ci)>=4 && size(ci,1)==2
+                        % asymmetric confidence intervals
+                        ciplot(squeeze(ci(1,i,j,ff,:)),squeeze(ci(2,i,j,ff,:)),erWinCenterTimes,[0.7 0.7 0.7],0,'Ylim',g.clim,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
+                    else
+                        % symmetric confidence intervals (about zero)
+                        ciplot(-squeeze(ci(i,j,ff,:)),squeeze(ci(i,j,ff,:)),erWinCenterTimes,[0.7 0.7 0.7],1,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
+                    end
+                end
+                
+                if strcmpi(g.thresholding.arg_selection,'statistics') ...
+                        && strcmpi(g.thresholding.sigthreshmethod,'thresh')
+                    % plot statistical thresholds
+                    if ~isempty(S)
+                        if isscalar(S)
+                            % constant threshold
+                            plot(erWinCenterTimes,S(ones(1,length(erWinCenterTimes))),'r:');
+                        elseif isvector(S)
+                            % variable threshold
+                            plot(erWinCenterTimes,S,'r:');
+                        end
+                    end
+                end
+                
+                if strcmpi(g.thresholding.arg_selection,'statistics') ...
+                        && strcmpi(g.thresholding.sigthreshmethod,'pval') && islogical(S)
+                    % shade significant regions
+                    
+                    set(gca,'Ylim',g.clim);
+                    
+                    % identify intervals of significance
+                    sigidx = hlp_bittok(S,1);
+                    
+                    for k=1:size(sigidx,1)
+                        % create patch to shade interval
+                        [hpatch{k} htext{k}]=hlp_vrect(erWinCenterTimes(sigidx(k,:)),'label',{},'textPosition',[0.5 0.9],'yscale',0.1,'dock','bottom','patchProperties',{'FaceAlpha',0.2,'FaceColor',g.patchcolor},'textProperties',{'Color','b','EdgeColor','k','BackgroundColor','r','FontSize',14});
+                        box on;
+                    end
+                end
+                
+                % plot causality trace
+                if nfreqs==1
+                    if strcmpi(g.freqscale,'log')
+                        h = semilogx(erWinCenterTimes,squeeze(OrigConnMatrix(i,j,:,:)),'color',g.linecolor);
+                    else
+                        h=plot(erWinCenterTimes,squeeze(OrigConnMatrix(i,j,:,:)),'color',g.linecolor);
+                    end
+                else
+                    if strcmpi(g.freqscale,'log')
+                        h = semilogx(erWinCenterTimes,squeeze(OrigConnMatrix(i,j,ff,:)),'color',colorlist{mod(ff-1,length(colorlist))+1});
+                    else
+                        h=plot(erWinCenterTimes,squeeze(OrigConnMatrix(i,j,ff,:)),'color',colorlist{mod(ff-1,length(colorlist))+1});
+                    end
+                end
+                
+                
+            end
+            
+            if g.plotCondDiff.arg_selection || ~isempty(g.baseline)
+                % make line at zero
+                zh = hline(0);
+                set(zh,'color',g.linecolor,'linestyle','-.')
+            end
+            
+            hold off
+            
+            set(gca,'Ylim',g.clim);
+            set(gca,'Xlim',[erWinCenterTimes(1) erWinCenterTimes(end)]);
             set(gca,'tag','lineplot');
-            %                 try, axcopy(gca); catch; end
+            
         end
         
     end
 end
 
 
+% ---------------------------------
+% | Beautify the image
+% ---------------------------------
 set(gcf,'color',g.backgroundColor);
 
 for ch_i=1:nch
@@ -1291,7 +1488,6 @@ end
 
 % create legend
 subplot1(1);
-% axes(gca);
 if isempty(findobj(gcf,'tag','legendborder'))
     % create border around legend
     pos = get(gca,'position');
@@ -1317,13 +1513,14 @@ else
     end
 end
 
-% text(0.1,0.9,sprintf('upper: dDTF08\ndiag: S\nlower: dDTF08'),'horizontalalignment','left','units','normalized','parent',gca,'edgecolor','w','color','w');
 
-
-
+% -----------------------------------------------------------------------------
+% | function h = plotmarginal(ALLEEG,curch,g,varargin)
+% |    render topoplot or dipplot in the current axis
+% |    varargin can be a list of <'name',value> argument pairs for pop_dipplot
+% -----------------------------------------------------------------------------
 function h = plotmarginal(ALLEEG,curch,g,varargin)
-% render topoplot or dipplot in the current axis
-% varargin can be a list of <'name',value> argument pairs for pop_dipplot
+
 
 dipplotdefs ={'color',{'r'},'verbose','off','dipolelength',0.01,...
     'dipolesize',20,'view',[1 0 0],'projimg', 'off',  ...
@@ -1358,5 +1555,20 @@ end
 set(gca,'tag','topo');
 
 
+% -----------------------------------------------------------------------------
+% | function x = willPlotStatCI(g,CEstimator)
+% |    check whether confidence intervals will be plotted for a given
+% |    estimator
+% -----------------------------------------------------------------------------
+function x = willPlotStatCI(g,CEstimator)
+x = (~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics') ...
+     && g.thresholding.plotci) && isfield(g.stats,CEstimator) && (isfield(g.stats.(CEstimator),'ci')) ...
+     && ~isempty(g.stats.(CEstimator).ci);    
 
-
+% -----------------------------------------------------------------------------
+% | function x = willPlotStats(g,CEstimator)
+% |    check whether stats will be plotted for a given estimator
+% -----------------------------------------------------------------------------
+function x = willPlotStats(g,CEstimator)
+x = (~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics') ...
+     && isfield(g.stats,CEstimator));

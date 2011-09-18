@@ -52,7 +52,7 @@ function [stats] = est_checkMVARStability(EEG,MODEL,typeproc,varargin)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 var = hlp_mergeVarargin(varargin{:});
-g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_checkMVARStability','ignore');
+g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_checkMVARStability','ignore','quiet');
 if ischar(g), error(g); end
 
 

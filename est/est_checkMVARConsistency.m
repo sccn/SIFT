@@ -58,7 +58,7 @@ function stats = est_checkMVARConsistency(EEG,MODEL,typeproc,varargin)
 
 
 var = hlp_mergeVarargin(varargin{:});
-g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_checkMVARConsistency','ignore');
+g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_checkMVARConsistency','ignore','quiet');
 if ischar(g), error(g); end
 
 

@@ -76,7 +76,7 @@ function [stats acv params] = est_checkMVARWhiteness(EEG,MODEL,typeproc,varargin
 
 var = hlp_mergeVarargin(varargin{:});
 myargs = {'whitenessCriteria'   'cell'  {'ljungbox','acf','boxpierce','lmp'}   {'lmp'}};
-g = finputcheck(var, [myargs ; hlp_getDefaultArglist('est')], 'est_checkWhiteness','ignore');
+g = finputcheck(var, [myargs ; hlp_getDefaultArglist('est')], 'est_checkWhiteness','ignore','quiet');
 if ischar(g), error(g); end
 if nargout > 2, params = g; end
 g.whitenessCriteria = lower(g.whitenessCriteria);

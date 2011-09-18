@@ -1,16 +1,117 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% Script to simulate time-varying MVAR process                        %%%
+%%% Script to simulate various time-varying MVAR processes              %%%
 %%% Author: Tim Mullen, 2011, SCCN, INC, UCSD                           %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% clear the workspace
+clear;
 
 %% STEP 1: Define the parameters for the system of coupled oscillators
+
+%% Example 1: Simple bivariate coupled oscillator example
+
+SamplingRate = 100;      % Hz
+Nl = 500;                % length of each epoch (samples)
+Nr = 100;                % number of trials (realisations)
+ndisc = 1000;            % number of samples to discard from VAR model (startup transients)
+TrueModelOrder = 2;      % VAR model order
+ModelOrder = 4;          % Model Order we will use
+ 
+expr = {...
+    'x1(t) = 0.6*x1(t-1) +  0.65*x2(t-2)+ e1(t)' ... 
+    'x2(t) = 0.5*x2(t-1) + -0.3*x2(t-2) + e2(t)' ...
+};
+
+% create prototype VAR structure
+Aproto = sim_genVARModelFromEq(expr,TrueModelOrder);
+
+
+%% Example 2:  System of coupled oscillators 
+% from (Ex 3.1, eq 11-15) Schelter B, Timmer J, Eichler M (2009) Assessing the strength of directed 
+% influences among neural signals using renormalized partial directed coherence. 
+% Journal of neuroscience methods 179:121-30 Available at: http://www.ncbi.nlm.nih.gov/pubmed/19428518.
+
+SamplingRate = 100;      % Hz
+
+Nl = 500;                % length of each epoch (samples)
+Nr = 100;                % number of trials (realisations)
+ndisc = 1000;            % number of samples to discard from VAR model (startup transients)
+TrueModelOrder = 3;      % VAR model order
+ModelOrder = 10;
+
+% write the system of equations for coupled damped oscillators
+expr = { ...
+    'x1(t) = 0.9*x1(t-1)  + 0.3*x2(t-2)  + e1(t)' ...
+    'x2(t) = 1.3*x2(t-1)  + -0.8*x2(t-2) + e2(t)' ...
+    'x3(t) = 0.3*x1(t-2)  + 0.6*x2(t-1)  + e3(t)' ...
+    'x4(t) = -0.7*x4(t-3) + -0.7*x1(t-3) + 0.3*x5(t-3) + e4(t)' ...
+    'x5(t) = 1*x5(t-1)    + -0.4*x5(t-2) + 0.3*x4(t-2) + e5(t)' ...
+    };
+  
+% create prototype VAR structure
+Aproto = sim_genVARModelFromEq(expr,TrueModelOrder);
+
+
+%% Example 3: Static system of coupled oscillators 
+% (Ex 3.2, eq 16-20) Schelter B, Timmer J, Eichler M (2009) Assessing the strength of directed 
+% influences among neural signals using renormalized partial directed coherence. 
+% Journal of neuroscience methods 179:121-30 Available at: http://www.ncbi.nlm.nih.gov/pubmed/19428518.
+
+SamplingRate = 10;          % Hz
+
+Nl = 500;                   % length of each epoch (samples)
+Nr = 100;                   % number of trials (realisations)
+ndisc = 1000;               % number of samples to discard from VAR model (startup transients)
+TrueModelOrder = 2;         % VAR model order
+ModelOrder = 10; 
+
+% write the system of equations for coupled damped oscillators
+expr = { ...
+    'x1(t) = 1.9*x1(t-1) + -0.999*x1(t-2) + e1(t)' ...
+    'x2(t) = 0.9*x2(t-2) + -0.2*x1(t-1)   + e2(t)' ...
+    'x3(t) = -0.3*x3(t-1)+ 0.4*x4(t-1)    + -0.3*x5(t-2) + e3(t)' ...
+    'x4(t) = 1.3*x4(t-1) + -0.7*x4(t-2)   + e4(t)' ...
+    'x5(t) = 0.7*x5(t-2) + 0.3*x1(t-1)    + e5(t)' ...
+    };
+
+% create prototype VAR structure
+Aproto = sim_genVARModelFromEq(expr,TrueModelOrder);
+
+
+%% Example 4: Static system of coupled oscillators
+% (eq 5) from Schelter B, Winterhalder M, Eichler M, Peifer M, Hellwig B, Guschlbauer B, 
+% Lucking CH, Dahlhaus R, Timmer J (2005) Testing for directed influences among neural signals using 
+% partial directed coherence. Journal of neuroscience methods 152:210-9 
+% Available at: http://www.ncbi.nlm.nih.gov/pubmed/16269188.
+
+SamplingRate = 100;         % Hz
+Nl = 500;                   % length of each epoch (samples)
+Nr = 100;                   % number of trials (realisations)
+ndisc = 1000;               % number of samples to discard from VAR model (startup transients)
+TrueModelOrder = 4;         % VAR model order
+ModelOrder = 10;
+
+% write the system of equations for coupled damped oscillators
+expr = {...
+    'x1(t) = 0.6*x1(t-1) +  0.65*x2(t-2)+e1(t)' ... 
+    'x2(t) = 0.5*x2(t-1) + -0.3*x2(t-2)+ -0.3*x3(t-4) +0.6*x4(t-1) + e2(t)' ...
+    'x3(t) = 0.8*x3(t-1) + -0.7*x3(t-2)+ -0.1*x5(t-3) + e3(t)' ...
+    'x4(t) = 0.5*x4(t-1) +  0.9*x3(t-2)+ 0.4*x5(t-2)  + e4(t)' ...
+    'x5(t) = 0.7*x5(t-1) + -0.5*x5(t-2)+ -0.2*x3(t-1) + e5(t)' ...
+};
+
+% create prototype VAR structure
+Aproto = sim_genVARModelFromEq(expr,TrueModelOrder);
+
+%% Example 5: Single-trial, Time-Varying Simulation (Mullen, 2011 unpublished)
+%  System of stocastically-forced, damped coupled oscillators with
+%  time-varying coupling coefficients
 %  This simulation creates a simualted "seizure" with time-varying coupling
 %  between clusters of sources which switches between 4 different stages.
 
 SamplingRate = 100; % Hz
 
-Nl = 5*60*SamplingRate;  % length of the dataset (5 minutes)
+Nl = 5*60*SamplingRate;  % length of each epoch (5 minutes)
 Nr = 1;                  % number of trials (realisations)
 ndisc = 1000;            % number of samples to discard from VAR model (startup transients)
 ModelOrder = 6;          % VAR model order
@@ -69,23 +170,30 @@ expr = { ...
 % create prototype VAR structure
 Aproto = sim_genVARModelFromEq(expr,ModelOrder);
 
-%% STEP 2: 
+
+
+
+
+%% STEP 2: Simulate the VAR process
 
 [A] = sim_genTVARcoeffs(Aproto,ModelOrder,Nl,'NumSamplesToDiscard',ndisc,'Verbose',true);
 
 %% STEP 3: generate data from the VAR model
 
+% Specify the noise covariance matrix. 
+% Sigma is the noise variance.
+sigma = 1;
 M = size(A{1},1);
-C = 1*eye(M);             % specify the noise covariance matrix
+C = sigma*eye(M);             
 
 % % hyperbolic secant noise
-% data = tvarsim(zeros(1,M),A,C,[Nl Nr],ndisc,2/pi,0,'hsec')';
+% data = permute(tvarsim(zeros(1,M),A,C,[Nl Nr],ndisc,2/pi,0,'hsec'),[2 1 3]);
 
 % laplacian noise (generalized gaussian)
-% data = tvarsim(zeros(1,M),A,C,[Nl Nr],ndisc,1,1,'gengauss')';
+% data = permute(tvarsim(zeros(1,M),A,C,[Nl Nr],ndisc,1,1,'gengauss'),[2 1 3]);
 
 % gaussian noise
-data = tvarsim(zeros(1,M),A,C,[Nl Nr],ndisc,2,1,'gengauss')';
+data = permute(tvarsim(zeros(1,M),A,C,[Nl Nr],ndisc,2,1,'gengauss'),[2 1 3]);
 
 
 %% STEP 4: Create EEGLAB dataset and source potentials
@@ -101,7 +209,18 @@ EEG.trials = Nr;
 EEG.xmin = EEG.times(1);
 EEG.xmax = EEG.times(end)/1000;  % sec
 EEG.nbchan = M;
+EEG.setname = 'VAR Simulation';
+EEG.condition = 'VAR Simulation';
 
 EEG = eeg_checkset(EEG);
 pop_eegplot(EEG);
+
+ALLEEG = EEG;
+CURRENTSET = length(ALLEEG);
+eeglab redraw;
+
+%% STEP 6: Proceed through analysis and visualization as directed by Chapter 6 of the manual 
+% (or see ScriptingExample.m for command-line alternatives)
+
+
 

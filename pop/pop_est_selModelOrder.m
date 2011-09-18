@@ -93,7 +93,7 @@ end;
 lastcom = [];
 
 var = hlp_mergeVarargin(varargin{:});
-g = finputcheck(var, hlp_getDefaultArglist('est'), 'pop_est_selModelOrder','ignore');
+g = finputcheck(var, hlp_getDefaultArglist('est'), 'pop_est_selModelOrder','ignore','quiet');
 if ischar(g), error(g); end
 if ~isfield(g,'icselector'), g.icselector = {'sbc','aic'}; end
 if ~isfield(g,'plot'), g.plot = 1; end

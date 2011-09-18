@@ -116,7 +116,11 @@ for cond = 1:num_conds
             wcstr = lower(hlp_variableize(g.whitenessCriteria{i}));
             wc = whitestats{cond}.(wcstr);
             pvals(i,:) = wc.pval;
-            lgnd{i} = sprintf('%s (%d/%d white)',wc.fullname, sum(wc.w),length(wc.w));
+            if size(pvals,2)>1
+                lgnd{i} = sprintf('%s (%d/%d white)',wc.fullname, sum(wc.w),length(wc.w));
+            else
+                lgnd{i} = sprintf('%s (%swhite)',wc.fullname, fastif(wc.w,'','not '));
+            end
         end
         
         if size(pvals,2)>1
@@ -124,8 +128,9 @@ for cond = 1:num_conds
             plot(1:length(whitestats{cond}.winStartIdx),pvals');
             xlabel('Window number');
             legend(lgnd);
+            set(gca,'xlim',[0 length(whitestats{cond}.winStartIdx)+1],'Ylim',[max(0,min(pvals(:))-0.5), min(1,max(pvals(:))+0.5)]);
         else
-            % single window -- make barplot
+            % single window -- create bar plots
             h = bar(pvals);
             ch = get(h,'Children');
             
@@ -133,17 +138,23 @@ for cond = 1:num_conds
             colors = [[1 0 0];[0 0 1];[0 1 0];[0 0 0];[1 0 1];[0 1 1]];
             colors = colors(1:length(pvals),:);
             set(ch,'FaceVertexCData',colors);
-            
+%             set(gca,'xlim',[0 length(length(g.whitenessCriteria))+1],'Ylim',[max(0,min(pvals(:))-0.5), min(1,max(pvals(:))+0.5)]);
         end
         
-        set(gca,'xlim',[0 length(whitestats{cond}.winStartIdx)+1],'Ylim',[max(0,min(pvals(:))-0.5), min(1,max(pvals(:))+0.5)]);
         hl=hline(whitestats{cond}.alpha);
         set(hl,'linestyle','--','linewidth',2);
-        ylabel({'Significance of whiteness','(larger is better)'});
+        ylabel({'Whiteness p-value'});
         axcopy(gca);
         
         curplot=curplot+1;
+        
+        if ismember('acf',g.whitenessCriteria)
+            hl=hline(1-whitestats{cond}.alpha,'r');
+            set(hl,'linestyle','--','linewidth',2);
+        end
     end
+    
+    
     
     if g.checkConsistency
         

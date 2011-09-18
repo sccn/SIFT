@@ -106,6 +106,10 @@ if ~isempty(g.icselector) && ischar(g.icselector)
     g.icselector = {g.icselector};
 end
 
+if g.verb
+    est_dispMVARParamCheck(EEG,g);
+end
+
 if ismember(g.algorithm,{'vieira-morf-cpp','arfit'})
     % for these methods, we have to fit a separate MODEL for each model order
     for p=pmin:pmax

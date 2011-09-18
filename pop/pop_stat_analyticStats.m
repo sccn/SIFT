@@ -1,36 +1,39 @@
-function [ALLEEG cfg] = pop_pre_prepData(ALLEEG,typeproc,varargin)
+function [ALLEEG cfg] = pop_stat_analyticStats(ALLEEG,typeproc,varargin)
 %
-% Preprocess EEG dataset(s) for connectivity analysis. See [1] for
-% mathematical details on preprocessing steps.
+% Compute analytic alpha-significance thresholds, p-values, and confidence
+% intervals for select connectivity estimators (RPDC, nPDC, nDTF, DTF)
+%
+% Note that nPDC stats are valid only for the normalized magnitude-squared PDC
+%
+% This function requires the Matlab statistics toolbox
 %
 %
 % Input:
 %
-%   ALLEEG:         Array of EEGLAB datasets to preprocess.
+%   ALLEEG:         EEGLAB dataset to preprocess.
 %   typeproc:       Reserved for future use. Use 0
 %
 % Optional:         
 %
-%   <'Name',value> pairs as defined in pre_prepData()
+%   <'Name',value> pairs as defined in stat_surrogate()
 %   
 % Output:
 %
-%   ALLEEG:         Prepocessed EEG structure(s)
+%   ALLEEG:         EEG structure(s) with Stats object stored in
+%                   ALLEEG.CAT.Stats
 %   cfg:            Argument specification structure.
 %
 %
-% See Also: pre_prepData()
+% See Also: stat_analyticStats()
 %
 % References:
 %
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
-%   Theoretical Handbook and User Manual. Section 6.5.1 
+%   Theoretical Handbook and User Manual.
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift
 % 
-% Author: Tim Mullen 2009, SCCN/INC, UCSD. 
+% Author: Tim Mullen 2010-2011, SCCN/INC, UCSD. 
 % Email:  tim@sccn.ucsd.edu
-% 
-% Revised Jan 2010.
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
 %
@@ -49,26 +52,17 @@ function [ALLEEG cfg] = pop_pre_prepData(ALLEEG,typeproc,varargin)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-
-
-for cond = 1:length(ALLEEG)
-    if ~isfield(ALLEEG(cond),'CAT') || ~isfield(ALLEEG(cond).CAT,'curComps')
-        ALLEEG(cond).CAT.curComps = 1:size(ALLEEG(cond).icaweights,1);
-    end
-    if  ~isfield(ALLEEG(cond),'CAT') || ~isfield(ALLEEG(cond).CAT,'MODEL')
-        ALLEEG(cond).CAT.MODEL = [];
-    end
-end
-
-splashscreen;
-
 if isunix
     SLASH = '/';
 else
     SLASH = '\';
 end
 
-% [fnpath fnname] = fileparts(which('pop_pre_prepData'));
+if (~isfield(ALLEEG(1).CAT,'Conn')), 
+    errordlg2('Please compute connectivity first!','Analytic Statistics');
+end
+
+% [fnpath fnname] = fileparts(which('pop_stat_surrogate'));
 % if isempty(varargin)
 %     if exist('preprep.cfg','file')
 %         load('preprep.cfg','-mat');
@@ -79,7 +73,7 @@ end
 % end
 
 % render the GUI
-[PGh figh] = gui_prepData(ALLEEG,varargin{:});
+[PGh figh] = gui_analyticStats(ALLEEG(1),varargin{:});
 
 if isempty(PGh)
     % user chose to cancel
@@ -91,7 +85,11 @@ end
 ps = PGh.GetPropertySpecification;
 cfg = arg_tovals(ps,false);
 
+drawnow;
+
 % save([fnpath SLASH '@configs' SLASH 'preprep.cfg'],'cfg');
 
 % execute the low-level function
-[ALLEEG cfg] = pre_prepData('ALLEEG',ALLEEG,cfg);
+for cnd=1:length(ALLEEG)
+    [ALLEEG(cnd).CAT.Stats] = stat_analyticStats('ALLEEG',ALLEEG(cnd),cfg);
+end

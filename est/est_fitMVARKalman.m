@@ -68,7 +68,7 @@ end
 
 
 var = hlp_mergeVarargin(varargin{:});
-g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_fitMVAR','ignore');
+g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_fitMVAR','ignore','quiet');
 if ischar(g), error(g); end
 if isempty(g.epochTimeLims), g.epochTimeLims = [0 EEG.pnts/EEG.srate]; end
 if isempty(g.morder) || length(g.morder)>2, error('invalid entry for field ''morder'''); end

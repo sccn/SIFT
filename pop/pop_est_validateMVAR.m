@@ -191,7 +191,7 @@ else
     %               'checkStability'      'boolean'   []      true; ...
     %               'alpha'               'real'      [0 1]   0.05; ...
     %               };
-    %     g = finputcheck(var, [myargs ; hlp_getDefaultArglist('est')], 'est_checkWhiteness','ignore');
+    %     g = finputcheck(var, [myargs ; hlp_getDefaultArglist('est')], 'est_checkWhiteness','ignore','quiet');
     %     if ischar(g), error(g); end
     %     g.alpha = 0.06;
 end

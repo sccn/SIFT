@@ -87,7 +87,7 @@ else
               'spectraldecibels'    'boolean'   []      false; ...
               'freqs',              'real'      []     (1 : fix(ALLEEG(1).srate/2)-1); ...
               'verb',               'boolean'   [0 2]  2};
-    g = finputcheck(var, [myargs; hlp_getDefaultArglist('est')], 'pop_est_mvarConnectivity','ignore');
+    g = finputcheck(var, [myargs; hlp_getDefaultArglist('est')], 'pop_est_mvarConnectivity','ignore','quiet');
     if ischar(g), error(g); end
     g.connmethods = unique(g.connmethods);
     if nargout > 1, params = g; end
@@ -171,8 +171,9 @@ for cond=1:length(ALLEEG)
     % clear any existing visualization GUI config files
     try, ALLEEG(cond).CAT.configs.TimeFreqGrid = []; catch, end;
     try, ALLEEG(cond).CAT.configs.BrainMovie3D = []; catch, end;
+    
+    ALLEEG(cond).CAT.configs.mvarConnectivity = g;
 end
-
 
 varargout{1} = ALLEEG;
 varargout{2} = g;

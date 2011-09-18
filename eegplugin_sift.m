@@ -90,8 +90,24 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     finalcmd = [finalcmd 'LASTCOM = ''' strrep(cmd,'''','''''') ''';' ];
     BranMovie_callback      = [finalcmd catchstrs.store_and_hist];
     
-    BootStat_callback       = 'warndlg2(''Coming Soon!'')';
-    AnalyticStat_callback   = 'warndlg2(''Coming Soon!'')';
+%     cmd = 'if (~isfield(EEG(1).CAT,''Conn'')), errordlg2(''Please compute connectivity first!'',''Surrogate Statistics''); else, EEG = pop_stat_surrogate(EEG,0);';
+    cmd = 'EEG = pop_stat_surrogate(EEG,0);';
+    finalcmd = [ trystrs.no_check cmd ];
+    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
+    SurrogateDistrib_callback = [finalcmd catchstrs.store_and_hist];
+    
+%     cmd = 'if (~isfield(EEG(1).CAT,''PConn'')), errordlg2(''Please compute surrogate distributions first!'',''Surrogate Statistics''); else, EEG = pop_stat_surrogateStats(EEG,0);';
+    cmd = 'EEG = pop_stat_surrogateStats(EEG,0);';
+    finalcmd = [ trystrs.no_check cmd ];
+    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
+    SurrogateStats_callback = [finalcmd catchstrs.store_and_hist];
+    
+%     cmd = 'if (~isfield(EEG(1).CAT,''Conn'')), errordlg2(''Please compute connectivity first!'',''Analytic Statistics''); else, EEG = pop_stat_analyticStats(EEG,0);';
+    cmd = 'EEG = pop_stat_analyticStats(EEG,0);';
+    finalcmd = [ trystrs.no_check cmd ];
+    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
+    AnalyticStat_callback   = [finalcmd catchstrs.store_and_hist];
+    
     SimpleStat_callback     = 'warndlg2(''Coming Soon!'')';
     
     cmd = 'EEG = pop_est_fitMVAR(EEG,0);';
@@ -114,9 +130,10 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     uimenu( vismenu , 'label', 'BrainMovie3D', 'callback', BranMovie_callback );
     uimenu( vismenu , 'label', 'Causal Projection', 'callback', CausalProjection_callback, 'enable','off' );
     
-    uimenu( statmenu, 'label', 'Bootstrap', 'callback', BootStat_callback ,'enable','off');
-    uimenu( statmenu, 'label', 'Analytic', 'callback', AnalyticStat_callback, 'enable','off' );
-    uimenu( statmenu, 'label', 'Simple statistics', 'callback', SimpleStat_callback, 'separator', 'on' ,'enable','off');
+    uimenu( statmenu, 'label', 'Surrogate Distributions', 'callback', SurrogateDistrib_callback ,'enable','on');
+    uimenu( statmenu, 'label', 'Surrogate Statistics', 'callback', SurrogateStats_callback ,'enable','on');
+    uimenu( statmenu, 'label', 'Analytic Statistics', 'callback', AnalyticStat_callback,'separator', 'on', 'enable','on' );
+    uimenu( statmenu, 'label', 'Simple Statistics', 'callback', SimpleStat_callback, 'separator', 'on' ,'enable','off');
     
     uimenu( modelmenu, 'label', 'Fit AMVAR Model', 'callback',FitModel_callback);
     uimenu( modelmenu, 'label', 'Validate model', 'callback', ValidateModel_callback );

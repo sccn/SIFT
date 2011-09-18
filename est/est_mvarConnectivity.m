@@ -58,7 +58,7 @@ function [Conn params] = est_mvarConnectivity(EEG,MODEL,varargin)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 var = hlp_mergeVarargin(varargin{:});
-g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_mvarConnectivity','ignore');
+g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_mvarConnectivity','ignore','quiet');
 if ischar(g), error(g); end
 if ~isfield(g,'connmethods') || isempty(g.connmethods), error('you must provide a list of connectivity methods!'); end
 g.connmethods = unique(g.connmethods);

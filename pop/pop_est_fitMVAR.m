@@ -264,14 +264,11 @@ for cond=1:length(ALLEEG)
     [ALLEEG(cond).CAT.MODEL] = est_fitMVAR(ALLEEG(cond),typeproc,g);
 end
 
+for cond=1:length(ALLEEG)
+    ALLEEG(cond).CAT.configs.fitMVAR = g;
+end
 
 varargout{1} = ALLEEG;
-if nargout<2
-    for cond=1:length(ALLEEG)
-        ALLEEG(cond).CAT.params = g;
-    end
-else
-    varargout{2} = g;
-end
+varargout{2} = g;
 
 
