@@ -106,7 +106,7 @@ dependencies = {...
     'GGC2',     {};
     'iCoh',     {};
     'Coh',      {'iCoh'};
-    'S',        {'Coh','GGC','GGC2'};
+    'S',        {'Coh','GGC','GGC2','mCoh'};
     'pCoh',     {'dDTF','dDTF08'};
     'pCoh2',    {};
     'mCoh',     {};

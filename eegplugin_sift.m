@@ -50,6 +50,16 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
         addpath(genpath(p));
     end;
     
+    % remove measure projection from the path
+    [mp_dir p ] = fileparts(which('eegplugin_mproject.m'));
+    
+    mp_paths = genpath(mpdir);
+    warn = warning;
+    warning off all
+    rmpath(mp_paths);
+    warning(warn);
+    
+    
     % find import data menu
     % ---------------------
     highlevelmenu = findobj(fig, 'tag', 'tools');
