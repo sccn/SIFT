@@ -42,23 +42,6 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
         error('eegplugin_sift requires 3 arguments');
     end;
     
-    % add folder to path
-    % ------------------
-    if ~exist('vis_TimeFreqGrid')
-        p = which('eegplugin_sift.m');
-        p = p(1:findstr(p,'eegplugin_sift.m')-1);
-        addpath(genpath(p));
-    end;
-    
-    % remove measure projection from the path
-    [mp_dir p ] = fileparts(which('eegplugin_mproject.m'));
-    
-    mp_paths = genpath(mpdir);
-    warn = warning;
-    warning off all
-    rmpath(mp_paths);
-    warning(warn);
-    
     
     % find import data menu
     % ---------------------
