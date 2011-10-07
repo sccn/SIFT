@@ -69,12 +69,14 @@ end
 %     varargin = {cfg};
 % end
 
+
 % render the GUI
 [PGh figh] = gui_surrogate(ALLEEG(1),varargin{:});
 
 if isempty(PGh)
     % user chose to cancel
     cfg = [];
+
     return;
 end
 
@@ -83,7 +85,7 @@ ps = PGh.GetPropertySpecification;
 cfg = arg_tovals(ps,false);
 
 drawnow
-
+    
 % save([fnpath SLASH '@configs' SLASH 'preprep.cfg'],'cfg');
 
 for cnd=1:length(ALLEEG)
@@ -109,3 +111,4 @@ end
 for cnd=1:length(ALLEEG)
     [ALLEEG(cnd).CAT.PConn] = stat_surrogate('ALLEEG',ALLEEGorig(cnd),'configs',ALLEEG(cnd).CAT.configs,cfg);
 end
+

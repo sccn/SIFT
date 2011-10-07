@@ -53,6 +53,10 @@ function gui_surrogate_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to gui_surrogate (see VARARGIN)
 
+% temporary hack to remove measure projection toolbox from path 
+% (MPT interferes with SIFT)
+hlp_removeMeasureProjection;
+
 set(hObject,'name','Compute Surrogate Distribution');
 
 handles.output = hObject;
@@ -134,6 +138,10 @@ function varargout = gui_surrogate_OutputFcn(hObject, eventdata, handles)
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+% temporary hack to restore measure projection toolbox to path 
+% (MPT interferes with SIFT)
+hlp_restoreMeasureProjection;
 
 if isempty(handles)
     % user closed the figure

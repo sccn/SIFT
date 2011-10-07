@@ -284,7 +284,7 @@ function g = hlp_preprocess(g)
         % select trials
         if ~isempty(g.newtrials)
             if g.verb, disp('Selecting trials...'); end
-            g.EEG = pop_select(g.EEG,'trial',g.newtrials);
+            g.EEG = pop_select2(g.EEG,'trial',g.newtrials,'sorttrial','off');
     %         g.EEG.CAT.pre.newtrials = g.newtrials;
             if g.verb, fprintf('Done!\n'); end
         end
@@ -309,7 +309,7 @@ function g = hlp_preprocess(g)
         % re-epoch data
         if ~isempty(g.newtlims)
             if g.verb, disp(['Updating time limits to ' num2str(g.newtlims)]); end
-            g.EEG = pop_select(g.EEG,'time',g.newtlims);
+            g.EEG = pop_select2(g.EEG,'time',g.newtlims);
     %         [dummy g.eventp] = min(abs(g.EEG.times));
     %         if g.EEG.pnts*g.EEG.srate > g.newtlims(end)
     %             fprintf('WARNING! endp=%d exceeds total number of points (%d). Updating endp to %d\n', ...

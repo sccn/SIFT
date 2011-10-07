@@ -78,6 +78,7 @@ end
 if isempty(PGh)
     % user chose to cancel
     cfg = [];
+
     return;
 end
 
@@ -93,3 +94,4 @@ drawnow;
 for cnd=1:length(ALLEEG)
     [ALLEEG(cnd).CAT.Stats] = stat_analyticStats('ALLEEG',ALLEEG(cnd),cfg);
 end
+

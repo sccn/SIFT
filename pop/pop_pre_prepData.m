@@ -49,21 +49,6 @@ function [ALLEEG cfg] = pop_pre_prepData(ALLEEG,typeproc,varargin)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-% temporary hack to remove measure projection toolbox from path 
-% (MPT interferes with SIFT)
-p = which('eegplugin_sift.m');
-p = p(1:findstr(p,'eegplugin_sift.m')-1);
-curdir = pwd;
-
-cd([p '../']);
-mp_paths = genpath(fullfile(pwd,'measure_projection'));
-warn = warning;
-warning off all
-rmpath(mp_paths);
-warning(warn);
-cd(curdir);
-% --
-
 
 for cond = 1:length(ALLEEG)
     if ~isfield(ALLEEG(cond),'CAT') || ~isfield(ALLEEG(cond).CAT,'curComps')
@@ -75,6 +60,8 @@ for cond = 1:length(ALLEEG)
 end
 
 splashscreen;
+
+StartSIFT;
 
 if isunix
     SLASH = '/';
