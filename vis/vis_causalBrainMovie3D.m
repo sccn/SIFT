@@ -497,7 +497,11 @@ g = arg_define([0 2],varargin, ...
           'Chan_ERPenvelope' {...
             arg({'chanenvelopevars'},true,MyChannelNames,'Select channels to use in the display','type','logical'), ...
             } ...
-        },'Configure footer panel displayed at the bottom of the figure. If ''off'', don''t render footer. If ''ICA_ERP_Envelope'', then display the ERP envelope of backprojected components. If ''Chan_ERP_Envelope'' then display the ERP envelope of selected channels','cat','DisplayProperties'), ...
+           'GraphMetric' { ...
+            arg({'metric'},'NodeColor',{'NodeColor','NodeSize'},'Select a causal metric to display.'), ...
+            arg({'nodes'},true,MyComponentNames,'Select components to use in the display','type','logical'), ...
+            } ...
+        },'Configure footer panel displayed at the bottom of the figure. If ''off'', don''t render footer. If ''ICA_ERP_Envelope'', then display the ERP envelope of backprojected components. If ''Chan_ERP_Envelope'' then display the ERP envelope of selected channels. If ''GraphMetric'' then display a graph theoretic metric (net metric value (integral) across all nodes if multiple nodes selected)','cat','DisplayProperties'), ...
     arg_sub({'BMopts','BrainMovieOptions'},[], ...
         { ...
             arg({'visible','Visibility'},'on',{'on','off'},'Figure visibility when rendering movie. If ''on,'' render frames on screen (slower). If ''off,'' keep them hidden (faster).','cat','DisplayProperties'), ...
@@ -729,7 +733,7 @@ for cnd = 1:length(g.Conn)
 
     % remove the baseline
     if ~isempty(g.baseline)
-        Conn = hlp_rmbaseline(Conn,g.baseline,g.Conn(cnd).winCenterTimes);
+        Conn = hlp_rmbaseline(Conn,g.baseline,g.Conn(cnd).erWinCenterTimes);
     end
 
     % Apply statistics and thresholding
@@ -775,7 +779,7 @@ for cnd = 1:length(g.Conn)
             end
             
             % extract data
-            causality = squeeze(Conn(ch1,ch2,:,:));
+            causality = squeeze(Conn(ch1,ch2,:,timeIndices));
             
 %             % make row vector if necessary
 %             if any(size(causality)==1)
@@ -981,6 +985,12 @@ for cnd = 1:length(g.Conn)
                 else
                     erpdata = erpdata;
                 end
+                
+                erptimes    = g.ALLEEG(cnd).times;
+                erptlims    = getindex(erptimes,g.timeRange*1000);
+                erpdata     = erpdata(:,erptlims(1):erptlims(2));
+                erptimes    = erptimes(erptlims(1):erptlims(2));
+        
             case 'ICA_ERPenvelope'
                 % compute ERP of selected backprojected components
                 erpvars     = g.ALLEEG(cnd).CAT.curComps( ...
@@ -994,12 +1004,48 @@ for cnd = 1:length(g.Conn)
                 else
                     erpdata = erpdata;
                 end
+                
+                erptimes    = g.ALLEEG(cnd).times;
+                erptlims    = getindex(erptimes,g.timeRange*1000);
+                erpdata     = erpdata(:,erptlims(1):erptlims(2));
+                erptimes    = erptimes(erptlims(1):erptlims(2));
+                
+            case 'GraphMetric'
+%                 erpvars     = g.ALLEEG(cnd).CAT.curComps( ...
+%                                 ismember(MyComponentNames(g.BMopts.selected),...  % select comps
+%                                        g.footerPanelSpec.nodes));
+                erpvars     = find(ismember(MyComponentNames(g.BMopts.selected),...  % select comps
+                                       g.footerPanelSpec.nodes));
+                % compute net graph metric over selected nodes
+                eval(sprintf('tmp=%s;',g.footerPanelSpec.metric));
+                tmp(isnan(tmp) | isinf(tmp))=0;
+                erpdata = sum(tmp(erpvars,:),1);
+                
+                % if all nan, set to zeros
+                if all(isnan(erpdata(:)))
+                    erpdata = zeros(size(erpdata));
+                end
+                
+                erptimes = erWinCenterTimes(timeIndices)*1000;
+                erptlims    = getindex(erptimes,g.timeRange*1000);
+                erpdata     = erpdata(:,erptlims(1):erptlims(2));
+                erptimes    = erptimes(erptlims(1):erptlims(2));
+                
+                % if all values are the same, create a slight difference so
+                % we can determine ylimits.
+                if all(erpdata==erpdata(1))
+                    erpdata(1)=erpdata(1)*(1-1/1000);
+                    erpdata(end) = erpdata(end)*(1+1/1000);
+                end
+                
+                switch g.footerPanelSpec.metric
+                    case 'NodeColor'
+                        g.BMopts.envylabel = g.nodeColorMapping;
+                    case 'NodeSize'
+                        g.BMopts.envylabel = g.nodeSizeMapping;
+                end
+                        
         end
-
-        erptimes    = g.ALLEEG(cnd).times;
-        erptlims    = getindex(erptimes,g.timeRange*1000);
-        erpdata     = erpdata(:,erptlims(1):erptlims(2));
-        erptimes    = erptimes(erptlims(1):erptlims(2));
 
         if g.resample
             % resample the envelope timecourse to make consistent
