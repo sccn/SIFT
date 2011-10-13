@@ -164,6 +164,8 @@ handles = vis_plotModelValidation(whitestats,PC,stability);
 
 %% OPTIONAL STEP 8: Compute Statistics (This step is slow)
 
+NumPermutations = 200;
+
 % reload each of the datasets in the exact same order they appear in ALLEEG
 % (or use original, un-preprocessed copy)
 for cnd=1:length(EEG)
@@ -172,7 +174,7 @@ end
 
 % first we obtain the bootstrap distributions for each condition
 for cnd=1:length(EEG)
-    PConn_boot(cnd) = stat_surrogate('ALLEEG',EEGfresh(cnd),'configs',struct('prepData',prepcfg(1),'fitMVAR',modfitcfg,'mvarConnectivity',conncfg),'Mode',{'Bootstrap', 'NumPermutations', 5},'AutoSave',{'FileNamePrefix','SIFT_bootstrap','AutoSaveFrequency',10},'VerbosityLevel',2);
+    PConn_boot(cnd) = stat_surrogate('ALLEEG',EEGfresh(cnd),'configs',struct('prepData',prepcfg(1),'fitMVAR',modfitcfg,'mvarConnectivity',conncfg),'Mode',{'Bootstrap', 'NumPermutations', NumPermutations},'AutoSave',{'FileNamePrefix','SIFT_bootstrap','AutoSaveFrequency',10},'VerbosityLevel',2);
 end
 
 % replace connectivity object with estimate of bootstrap mean
@@ -182,7 +184,7 @@ end
 
 %% NOTE: we can also obtain the phase-randomized null distributions for each condition
 for cnd=1:length(EEG)
-    PConn_phase(cnd) = stat_surrogate('ALLEEG',EEGfresh(cnd),'configs',struct('prepData',prepcfg(1),'fitMVAR',modfitcfg,'mvarConnectivity',conncfg),'Mode',{'PhaseRand', 'NumPermutations', 5},'AutoSave',{'FileNamePrefix','SIFT_bootstrap','AutoSaveFrequency',10},'VerbosityLevel',2);
+    PConn_phase(cnd) = stat_surrogate('ALLEEG',EEGfresh(cnd),'configs',struct('prepData',prepcfg(1),'fitMVAR',modfitcfg,'mvarConnectivity',conncfg),'Mode',{'PhaseRand', 'NumPermutations', NumPermutations},'AutoSave',{'FileNamePrefix','SIFT_bootstrap','AutoSaveFrequency',10},'VerbosityLevel',2);
 end
 
 %% next we compute p-values and confidence intervals
