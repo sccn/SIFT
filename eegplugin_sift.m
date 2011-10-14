@@ -44,7 +44,7 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     
     % add folder to path
     % ------------------
-    if ~exist('StartSIFT.m')
+    if ~exist('vis_TimeFreqGrid.m')
         p = which('eegplugin_sift.m');
         p = p(1:findstr(p,'eegplugin_sift.m')-1);
         addpath(genpath(p));
