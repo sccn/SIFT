@@ -1,4 +1,4 @@
-function lineHandles = vline(x, lineType, label, textPosition, axesHandle)
+function lineHandles = vline(x, lineType, label, textPosition, axesHandle, textColor)
 
 % Draws vectical lines (specified by a vector of x)
 %
@@ -25,7 +25,8 @@ function lineHandles = vline(x, lineType, label, textPosition, axesHandle)
     if( ~exist('lineType', 'var') )     lineType = [];      end
     if( ~exist('axesHandle', 'var') )   axesHandle = gca;   end
     if( ~exist('textPosition', 'var') ) textPosition = [];  end
-
+    if( ~exist('textColor', 'var') )    textColor = [];     end
+    
     if( isempty(axesHandle) )           axesHandle = gca;   end
     
     if( isempty(textPosition) )
@@ -76,7 +77,11 @@ function lineHandles = vline(x, lineType, label, textPosition, axesHandle)
     
         for k=1:length(x)
             % Set the text colors to be identical to line colors
-            set( textHandles(k), 'color', get(lineHandles(k), 'color') );
+            if isempty(textColor)
+                set( textHandles(k), 'color', get(lineHandles(k), 'color') );
+            else
+                set( textHandles(k), 'color', textColor );
+            end
         end                            
     end
     

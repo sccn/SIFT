@@ -53,27 +53,65 @@ function [EEG g] = pre_detrend(varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+EEG = []; %arg_extract(varargin,'EEG');
+SegLenRange = [eps 10];
+StepSizeRange = [eps 10];
+
+if ~isempty(EEG)
+    SegLenRange = [1/EEG.srate EEG.pnts/EEG.srate];
+    StepSizeRange = SegLenRange;
+end
+    
 g = arg_define([0 1], varargin, ...
         arg_norep('EEG',mandatory), ...
         arg_nogui({'verb','VerbosityLevel'},1,{int32(0) int32(1) int32(2)}, ...
                    'Verbosity level. 0 = no output, 1 = text, 2 = graphical'), ...
         arg({'method','DetrendingMethod'},{'linear'},{'linear','constant'}, ...
-             'Detrending options. Linear: removes the least-squares fit of a straight line from each trial. Constant: removes the mean from each trial (centering)','type','logical')); 
+             'Detrending options. Linear: removes the least-squares fit of a straight line from each trial. Constant: removes the mean from each trial (centering)','type','logical'), ...
+        arg_subtoggle({'piecewise','Piecewise'},[], ...
+        { ...
+            arg({'seglength','SegmentLength'},0.33,SegLenRange,'Length of each detrending segment (sec).'), ...
+            arg({'stepsize','StepSize'},0.0825,StepSizeRange,'Step size between segment centers (sec). It is recommended to use at least 0.5*SegmentLength (50% overlap).'), ...
+        },'Use piecewise detrending. Divide the data into (overlapping) segments and detrend each segment separately. Segment endpoints are merged and stitched together using a cubic spline function to minimize discontinuities at segment intersection points. This is useful for as an alternative to high-pass filtering for removing infraslow oscillations (e.g. SC drift) from the EEG.'), ...
+        arg({'plot','Plot'},false,[],'Plot results for inspection.') ...
+    ); 
 
 % commit ALLEEG variable to workspace
 [data g] = hlp_splitstruct(g,{'EEG'});
 arg_toworkspace(data);
 clear data;
 
+% set sliding-window parameters
+if ~g.piecewise.arg_selection
+    % global detrending
+    g.piecewise.seglength = EEG.pnts/EEG.srate;
+    g.piecewise.stepsize = g.piecewise.seglength;
+end
+    
+windowing_params = [g.piecewise.seglength g.piecewise.stepsize];
+
 for i=1:length(g.method)
     m = g.method{i};
-    if g.verb && strcmpi(m,'mean'), disp('Centering data...'); end
-    if g.verb && strcmpi(m,'linear'), disp('Detrending data...'); end
+    if g.verb && g.piecewise.arg_selection, pre = 'Piecewise '; post = sprintf(' (using %0.4f sec segment length)',g.piecewise.seglength); end
+    if g.verb && strcmpi(m,'mean'), fprintf('%sCentering data%s...\n',pre,post); end
+    if g.verb && strcmpi(m,'linear'), fprintf('%sDetrending data%s...\n',pre,post); end
+    
+    fitlines = zeros(size(EEG.data));
     
     % apply the detrending/centering
     for ch=1:size(EEG.icaact,1)
-        EEG.data(ch,:,:) = detrend(squeeze(EEG.data(ch,:,:)),m);
+        if g.plot
+            % return detrended data as well as fitted curves
+            [EEG.data(ch,:,:) fitlines(ch,:,:)] = locdetrend(squeeze(EEG.data(ch,:,:)),EEG.srate,windowing_params,m);
+        else
+            % return only detrended data (faster)
+            EEG.data(ch,:,:) = locdetrend(squeeze(EEG.data(ch,:,:)),EEG.srate,windowing_params,m);
+        end
     end
+end
+
+if g.plot
+    eegplot(EEG.data,'srate',EEG.srate,'data2',fitlines);
 end
 
 if g.verb, disp('Done!'); end

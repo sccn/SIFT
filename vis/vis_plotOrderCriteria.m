@@ -1,4 +1,4 @@
-function handles = vis_plotOrderCriteria(IC,conditions,icselector,minimizer)
+function handles = vis_plotOrderCriteria(IC,conditions,icselector,minimizer,prclim)
 % Visualize the results of model order selection as computed by
 % est_selModelOrder()
 % 
@@ -19,6 +19,8 @@ function handles = vis_plotOrderCriteria(IC,conditions,icselector,minimizer)
 %                       'elbow' - find model order corresponding to elbow
 %                                 of info crit. plot
 %                       Default: 'min'
+%       prclim:         upper limit for percentile
+%                       Default: 90
 %                       
 % Output:
 %
@@ -64,6 +66,10 @@ if nargin<4
     minimizer = 'min';
 end
 
+if nargin<5
+    prclim = 90;
+end
+
 for cond = 1:length(IC)
     
     if isempty(conditions)
@@ -96,10 +102,10 @@ for cond = 1:length(IC)
     plot(IC{cond}.pmin:IC{cond}.pmax,allinfocrit,'linewidth',2);
     set(gca,'xtick',IC{cond}.pmin:IC{cond}.pmax);
     axis auto
-    xlabel('model order','fontsize',12);
-    ylabel('Information criteria (bits)','fontsize',12);
+    xlabel('model order    ','fontsize',12);
+    ylabel('Information criteria (bits)    ','fontsize',12);
     set(gca,'xgrid','on');
-    title('Mean IC across sampled windows','fontsize',12);
+    title('Mean IC across sampled windows   ','fontsize',12);
     axcopy(gca);
 
     hold on
@@ -134,7 +140,12 @@ for cond = 1:length(IC)
 %         legendstr{i} = sprintf('%s (%d)',icselector{i},popt);
 %     end
 
-    legend(legendstr);
+    xlim([IC{cond}.pmin IC{cond}.pmax]);
+    yl=ylim;
+    ylim([yl(1)-0.001*(yl(2)-yl(1)) yl(2)]);
+    
+    legend(legendstr,'linewidth',2);
+    
     % popt = popt+IC{cond}.pmin-1;
     % plot(popt',minic);
 
@@ -142,6 +153,7 @@ for cond = 1:length(IC)
     % ylim = get(gca,'Ylim');
     % ylim = ylim(ones(1,numinfocriteria),:);
     % line([popt popt],ylim);
+    
     hold off
     % 
 
@@ -154,24 +166,42 @@ for cond = 1:length(IC)
             
             switch minimizer
                 case 'min'
-                    bar(xScale,histc(IC{cond}.(lower(icselector{i})).popt,xScale),'k');
-                    popt = ceil(mean(IC{cond}.(lower(icselector{i})).popt));
-                    poptstd = ceil(std(IC{cond}.(lower(icselector{i})).popt));
+                    bar(xScale,histc(IC{cond}.(lower(icselector{i})).popt,xScale),'k');         %  plot histogram
+                    popt = ceil(mean(IC{cond}.(lower(icselector{i})).popt));                    %  mean
+                    poptstd = ceil(std(IC{cond}.(lower(icselector{i})).popt));                  %  stdev
+                    poptprctile = ceil(prctile(IC{cond}.(lower(icselector{i})).popt,prclim));   %  upper 95th prctile
                 case 'elbow'
                     bar(xScale,histc(IC{cond}.(lower(icselector{i})).pelbow,xScale),'k');
                     popt = ceil(mean(IC{cond}.(lower(icselector{i})).pelbow));
                     poptstd = ceil(std(IC{cond}.(lower(icselector{i})).pelbow));
+                    poptprctile = ceil(prctile(IC{cond}.(lower(icselector{i})).pelbow,prclim));
             end
             axes(ax);
-            lmin = vline(popt,'--',[num2str(popt) '+-' num2str(poptstd)],1.05);
-            set(lmin,'color',defcolororder(i,:),'linestyle','--','linewidth',2);
-            lstd = vline([popt-poptstd popt+poptstd]);
-            set(lstd,'color',defcolororder(i,:),'linestyle',':','linewidth',1);
-            title(icselector{i},'fontsize',12,'fontweight','bold');
+            
+            % shade region for stdev
+            [patchHandles textHandles] = hlp_vrect([popt-poptstd popt+poptstd], ...
+                'patchProperties', ...
+                {'FaceColor',defcolororder(i,:), ...
+                 'FaceAlpha',0.2,...
+                 'EdgeColor',[0.2 0.2 0.2],...
+                 'EdgeAlpha',0.2 ...
+                 });
+             
+            % mark mean popt
+            lmin = vline(popt,'-',[num2str(popt) '+-' num2str(poptstd)],[-0.01 0.95],gca,defcolororder(i,:));
+            set(lmin,'color',defcolororder(i,:),'linestyle','-','linewidth',2);
+            
+            % mark upper prctile
+            lprctile = vline(poptprctile,':',sprintf('%g%%',prclim),[-0.01 0.05],gca,defcolororder(i,:));
+            set(lprctile,'color',defcolororder(i,:),'linewidth',2);
+            
+            title([icselector{i} '  '],'fontsize',12,'fontweight','bold','color',defcolororder(i,:));
             axcopy(gca);
-            xlabel('opt. model order','fontsize',12);
-            ylabel('histogram count','fontsize',12);
-            xlim([IC{cond}.pmin IC{cond}.pmax]);
+            xlabel('opt. model order   ','fontsize',12);
+            ylabel('histogram count   ','fontsize',12);
+            xlim([IC{cond}.pmin-1 IC{cond}.pmax+1]);
+            yl=ylim;
+            ylim([yl(1)-0.001*(yl(2)-yl(1)) yl(2)]);
         end
     %     axis on
         %set(gca,'yaxislocation','right');

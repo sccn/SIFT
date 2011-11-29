@@ -6,7 +6,7 @@ function [C peaks] = hlp_filterConns(EEG, Conn, varargin)
 % Inputs:
 %
 %   EEG         EEG data structure
-%   ````1`
+%
 %   Conn        [M x M x num_freqs x num_times] connectivity matrix
 %
 % Options:
