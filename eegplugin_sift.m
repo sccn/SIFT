@@ -15,7 +15,7 @@
 %   For more information on how to create an EEGLAB plugin see the
 %   help message of eegplugin_besa() or visit http://www.sccn.ucsd.edu/eeglab/contrib.html
 %
-% Author: Tim Mullen, SCCN, INC, UCSD
+% Author: Tim Mullen and Arnaud Delorme, SCCN, INC, UCSD
 
 %123456789012345678901234567890123456789012345678901234567890123456789012
 
@@ -42,15 +42,15 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
         error('eegplugin_sift requires 3 arguments');
     end;
     
-    % add folder to path
-    % ------------------
-    if ~exist('vis_TimeFreqGrid.m')
-        p = which('eegplugin_sift.m');
-        p = p(1:findstr(p,'eegplugin_sift.m')-1);
-        addpath(genpath(p));
-    end;
+    % run SIFT startup routines
+    ok=StartSIFT;
     
-    
+    if ~ok
+        fprintf('SIFT initialization failed!\n');
+        pause(2);
+        return;
+    end
+        
     % find import data menu
     % ---------------------
     highlevelmenu = findobj(fig, 'tag', 'tools');
