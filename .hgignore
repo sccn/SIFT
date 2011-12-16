@@ -19,5 +19,8 @@ syntax: glob
 # Matlab temporary files
 *.m~
 
+# arfit
+arfit
+
 # experimental folder
 experimental
