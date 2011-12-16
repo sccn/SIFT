@@ -1,9 +1,9 @@
 function [patchHandles textHandles] = hlp_vrect(x, varargin)
-
+% Tim Mullen, 2011, SCCN/INC/UCSD
 
 g = finputcheck(varargin, ...
-    {'yscale'           'real'      [0 1]           1; ...         % vertical scaling (relative to ylimits)
-    'dock'              'string'    {'bottom','top'} 'top'; ...    % whether to 'dock' the patch at the top or bottom of the axis
+    {'yscale'           'real'      []           1; ...         % vertical scaling (relative to ylimits)
+    'dock'              'string'    {'bottom','top','none'} 'top'; ...    % whether to 'dock' the patch at the top or bottom of the axis. If 'none' then scale is location on yaxis of [bottom top] of rect 
     'label'             ''          []              {}; ...
     'axesHandle'        'real'      []              gca; ...
     'textPosition'      'real'      [0 1]           [0.5 0.02]; ...
@@ -51,10 +51,14 @@ textPositionY = g.textPosition(:,2);
 holdState = ishold(g.axesHandle);
 hold(g.axesHandle, 'on');
 
-yl = get(g.axesHandle,'ylim');             % Row vector
-yLimits = yl*g.yscale;
+if strcmpi(g.dock,'none')
+    yLimits = g.yscale;
+else
+    yl = get(g.axesHandle,'ylim');             % Row vector
+    yLimits = yl.*g.yscale;            
+end
 
-if g.yscale<1
+if any(g.yscale<1)
     switch g.dock
         case 'bottom'
             yLimits = yLimits-(yLimits(1)-yl(1))+0.001*diff(yLimits);
