@@ -305,7 +305,7 @@ else
 end
 
 % create figure
-figure('name',g.titleString,'DefaultAxesFontSize',g.axesFontSize); %,'color',g.backgroundColor
+figure('name',g.titleString,'DefaultAxesFontSize',g.axesFontSize); 
 colormap(g.colormap);
 
 map = g.colormap;
@@ -338,7 +338,7 @@ for dir=1:numdirs
         baselineMean = mean(baseline,ndims(baseline));
         
         
-        Conn = Conn-repmat(baselineMean,1,size(Conn,2));  %hlp_rmbaseline(Conn,g.baseline,g.alltimes);
+        Conn = Conn-repmat(baselineMean,1,size(Conn,2));
         ConnOrig = Conn;
     else
         baselineMean = Conn;
@@ -491,11 +491,13 @@ for dir=1:numdirs
         end
         
         axmin = min([ConnMarginal(:)' Stat(:)']);
-        axis([min(g.alltimes) max(g.alltimes) (sign(axmin)-0.2)*abs(axmin)-10^-5 max([ConnMarginal(:)' StatMarginal(:)'])*1.2+10^-5]);
+        axmax = max([ConnMarginal(:)' Stat(:)']);
+        axis([min(g.alltimes) max(g.alltimes) (sign(axmin)-0.2)*abs(axmin)-10^-5 (sign(axmax)+0.2)*abs(axmax)+10^-5]);
     else
         if ~all(isnan(ConnMarginal(:)))
             axmin = min(ConnMarginal);
-            axis([min(g.alltimes)-eps max(g.alltimes)+eps (sign(axmin)-0.2)*abs(axmin)-10^-5 max(ConnMarginal)*1.2+10^-5]);
+            axmax = max(ConnMarginal);
+            axis([min(g.alltimes)-eps max(g.alltimes)+eps (sign(axmin)-0.2)*abs(axmin)-10^-5 (sign(axmax)+0.2)*abs(axmax)+10^-5]);
         end
     end;
     
@@ -553,14 +555,16 @@ for dir=1:numdirs
         end;
         if ~isnan(max(ConnMarginal))
             axmin = min([ConnMarginal(:)' Stat(:)']);
+            axmax = max([ConnMarginal(:)' Stat(:)']);
             axis([g.allfreqs(1) g.allfreqs(end) ...
-                (sign(axmin)-0.2)*abs(axmin)-10^-5   max([ConnMarginal(:)'  Stat(:)'])*1.2+10^-5]);
+                (sign(axmin)-0.2)*abs(axmin)-10^-5   (sign(axmax)+0.2)*abs(axmax)+10^-5]);
         end;
     else
         if ~isnan(max(ConnMarginal))
             axmin = min(ConnMarginal);
+            axmax = max(ConnMarginal);
             axis([g.allfreqs(1) g.allfreqs(end) ...
-                (sign(axmin)-0.2)*abs(axmin)-10^-5   max(ConnMarginal(:))*1.2+10^-5]);
+                (sign(axmin)-0.2)*abs(axmin)-10^-5   (sign(axmax)+0.2)*abs(axmax)+10^-5]);
         end;
     end
     

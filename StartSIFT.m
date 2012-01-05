@@ -24,10 +24,10 @@ end
     
 % optionally download arfit (if not already present)
 if ~exist(ARfitTargetPath,'file')
-    res = input('Would you like to download and install the ARFIT toolbox as a SIFT plugin (recommended)? ''y''/''n'': ','s');
+    res = input('SIFT: Would you like to download and install the ARFIT toolbox as a SIFT plugin (recommended)? ''y''/''n'': ','s');
     if strcmpi(res,'y')
        
-        fprintf('Downloading and installing ARFIT from %s ...\n',ArfitURL);
+        fprintf('SIFT: Downloading and installing ARFIT from %s ...\n',ArfitURL);
         
         try 
             outdir = unzip(ArfitURL,ARfitTargetPath);
@@ -45,7 +45,7 @@ if ~exist(ARfitTargetPath,'file')
         
         addpath(genpath(ARfitTargetPath));
         
-        fprintf('ARFIT installed to %s%c\n',fileparts(outdir{1}),SLASH);
+        fprintf('SIFT: ARFIT installed to %s%c\n',fileparts(outdir{1}),SLASH);
     end
 end
 

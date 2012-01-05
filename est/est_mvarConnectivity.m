@@ -57,6 +57,10 @@ function [Conn params] = est_mvarConnectivity(EEG,MODEL,varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+if isempty(MODEL)
+    error('SIFT:est_mvarConnectivity','You must fit an MVAR model first!');
+end
+
 var = hlp_mergeVarargin(varargin{:});
 g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_mvarConnectivity','ignore','quiet');
 if ischar(g), error(g); end
@@ -71,7 +75,6 @@ Conn = [];
 
 numWins = length(MODEL.AR);
 nchs    = EEG.CAT.nbchan;
-
 
 if g.verb
     % inform user of total amount of memory (megabytes) required

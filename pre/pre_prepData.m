@@ -144,7 +144,24 @@ ALLEEG = arg_extract(varargin,'ALLEEG',1);
 MyComponentNames = [];
 if ~isempty(ALLEEG)
     
+    % make sure we have ICA activations
+    if any(cellfun(@isempty,{ALLEEG.icaweights}))
+        res = questdlg2('ICA decomposition not available. Process channels instead?','SIFT Data Preprocessing','Yes','No','Yes');
+        if strcmpi(res,'Yes')
+            for cond=1:length(ALLEEG)
+                % insert 'fake' ICA solution (Identity matrices) and copy EEG data into icaact
+                [ALLEEG(cond).icaweights ALLEEG(cond).icasphere ALLEEG(cond).icawinv] = deal(eye(size(ALLEEG(cond).data,1)));
+                ALLEEG(cond).icaact = ALLEEG(cond).data;
+            end
+        else
+            EEGprep = ALLEEG;
+            return;
+        end
+    end
+    
     for cond=1:length(ALLEEG)
+       
+    
         if ~isfield(ALLEEG(cond),'CAT') || ~isfield(ALLEEG(cond).CAT,'curComps')
             ALLEEG(cond).CAT.curComps = 1:size(ALLEEG(cond).icaweights,1);
         end
@@ -153,6 +170,7 @@ if ~isempty(ALLEEG)
         end
     end
     
+   
     if isfield(ALLEEG(1).CAT,'curComponentNames') && ~isempty(ALLEEG(1).CAT.curComponentNames)
         MyComponentNames = ALLEEG(1).CAT.curComponentNames;
     else
@@ -210,17 +228,15 @@ for cond=1:length(ALLEEG)
     
     if g.verb, fprintf('\nPre-processing condition %s\n', g.EEG.condition); end
     
+    
+    if isempty(g.EEG.icaact)
+        g.EEG = hlp_icaact(g.EEG);
+    end
+
     if g.backupOriginalData
         EEGbackup = g.EEG;  % save temporary copy of original dataset (TODO: clumsy, fix this)
     end
     
-    % make sure we have ICA activations
-    if isempty(g.EEG.icaweights)
-        error('you must run ICA first');
-    elseif isempty(g.EEG.icaact)
-        g.EEG = hlp_icaact(g.EEG);
-    end
-
     % overwrite the data with ica activations
     % (this is a hack to allow us to use EEGLAB data selection routines)
 %     g.EEG.data = g.EEG.icaact;
@@ -231,7 +247,7 @@ for cond=1:length(ALLEEG)
     
     % store copy of processed data
     if g.verb
-        fprintf('storing processed data in g.EEG.CAT.srcdata...\n'); end
+        fprintf('Storing processed data in g.EEG.CAT.srcdata...\n'); end
     
     % select components
     g.EEG.CAT.srcdata = g.EEG.icaact;

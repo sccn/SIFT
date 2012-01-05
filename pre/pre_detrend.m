@@ -92,7 +92,13 @@ windowing_params = [g.piecewise.seglength g.piecewise.stepsize];
 
 for i=1:length(g.method)
     m = g.method{i};
-    if g.verb && g.piecewise.arg_selection, pre = 'Piecewise '; post = sprintf(' (using %0.4f sec segment length)',g.piecewise.seglength); end
+    if g.verb && g.piecewise.arg_selection, 
+        pre = 'Piecewise '; 
+        post = sprintf(' (using %0.4f sec segment length)',g.piecewise.seglength); 
+    else
+        pre = '';
+        post = '';
+    end
     if g.verb && strcmpi(m,'mean'), fprintf('%sCentering data%s...\n',pre,post); end
     if g.verb && strcmpi(m,'linear'), fprintf('%sDetrending data%s...\n',pre,post); end
     
@@ -102,16 +108,23 @@ for i=1:length(g.method)
     for ch=1:size(EEG.icaact,1)
         if g.plot
             % return detrended data as well as fitted curves
-            [EEG.data(ch,:,:) fitlines(ch,:,:)] = locdetrend(squeeze(EEG.data(ch,:,:)),EEG.srate,windowing_params,m);
+            [EEG.data(ch,:,:) fitlines(ch,:,:)] = locdetrend_siftmod(squeeze(EEG.data(ch,:,:)),EEG.srate,windowing_params,m);
         else
             % return only detrended data (faster)
-            EEG.data(ch,:,:) = locdetrend(squeeze(EEG.data(ch,:,:)),EEG.srate,windowing_params,m);
+            EEG.data(ch,:,:) = locdetrend_siftmod(squeeze(EEG.data(ch,:,:)),EEG.srate,windowing_params,m);
         end
     end
 end
 
 if g.plot
-    eegplot(EEG.data,'srate',EEG.srate,'data2',fitlines);
+    eegplot(EEG.data+fitlines,'srate',EEG.srate,'data2',fitlines);
+    ax = findobj(gcf,'tag','eegaxis');
+    plts = get(ax,'children');
+    legend([plts(end) plts(1)],'original','best local-linear fit');
+    eegplot(EEG.data,'srate',EEG.srate);
+    ax = findobj(gcf,'tag','eegaxis');
+    plts = get(ax,'children');
+    legend(plts(end),'detrended data');
 end
 
 if g.verb, disp('Done!'); end

@@ -78,6 +78,10 @@ function varargout = pop_est_mvarConnectivity(ALLEEG,varargin)
 
 varargout{1} = ALLEEG;
 
+if ~isfield(ALLEEG(1),'CAT') || ~isfield(ALLEEG(1).CAT,'MODEL') || isempty(ALLEEG(1).CAT.MODEL)
+    error('SIFT:pop_est_mvarConnectivity','You must fit an MVAR model first!');
+end
+
 if nargin < 2
    popup = 1; 
 else

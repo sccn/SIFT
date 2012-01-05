@@ -124,7 +124,7 @@ if iscell(Aproto)
             lambda = eig(A_hat);
 
             if any(abs(lambda)>1)
-                if verb, fprintf('System is unstable at time %d!\n',t); end
+                if verb, fprintf('System is unstable at time %d! MaxLambda=%0.5g\n',t,max(abs(lambda))); end
                 if nargout>1, stable(t) = 0; end
             end
         end

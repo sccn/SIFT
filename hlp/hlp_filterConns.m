@@ -1,31 +1,31 @@
-  
-function [C peaks] = hlp_filterConns(EEG, Conn, varargin)
+
+function [Conn peaks] = hlp_filterConns(Conn, varargin)
 %
 % Apply a set of selection rules to a connectivity matrix
 %
 % Inputs:
 %
-%   EEG         EEG data structure
-%
-%   Conn        [M x M x num_freqs x num_times] connectivity matrix
+%   Conn        Connectivity structure with subfields Conn.(connmethod)
+%               containing [nchs x nchs x num_freqs x num_times]
+%               connectivity matrices
 %
 % Options:
 %
-%       'connThresh'    -     [real]. Connectivity threshold 
+%       'connThresh'    -     [real]. Connectivity threshold
 %                             (only keep C<connThresh)
-%       'prcThresh'     -     [real] The upper percent [1-100] of filtered 
+%       'prcThresh'     -     [real] The upper percent [1-100] of filtered
 %                             connections to keep {def: 100}
 %       'method'              cell array of dimensionality reduction methods to apply in a specified order. e.g.,
-%                             {'freq','net','time','peak'} will first integrate over freq, then find peak over time. 
-%                             If method is a string, then this is taken to be the compression global dimension reduction 
+%                             {'freq','net','time','peak'} will first integrate over freq, then find peak over time.
+%                             If method is a string, then this is taken to be the compression global dimension reduction
 %                             method applied to all dims in the order {'time','freq',...}.
-%                             allowed methods:  'mean', 'net', 'peak', 'shrinkonly'  
+%                             allowed methods:  'mean', 'net', 'peak', 'shrinkonly'
 %        ...
 %
 % Outputs:
 %
-%   C       filtered connectivity matrix
-%   peaks   frequency peaks (if method = 'peak')
+%   Conn        filtered connectivity structure
+%   peaks       frequency peaks (if method = 'peak')
 %
 % See Also: est_mvarConnectivity()
 %
@@ -34,9 +34,9 @@ function [C peaks] = hlp_filterConns(EEG, Conn, varargin)
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
 %   Theoretical Handbook and User Manual.
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift/
-% 
-% 
-% Author: Tim Mullen 2010, SCCN/INC, UCSD. 
+%
+%
+% Author: Tim Mullen 2008, 2010, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
@@ -57,9 +57,9 @@ function [C peaks] = hlp_filterConns(EEG, Conn, varargin)
 
 
 % ----------------------------------------------------------
-% TODO:  
+% TODO:
 % need to provide ability to specify order in which dim-compression
-% methods are applied. e.g., {3,'net',4,'peak'} would first 
+% methods are applied. e.g., {3,'net',4,'peak'} would first
 % integrate over the third dimension (frequency) and then find the peaks
 % over the 4th dim (time)
 % ONE OPTION:  allow 'method' = a cell array as above
@@ -75,190 +75,194 @@ if nargin<1
 end
 
 
-if length(size(Conn))>4
-    error('Connectivity Matrix cannot be greater than 4-D!');
-end
-
 % parse inputs
 g = finputcheck(varargin,...
-    {'connThresh'   ''          []          0; ...  % absolute thresholding to apply after significance thresholding. can be a scalar or a matrix of same size as EEG.CAT.C. Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
-     'prcThresh'    'real'      [eps 100]   100;...
-     'frange'       'real'      []          [];...  % same units as EEG.CAT.freqs
-     'trange'       'real'      []          [];...  % same units as EEG.times
-     'dtrange'      'real'      []          [];...
-     'sigThresh'    ''          []          [];...  % can be a scalar or a matrix of same size as EEG.CAT.C. Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
-     'badchans'     'integer'   []          [];...
-     'method'       ''          ''          'mean';...        % cell array of dimensionality reduction methods to apply in a specified order. e.g.,
-                                                              % {'freq','net','time','peak'} will first integrate over freq, then find peak over time. 
-                                                              % If method is a string, then this is taken to be the compression global dimension reduction 
-                                                              % method applied to all dims in the order {'time','freq',...}
-     'peakWidth'    'integer'   []          2;...
-     'chanlocs'     ''          []          [];...
-     'distRad'      'real'      []          [];...
-     'strictRad'    'boolean'   []          1;...  
-     'metric',      'string'    []          'manhattan';...
-     'diags',       'string'    {'off','on'} 'off'; ...
-     'freqdim',     'real'      []          []; ...
-     'timedim',     'real'      []          []; ...
-     },'hlp_filterConns','error','quiet');
+    {'connmethods', ''          {}          {}; ...  % cell array of connectivity method names. If empty, we use all of them
+    'connThresh'   ''          []          0; ...  % absolute thresholding to apply after significance thresholding. can be a scalar or a matrix of same size as EEG.CAT.C. Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
+    'prcThresh'    'real'      [eps 100]   100;...
+    'frange'       'real'      []          [];...  % same units as Conn.freqs
+    'trange'       'real'      []          [];...  % same units as EEG.times
+    'sigThresh'    ''          []          [];...  % can be a scalar or a matrix of same size as EEG.CAT.C. Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
+    'badchans'     'integer'   []          [];...
+    'method'       ''          ''          'mean';...        % cell array of dimensionality reduction methods to apply in a specified order. e.g.,
+    % {'freq','net','time','peak'} will first integrate over freq, then find peak over time.
+    % If method is a string, then this is taken to be the compression global dimension reduction
+    % method applied to all dims in the order {'time','freq',...}
+    'peakWidth'    'integer'   []          2;...
+    'chanlocs'     ''          []          [];...
+    'distRad'      'real'      []          [];...
+    'strictRad'    'boolean'   []          1;...
+    'metric',      'string'    []          'manhattan';...
+    'diags',       'string'    {'off','on'} 'on'; ...
+    'freqdim',     'real'      []          []; ...
+    'timedim',     'real'      []          []; ...
+    'verb',        'boolean'   []          1; ...
+    },'hlp_filterConns','error','quiet');
 
 if ischar(g)
     error(g);
+end
+
+if isempty(g.connmethods)
+    g.connmethods = hlp_getConnMethodNames(Conn);
 end
 
 nmethods = 3;
 
 if ~isempty(g.timedim)
     timedim = g.timedim;
-else
-    timedim=find(ismember(EEG.CAT.dims,'time'));
+elseif isfield(Conn,'dims')
+    timedim=find(ismember(Conn.dims,'time'));
 end
 
 if ~isempty(g.freqdim)
-   freqdim = g.freqdim; 
-else
-    freqdim=find(ismember(EEG.CAT.dims,'freq'));
+    freqdim = g.freqdim;
+elseif isfield(Conn,'dims')
+    freqdim=find(ismember(Conn.dims,'freq'));
 end
 
 if isempty(freqdim)
-    disp('warning: no ''freq'' entry found in EEG.CAT.dims -- assuming dim 3');
+    if g.verb
+        disp('warning: no ''freq'' entry found in Conn.dims -- assuming dim 3');
+    end
     freqdim = 3;
 end
 if isempty(timedim)
-    disp('warning: no ''time'' entry found in EEG.CAT.dims -- assuming dim 4');
+    if g.verb
+        disp('warning: no ''time'' entry found in Conn.dims -- assuming dim 4');
+    end
     timedim = 4;
 end
 
-if ischar(g.method), 
+if ischar(g.method),
     ONEMETHOD = true;
-    g.method = {'time',g.method,'freq',g.method,'delay',g.method};
+    g.method = {'time',g.method,'freq',g.method};
 else
     ONEMETHOD = false;
 end
 
-% TODO: implement dtrange
-if ~isempty(g.dtrange)
-    warning('time delays not implemented yet!');
-    g.dtrange = [];
+if isempty(g.frange)
+    g.frange = [Conn.freqs(1) Conn.freqs(end)];
 end
 
-% if ~isfield(EEG.CAT,'sigdist') || isempty(EEG.CAT.sigdist)
-%     g.sigThresh = [];
-% end
-
-if ~isfield(EEG.CAT,'freqs') || isempty(EEG.CAT.freqs)
-    g.frange = [];  % no freq. dim
-elseif isempty(g.frange)
-    g.frange = [EEG.CAT.freqs(1) EEG.CAT.freqs(end)]; 
+if isempty(g.trange)
+    g.trange = [Conn.erWinCenterTimes(1) Conn.erWinCenterTimes(end)];
 end
 
-if ~isfield(EEG.CAT,'times') || isempty(EEG.CAT.times)
-    g.trange = [];  % no time dim
-elseif isempty(g.trange)
-        g.trange = [EEG.CAT.times(1) EEG.CAT.times(end)];
-end
 
-C = EEG.CAT.C;  % make copy of connectivity matrix
+frangeidx = getindex(Conn.freqs,g.frange);
+trangeidx = getindex(Conn.erWinCenterTimes,g.trange);
 
-
-% apply significance thresholding
-if ~isempty(g.sigThresh)
-    if islogical(g.sigThresh) && isequal(size(C),size(g.sigThresh))
-        C(~g.sigThresh)=0;
-    else
-        C(C<g.sigThresh) = 0;
+for m=1:length(g.connmethods)
+    connmethod = g.connmethods{m};
+    
+    
+    if length(size(Conn.(connmethod)))>4
+        error('Connectivity Matrix cannot be greater than 4-D!');
     end
-%     warning('significance thresholding not implemented yet!');
-end
-
-if ~strcmpi(g.method{2},'thresh')
-    if ~isempty(g.trange) && ~isempty(g.frange) && ONEMETHOD && isequal(g.method{2},'peak2d')
-        % apply 2D peak identification
-        fprintf('applying method=%s to dim=%s and %s\n',g.method{2},g.method{1},g.method{3});
-        C = collapseDim(C,'dim',4,'range',getindex(EEG.CAT.times,g.trange), ...
-            'method','shrinkonly');     % extract time range 
-        C = collapseDim(C,'dim',3,'range',getindex(EEG.CAT.freqs,g.frange), ...
-            'method','shrinkonly');     % extract freq range
-        [C peaks] = collapseDim(C,'dim',4,'range',[], 'method','peak2d', ...
-            'peakWidth',g.peakWidth,'minpeakheight',g.connThresh); % find peaks
-    else
-
-        for mm=1:2:length(g.method)
-
-            % collapse time dim
-            if ~isempty(g.trange) && (isequal(g.method{mm},'time'))
-                fprintf('applying method=%s to dim=%s\n',g.method{mm+1},g.method{mm});
-                [C peaks.times] = collapseDim(C,'dim',timedim,...
-                    'range',getindex(EEG.CAT.times,g.trange),'method',g.method{mm+1},...
-                    'dx',EEG.CAT.times(2)-EEG.CAT.times(1),'peakWidth',g.peakWidth, ...
-                    'minpeakheight',g.connThresh);
-            end
-
-            % collapse freq dim
-            if ~isempty(g.frange) && (isequal(g.method{mm},'freq'))
-                fprintf('applying method=%s to dim=%s\n',g.method{mm+1},g.method{mm});
-                [C peaks.freqs] = collapseDim(C,'dim',freqdim,...
-                    'range',getindex(EEG.CAT.freqs,g.frange),'method',g.method{mm+1},...
-                    'dx',EEG.CAT.freqs(2)-EEG.CAT.freqs(1),'peakWidth',g.peakWidth, ...
-                    'minpeakheight',g.connThresh);
-            end
-
-            % filter delays
-            if ~isempty(g.dtrange) && (isequal(g.methods{mm},'delay')) 
-                % TODO: implement time delay thresholding
-            end
-
+    
+    C = Conn.(connmethod);  % make copy of connectivity matrix
+    
+    
+    % apply significance thresholding
+    if ~isempty(g.sigThresh)
+        if islogical(g.sigThresh) && isequal(size(C),size(g.sigThresh))
+            C(~g.sigThresh)=0;
+        else
+            C(C<g.sigThresh) = 0;
         end
-
     end
-end
-
-sz=size(C);
-if all(sz(3:end)==1)
-    C = squeeze(C);
-end
-
-
-% ensure C is now 2-D and square
-if length(size(C))>2 || size(C,1)~=size(C,2)
-    warning('Connectivity matrix was not successfully collapsed to 2-D square mat')
-else
-
+    
+    if ~strcmpi(g.method{2},'thresh')
+        if ~isempty(g.trange) && ~isempty(g.frange) && ONEMETHOD && isequal(g.method{2},'peak2d')
+            % apply 2D peak identification
+            if g.verb
+                fprintf('applying method=%s to dim=%s and %s\n',g.method{2},g.method{1},g.method{3});
+            end
+            C = collapseDim(C,'dim',4,'range',trangeidx, ...
+                'method','shrinkonly');     % extract time range
+            C = collapseDim(C,'dim',3,'range',frangeidx, ...
+                'method','shrinkonly');     % extract freq range
+            [C peaks] = collapseDim(C,'dim',4,'range',[], 'method','peak2d', ...
+                'peakWidth',g.peakWidth,'minpeakheight',g.connThresh); % find peaks
+        else
+            
+            for mm=1:2:length(g.method)
+                
+                % collapse time dim
+                if ~isempty(g.trange) && (isequal(g.method{mm},'time'))
+                    if g.verb
+                        fprintf('applying method=%s to dim=%s\n',g.method{mm+1},g.method{mm});
+                    end
+                    [C peaks.times] = collapseDim(C,'dim',timedim,...
+                        'range',trangeidx,'method',g.method{mm+1},...
+                        'dx',Conn.erWinCenterTimes(2)-Conn.erWinCenterTimes(1),'peakWidth',g.peakWidth, ...
+                        'minpeakheight',g.connThresh);
+                end
+                
+                % collapse freq dim
+                if ~isempty(g.frange) && (isequal(g.method{mm},'freq'))
+                    if g.verb
+                        fprintf('applying method=%s to dim=%s\n',g.method{mm+1},g.method{mm});
+                    end
+                    [C peaks.freqs] = collapseDim(C,'dim',freqdim,...
+                        'range',frangeidx,'method',g.method{mm+1},...
+                        'dx',Conn.freqs(2)-Conn.freqs(1),'peakWidth',g.peakWidth, ...
+                        'minpeakheight',g.connThresh);
+                end
+                
+            end
+            
+        end
+    end
+    
+    sz=size(C);
+    if all(sz(3:end)==1)
+        C = squeeze(C);
+    end
+    
     % remove diagonals
     if strcmpi(g.diags,'off')
-        C=C.*~eye(size(C));
+        for q=1:size(C,3)
+            C(:,:,q)=C(:,:,q).*~eye(size(C(:,:,q)));
+        end
     end
     
     % apply connectivity threshold
     if g.connThresh
-        %         g.connThresh(isspace(g.connThresh))=[]; % rem whitespace
-        %         if strcmp(g.connThresh(end),'%')        % rem trailing symbol
-        %             g.connThresh(end) = [];
-        %         end
-        %         g.connThresh = str2num(g.connThresh);
-        
         C(C<g.connThresh) = 0;
-        
     end
     
-    % apply distance radius
-    if g.distRad
-        [C] = disthresh(C, 'R',g.distRad,'chanlocs',g.chanlocs,...
-                                         'strictRad',g.strictRad,...
-                                         'metric',g.metric);
-    end
-
-
     % apply percentile threshold
     if ~isempty(g.prcThresh) && g.prcThresh<100
-            % get specified percentile
-            prc = prctile(C(:),100-g.prcThresh);
-            C(C<prc)=0;
+        % get specified percentile
+        prc = prctile(C(:),100-g.prcThresh);
+        C(C<prc)=0;
     end
     
+    Conn.(connmethod) = C;
+    
+end
+
+if size(C,3)==1
+    % frequency dimension has been collapsed
+    % replace with median frequency within collapsed interval
+    Conn.collapsedFreqs = Conn.freqs(frangeidx(1):frangeidx(2));
+    Conn.freqs          = median(Conn.collapsedFreqs);
+else
+    Conn.freqs          = Conn.freqs(frangeidx(1):frangeidx(2));
+end
+
+if size(C,4)==1
+    % time dimension has been collapsed
+    % replace with median time point within collapsed interval
+    Conn.collapsedTimes     = Conn.erWinCenterTimes(trangeidx(1):trangeidx(2));
+    Conn.erWinCenterTimes   = median(Conn.collapsedTimes);
+    Conn.winCenterTimes     = median(Conn.winCenterTimes(trangeidx(1):trangeidx(2)));
+else
+    Conn.erWinCenterTimes   = Conn.erWinCenterTimes(trangeidx(1):trangeidx(2));
+    Conn.winCenterTimes     = Conn.winCenterTimes(trangeidx(1):trangeidx(2));
 end
 
 
 
- 
-         

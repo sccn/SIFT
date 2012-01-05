@@ -363,6 +363,9 @@ clear stats;
 
 % setup the argument list
 % -----------------------------------------------------
+
+%     arg_norep({'connmethods'},ConnNames{1},ConnNames,'Connectivity Measures to visualize','shape','row'), ...
+
 g = arg_define([0 2],varargin, ...
     arg_norep({'ALLEEG'},mandatory),...
     arg_norep({'Conn'},mandatory),...
@@ -375,7 +378,6 @@ g = arg_define([0 2],varargin, ...
     ), ...
     arg_norep({'stats','Stats'},[],[],'A structure containing statistics.'), ...
     arg_nogui({'vismode','VisualizationMode'},'TimeXFrequency',{'TimeXFrequency','TimeXCausality','FrequencyXCausality'},'Visualization Modes. Create Time-Frequency imageplots, Causality x Frequency plots (collapsing across time), Causality x Time plots (collapsing across frequency)'), ...
-    arg_norep({'connmethods'},ConnNames{1},ConnNames,'Connectivity Measures to visualize','shape','row'), ...
     arg_norep({'msubset'},'all',{'tril','triu','diag','nodiag','all'},'Subset of the full matrix to keep. Lower/upper triangle (''tril''/''triu''), diagonals (''diag''), everything except diagonal (''nodiag''), everything (''all'').'), ...
     arg_subswitch({'MatrixLayout'},'Full', ...
     {'Full', ...
@@ -1358,12 +1360,30 @@ for ch_i=1:nch
             end
                 
             
-            hold off
-            
             set(gca,'Ylim',g.clim);
             set(gca,'Xlim',[g.freqValues(1) g.freqValues(end)]);
             set(gca,'tag','lineplot');
             
+
+            % draw vertical lines at frequencies of interest
+            if ~isempty(g.foilines)
+                for ln=1:length(g.foilines)
+                    hl = vline(g.foilines(ln));
+                    if isempty(g.foilinecolor)
+                        color = colorlist{mod(ln-1,length(colorlist))+1};
+                    elseif size(g.foilinecolor,1) > 1
+                        color = g.foilinecolor(ln,:);
+                    elseif size(g.foilinecolor,1) == 1
+                        color = g.foilinecolor;
+                    end
+                    
+                    
+                    set(hl,'color',color,'linestyle','-','linewidth',1);
+                    set(hl,'tag','foilines');
+                end
+            end
+            
+            hold off
             
         elseif ntime > 1
             % ---------------------------------
@@ -1379,7 +1399,6 @@ for ch_i=1:nch
             end
             
             for ff=1:nfreqs
-                % plot a set of causality x frequency traces for each time window
                 
                 % plot confidence intervals
                 if ~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics') ...
@@ -1424,6 +1443,7 @@ for ch_i=1:nch
                     end
                 end
                 
+                
                 % plot causality trace
                 if nfreqs==1
                     if strcmpi(g.freqscale,'log')
@@ -1448,11 +1468,36 @@ for ch_i=1:nch
                 set(zh,'color',g.linecolor,'linestyle','-.')
             end
             
-            hold off
             
-            set(gca,'Ylim',g.clim);
+            set(gca,'Ylim',g.clim); 
             set(gca,'Xlim',[erWinCenterTimes(1) erWinCenterTimes(end)]);
             set(gca,'tag','lineplot');
+            
+            % draw baseline shaded region
+            if ~isempty(g.baseline)
+                hlp_vrect(g.baseline,'yscale',1,'patchProperties',{'FaceAlpha',0.5,'FaceColor',[0.7 0.7 1],'EdgeColor','none'});
+            end
+            
+            % draw event markers
+            if ~isempty(g.events)
+                for i=1:length(g.events)
+                    events = g.events{i};
+                    
+                    % set defaults
+                    if length(events) < 4
+                        events{4} = 2;      end
+                    if length(events) < 3
+                        events{3} = ':';    end
+                    if length(events) < 2
+                        events{2} = 'r';     end
+                    
+                    vl = vline(events{1});
+                    set(vl,'color',events{2},'linestyle',events{3},'linewidth',events{4});
+                end
+            end
+            
+            
+            hold off
             
         end
         

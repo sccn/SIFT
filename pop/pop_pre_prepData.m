@@ -49,7 +49,20 @@ function [ALLEEG cfg] = pop_pre_prepData(ALLEEG,typeproc,varargin)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-
+% make sure we have ICA activations
+if any(cellfun(@isempty,{ALLEEG.icaweights}))
+    res = questdlg2('ICA decomposition not available. Process channels instead?','SIFT Data Preprocessing','Yes','No','Yes');
+    if strcmpi(res,'Yes')
+        for cond=1:length(ALLEEG)
+            % insert 'fake' ICA solution (Identity matrices) and copy EEG data into icaact
+            [ALLEEG(cond).icaweights ALLEEG(cond).icasphere ALLEEG(cond).icawinv] = deal(eye(size(ALLEEG(cond).data,1)));
+            ALLEEG(cond).icaact = ALLEEG(cond).data;
+        end
+    else
+        return;
+    end
+end
+    
 for cond = 1:length(ALLEEG)
     if ~isfield(ALLEEG(cond),'CAT') || ~isfield(ALLEEG(cond).CAT,'curComps')
         ALLEEG(cond).CAT.curComps = 1:size(ALLEEG(cond).icaweights,1);
