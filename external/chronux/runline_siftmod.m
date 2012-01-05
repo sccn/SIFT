@@ -1,4 +1,4 @@
-function y_line=runline(y,n,dn,method)
+function y_line=runline_siftmod(y,n,dn,method)
 % Running line fit (local linear regression)
 %
 % Usage: y_line=runline(y,n,dn);

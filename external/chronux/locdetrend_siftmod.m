@@ -55,9 +55,9 @@ if ~isreal(data)
   else
      for ch=1:C
          
-         tmp=runline(yr(:,ch),n,dn,method); 
+         tmp=runline_siftmod(yr(:,ch),n,dn,method); 
          yr=yr-tmp;
-         tmp=runline(yi(:,ch),n,dn,method); 
+         tmp=runline_siftmod(yi(:,ch),n,dn,method); 
          yi=yi-tmp;
          data(:,ch)=yr+1i*yi;
      end;
@@ -73,7 +73,7 @@ else
       end
   else
      for ch=1:C;
-         tmp=runline(data(:,ch),n,dn,method); 
+         tmp=runline_siftmod(data(:,ch),n,dn,method); 
          if nargout>1
              fitlines(:,ch) = tmp;
          end
