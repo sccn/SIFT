@@ -117,11 +117,12 @@ for i=1:length(g.method)
 end
 
 if g.plot
-    eegplot(EEG.data+fitlines,'srate',EEG.srate,'data2',fitlines);
+    eegplot(EEG.data+fitlines,'srate',EEG.srate,'data2',fitlines,'title','Original Data');
+    h = gcf;
     ax = findobj(gcf,'tag','eegaxis');
     plts = get(ax,'children');
     legend([plts(end) plts(1)],'original','best local-linear fit');
-    eegplot(EEG.data,'srate',EEG.srate);
+    eegplot(EEG.data,'srate',EEG.srate,'title','Detrended Data','children',h);
     ax = findobj(gcf,'tag','eegaxis');
     plts = get(ax,'children');
     legend(plts(end),'detrended data');

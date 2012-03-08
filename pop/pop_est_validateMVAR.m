@@ -203,7 +203,7 @@ if ischar(g.whitenessCriteria), g.whitenessCriteria={g.whitenessCriteria}; end
 % determine which windows to use
 if isempty(g.winStartIdx)
     % starting point of each window (points)
-    g.winStartIdx  = floor(MODEL(1).winStartTimes*ALLEEG(1).srate)+1;
+    g.winStartIdx  = round(MODEL(1).winStartTimes*ALLEEG(1).srate)+1;
 end
 if g.prctWinToSample<100
     % randomly select percentage of windows to work with

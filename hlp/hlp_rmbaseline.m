@@ -48,6 +48,7 @@ function Conn2 = hlp_rmbaseline(Conn,baseline,varargin)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 if isstruct(Conn)
     % Conn is connectivity object
+
     if nargin<3
         connmethods = hlp_getConnMethodNames(Conn);
     elseif iscell(varargin{3})
@@ -61,6 +62,13 @@ if isstruct(Conn)
     for m=1:length(connmethods)
         Conn2.(connmethods{m}) = rmbase(Conn.(connmethods{m}),baseidx);
     end
+    
+    % copy supplementary fields into new connectivity structure
+    extrafields = setdiff(fieldnames(Conn),hlp_getConnMethodNames(Conn));
+    for f=1:length(extrafields)
+        Conn2.(extrafields{f}) = Conn.(extrafields{f});
+    end
+    
 else
     % Conn is a 4-dimensional matrix
     if nargin < 3

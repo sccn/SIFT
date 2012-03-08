@@ -11,11 +11,10 @@ clear;
 %% Example 1: Simple bivariate coupled oscillator example
 
 SamplingRate = 100;      % Hz
-Nl = 3*SamplingRate;                % length of each epoch (samples)
-Nr = 20;                % number of trials (realisations)
+Nl = 500;                % length of each epoch (samples)
+Nr = 100;                % number of trials (realisations)
 ndisc = 1000;            % number of samples to discard from VAR model (startup transients)
-TrueModelOrder = 2;      % VAR model order
-ModelOrder = 4;          % Model Order we will use
+ModelOrder = 2;          % VAR model order
  
 expr = {...
     'x1(t) = 0.6*x1(t-1) +  0.65*x2(t-2)+ e1(t)' ... 
@@ -23,7 +22,26 @@ expr = {...
 };
 
 % create prototype VAR structure
-Aproto = sim_genVARModelFromEq(expr,TrueModelOrder);
+Aproto = sim_genVARModelFromEq(expr,ModelOrder);
+
+%% Example 1b: trivariate coupled oscillators with non-stationary (1-Hz sinusoidal) coupling dynamics
+
+
+SamplingRate = 100;      % Hz
+Nl = 500;                % length of each epoch (samples)
+Nr = 100;                % number of trials (realisations)
+ndisc = 1000;            % number of samples to discard from VAR model (startup transients)
+ModelOrder = 2;          % VAR model order
+% ModelOrder = 4;        % Model Order we will use
+f0 = 10;                 % central oscillation frequency
+expr = {...
+    ['x1(t) = ' sim_dampedOscillator(f0,10,100,1) '                                    + e1(t)'] ... 
+    ['x2(t) = ' sim_dampedOscillator(f0,2,100,2) ' + -0.1*x1(t-2)                      + e2(t)'] ...
+    ['x3(t) = ' sim_dampedOscillator(f0,2,100,3) ' + {0.3*sin(2*pi*t/100)+0.3}*x1(t-2) + e3(t)'] ...
+};
+
+% create prototype VAR structure
+Aproto = sim_genVARModelFromEq(expr,ModelOrder);
 
 
 %% Example 2:  System of coupled oscillators 
@@ -36,8 +54,7 @@ SamplingRate = 100;      % Hz
 Nl = 500;                % length of each epoch (samples)
 Nr = 100;                % number of trials (realisations)
 ndisc = 1000;            % number of samples to discard from VAR model (startup transients)
-TrueModelOrder = 3;      % VAR model order
-ModelOrder = 10;
+ModelOrder = 3;          % VAR model order
 
 % write the system of equations for coupled damped oscillators
 expr = { ...
@@ -49,7 +66,7 @@ expr = { ...
     };
   
 % create prototype VAR structure
-Aproto = sim_genVARModelFromEq(expr,TrueModelOrder);
+Aproto = sim_genVARModelFromEq(expr,ModelOrder);
 
 
 %% Example 3: Static system of coupled oscillators 
@@ -62,8 +79,7 @@ SamplingRate = 10;          % Hz
 Nl = 500;                   % length of each epoch (samples)
 Nr = 100;                   % number of trials (realisations)
 ndisc = 1000;               % number of samples to discard from VAR model (startup transients)
-TrueModelOrder = 2;         % VAR model order
-ModelOrder = 10; 
+ModelOrder = 2;         % VAR model order
 
 % write the system of equations for coupled damped oscillators
 expr = { ...
@@ -75,7 +91,7 @@ expr = { ...
     };
 
 % create prototype VAR structure
-Aproto = sim_genVARModelFromEq(expr,TrueModelOrder);
+Aproto = sim_genVARModelFromEq(expr,ModelOrder);
 
 
 %% Example 4: Static system of coupled oscillators
@@ -84,12 +100,11 @@ Aproto = sim_genVARModelFromEq(expr,TrueModelOrder);
 % partial directed coherence. Journal of neuroscience methods 152:210-9 
 % Available at: http://www.ncbi.nlm.nih.gov/pubmed/16269188.
 
-SamplingRate = 500;         % Hz
-Nl = 3*SamplingRate;                   % length of each epoch (samples)
-Nr = 10;                   % number of trials (realisations)
+SamplingRate = 100;         % Hz
+Nl = 500;                   % length of each epoch (samples)
+Nr = 100;                   % number of trials (realisations)
 ndisc = 1000;               % number of samples to discard from VAR model (startup transients)
-TrueModelOrder = 4;         % VAR model order
-ModelOrder = 4;
+ModelOrder = 4;             % VAR model order
 
 % write the system of equations for coupled damped oscillators
 expr = {...
@@ -101,7 +116,7 @@ expr = {...
 };
 
 % create prototype VAR structure
-Aproto = sim_genVARModelFromEq(expr,TrueModelOrder);
+Aproto = sim_genVARModelFromEq(expr,ModelOrder);
 
 %% Example 5: Single-trial, Time-Varying Simulation (Mullen, 2011 unpublished)
 %  System of stocastically-forced, damped coupled oscillators with
@@ -149,6 +164,7 @@ S1_center = S0+S1_width/2;                      % center of stage 1
 S2_center = S1_center+S1_width;                 % center of stage 2
 S3_center = S2_center;                          % center of stage 3
 S4_center = S3_center+S3_width;                 % center of stage 4
+
 Offset = 0;
 
 % write the system of equations for coupled damped oscillators
@@ -173,92 +189,6 @@ Aproto = sim_genVARModelFromEq(expr,ModelOrder);
 
 
 
-%% Example 6: Multi-trial, Time-Varying Simulation (Mullen, 2011 unpublished)
-%  System of stocastically-forced, damped coupled oscillators with
-%  time-varying coupling coefficients
-%  This simulation creates simualted "event-related" network dynamics with time-varying coupling
-%  between clusters of sources which switches between 4 different stages.
-
-SamplingRate = 500; % Hz
-
-Nl = 3*SamplingRate;      % length of each epoch (3 seconds)
-Nr = 74;                    % number of trials (realisations)
-ndisc = 1000;               % number of samples to discard from VAR model (startup transients)
-ModelOrder = 6;             % VAR model order
-
-% Set the fundamental frequency (f) and damping time (tau) of the 
-% oscillators for each cluster of sources
-% NOTE: A small tau generates a "noisier" signal
-
-% Cluster 1
-f1=10; 
-tau1 = 2;
-
-% Cluster 2
-f2=35;
-tau2 = 3;
-
-% Cluster 3
-f3=10;
-tau3 = 2;
-
-% Cluster 4
-f4 = 5;
-tau4 = 1;
-
-
-% set the approximate durations of each stage
-S1_width = 0.5*SamplingRate;
-S2_width = 0.5*SamplingRate;
-S3_width = 0.5*SamplingRate;
-S4_width = 0.5*SamplingRate;
-
-S0 = 1*SamplingRate; % event time in samples (1 second)
-
-S1_center = S0+S1_width/2;                      % center of stage 1
-S2_center = S1_center+S1_width;                 % center of stage 2
-S3_center = S2_center;                          % center of stage 3
-S4_center = S3_center+S3_width;                 % center of stage 4
-Offset = 0;
-
-EventTime = S0/SamplingRate;
-
-% write the system of equations for coupled damped oscillators
-
-% 1: 10 Hz 
-% Stage 1: 1->2, 1->3
-% Stage 2: 3o->4, 2->4
-% Stage 3: 4->5, 4->6, 5-o3, 6->3, 6-o1,6-o2
-% Stage 4: 6->7, 6->10, 7->8, 8<->9
-
-
-%                               STAGE 1                                                        STAGE 2                                                                                         STAGE 3                                                                        STAGE 4
-% expr = { ...
-%       sprintf('x1(t) = %s                                                                                                                                       + {normpdfg(t,%f,%f,%f,-0.1)}*x6(t-6)                                                                                                                           + e1(t)',   sim_dampedOscillator(f1,tau1,SamplingRate,1), S3_width/2,8,Offset+S3_center) ...                   
-%       sprintf('x2(t) = %s + {normpdfg(t,%f,%f,%f,-0.7)}*x1(t-2)                                                                                                 + {normpdfg(t,%f,%f,%f,-0.1)}*x6(t-6)                                                                                                                           + e2(t)',   sim_dampedOscillator(f1,tau1,SamplingRate,2), S1_width/2,8,Offset+S1_center, S3_width/2,8,Offset+S3_center) ...       
-%       sprintf('x3(t) = %s + {normpdfg(t,%f,%f,%f,-0.7)}*x1(t-3)             + {normpdfg(t,%f,%f,%f,-0.2)}*x4(t-2)                                               + {normpdfg(t,%f,%f,%f,-0.1)}*x5(t-6) + {normpdfg(t,%f,%f,%f,0.1)}*x6(t-6)                                                                                     + e3(t)',   sim_dampedOscillator(f1,tau1,SamplingRate,3), S1_width/2,8,Offset+S1_center, S2_width/2,8,Offset+S2_center, S3_width/2,8,Offset+S3_center, S3_width/2,8,Offset+S3_center) ...       
-%       sprintf('x4(t) = %s                                                   + {normpdfg(t,%f,%f,%f,0.2)}*x3(t-2) + {normpdfg(t,%f,%f,%f,0.2)}*x2(t-2)                                                                                                                                                                           + e4(t)',   sim_dampedOscillator(f2,tau2,SamplingRate,4), S2_width/2,8,Offset+S2_center, S2_width/2,8,Offset+S2_center) ... 
-%       sprintf('x5(t) = %s                                                                                                                                       + {normpdfg(t,%f,%f,%f,0.3)}*x4(t-4)                                                                                                                            + e5(t)',   sim_dampedOscillator(f3,tau3,SamplingRate,5), S3_width/2,8,Offset+S3_center) ...  
-%       sprintf('x6(t) = %s                                                                                                                                       + {normpdfg(t,%f,%f,%f,0.2)}*x4(t-5)                                                                                                                            + e6(t)',   sim_dampedOscillator(f3,tau3,SamplingRate,6), S3_width/2,8,Offset+S3_center) ...                                  
-%       sprintf('x7(t) = %s                                                                                                                                                                                                                       + {normpdfg(t,%f,%f,%f,0.2)}*x6(t-3)                                            + e7(t)',   sim_dampedOscillator(f4,tau4,SamplingRate,7), S4_width/2,8,Offset+S4_center) ...  
-%       sprintf('x8(t) = %s                                                                                                                                                                                                                       + {normpdfg(t,%f,%f,%f,0.2)}*x7(t-2) + {normpdfg(t,%f,%f,%f,0.1)}*x9(t-2)       + e8(t)',   sim_dampedOscillator(f4,tau4,SamplingRate,8), S4_width/2,8,Offset+S4_center, S4_width/2,8,Offset+S4_center) ...
-%       sprintf('x9(t) = %s                                                                                                                                                                                                                       + {normpdfg(t,%f,%f,%f,0.1)}*x8(t-2)                                            + e9(t)',   sim_dampedOscillator(f4,tau4,SamplingRate,9), S4_width/2,8,Offset+S4_center) ... 
-%       sprintf('x10(t)= %s                                                                                                                                                                                                                       + {normpdfg(t,%f,%f,%f,0.2)}*x6(t-3)                                            + e10(t)',  sim_dampedOscillator(f4,tau4,SamplingRate,10),S4_width/2,8,Offset+S4_center) ... 
-%       sprintf('x11(t)= 1.3*x11(t-1) + -0.8*x11(t-2)                             + e11(t)') ...    % Decoupled
-%       sprintf('x12(t)= 1.2*x12(t-1) + -0.4*x12(t-2)                             + e12(t)') ...    % Decoupled
-%       sprintf('x13(t)= 0.8*x13(t-1) + -0.4*x13(t-2) + -0.1*x13(t-4)             + e13(t)') ...    % Decoupled
-%       };
-
-ModelOrder = 3;
-Nl = 2*SamplingRate;
-expr = { ...
-      sprintf('x1(t) = %s                                                                                                                                                                                                                                                                 + e1(t)',   sim_dampedOscillator(f1,tau1,SamplingRate,1)) ...                   
-      sprintf('x2(t) = %s + {normpdfg(t,%f,%f,%f,-0.7)}*x1(t-2)                                                                                                                                                                                                                            + e2(t)',   sim_dampedOscillator(f1,tau1,SamplingRate,2), S1_width/2,8,Offset+S1_center) ...       
-      sprintf('x3(t) = %s + {normpdfg(t,%f,%f,%f,-0.7)}*x1(t-3)                                                                                                  + e3(t)',   sim_dampedOscillator(f1,tau1,SamplingRate,3), S1_width/2,8,Offset+S1_center) ...       
-      };
-  
-% create prototype VAR structure
-Aproto = sim_genVARModelFromEq(expr,ModelOrder);
 
 
 %% STEP 2: Simulate the VAR process
@@ -274,30 +204,26 @@ M = size(A{1},1);
 C = sigma*eye(M);             
 
 % % hyperbolic secant noise
-data = permute(tvarsim(zeros(1,M),A,C,[Nl Nr],ndisc,2/pi,0,'hsec'),[2 1 3]);
+% data = permute(tvarsim(zeros(1,M),A,C,[Nl Nr],ndisc,2/pi,0,'hsec'),[2 1 3]);
 
 % laplacian noise (generalized gaussian)
 % data = permute(tvarsim(zeros(1,M),A,C,[Nl Nr],ndisc,1,1,'gengauss'),[2 1 3]);
 
 % gaussian noise
-% data = permute(tvarsim(zeros(1,M),A,C,[Nl Nr],ndisc,2,1,'gengauss'),[2 1 3]);
+data = permute(tvarsim(zeros(1,M),A,C,[Nl Nr],ndisc,2,1,'gengauss'),[2 1 3]);
 
 
 %% STEP 4: Create EEGLAB dataset and source potentials
-
-if ~exist('EventTime')
-    EventTime = 0;
-end
 
 EEG = eeg_emptyset;
 EEG.data = data;
 [EEG.icaweights EEG.icasphere EEG.icawinv] = deal(eye(M));
 EEG.icaact = [];
 EEG.srate = SamplingRate;
-EEG.times = ((0:(Nl-1))/SamplingRate - EventTime)*1000;   % ms
+EEG.times = ((0:(Nl-1))/SamplingRate)*1000;   % ms
 EEG.pnts = Nl;
 EEG.trials = Nr;
-EEG.xmin = EEG.times(1)/1000;
+EEG.xmin = EEG.times(1);
 EEG.xmax = EEG.times(end)/1000;  % sec
 EEG.nbchan = M;
 EEG.setname = 'VAR Simulation';
@@ -312,6 +238,3 @@ eeglab redraw;
 
 %% STEP 6: Proceed through analysis and visualization as directed by Chapter 6 of the manual 
 % (or see ScriptingExample.m for command-line alternatives)
-
-
-

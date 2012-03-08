@@ -454,13 +454,14 @@ arg_toworkspace(data);
 clear data;
 
 % initialize default variables
-gridmargin  = [0.05 0.05];                      % margin (normalized units) around grid of subplots [horiz vert]
+gridmargin_bot_left  = [0.1 0.1];     % [0.05 0.05];     % margin (normalized units) around grid of subplots [horiz vert]
+gridmargin_top_right =  1-gridmargin_bot_left;
 pmargin     = 0.005;                            % margin between subplots
 OFFSET      = 0; 0.05;
 colorlist   = {'k','g','b','c','m','y','r'};    % list of colors for sequential overlapping plots of different time windows
 StatsMatrix = [];
 TwoSidedThresholding = false;
-
+GridType = '';
 
 % handle plotting multiple estimators on the grid
 switch lower(g.MatrixLayout.arg_selection)
@@ -792,7 +793,7 @@ else
     figureHandles(end+1)  = figure('units','normalized','visible','off');
     % initialize subplot array
     axh=subplot1(numSubplotRows,numSubplotCols, ...
-        'Min',gridmargin,'Max',1-gridmargin,...
+        'Min',gridmargin_bot_left,'Max',gridmargin_top_right,...
         'Gap',[pmargin pmargin], ...
         'YTickL','RightMargin');
     set(figureHandles(end),'name', g.titleString);
@@ -1122,6 +1123,24 @@ for ch_i=1:nch
                 
             % if we get here, then we don't want to actually image this cell
             set(gca,'color',get(gcf,'color'));
+ 
+            % if this is the bottom-right most subplot, and this cell is empty
+            % then borrow x-y ticks from left,upper neighbors
+            if ch_i==nch && ch_j == nch && isempty(get(gca,'children'));
+                % get left neighbor
+%                 subplot1(sub2ind([numSubplotRows,numSubplotCols],nch,nch));
+                curplot = gca;
+                leftplot=subplot1(sub2ind([numSubplotRows,numSubplotCols],(ch_j-1)+numSubplotRows-nch,ch_i+numSubplotCols-nch));
+                xticks = get(leftplot,'Xtick');
+                xticklabels = get(leftplot,'XTickLabel');
+                xlim = get(leftplot,'XLim');
+                upperplot=subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_j+numSubplotRows-nch,(ch_i-1)+numSubplotCols-nch));
+                yticks = get(upperplot,'Ytick');
+                yticklabels = get(upperplot,'YTickLabel');
+                ylim = get(upperplot,'YLim');
+                set(curplot,'XTick',xticks,'YTick',yticks,'XTickLabel',xticklabels,'YTickLabel',yticklabels,'XLim',xlim,'YLim',ylim);
+            end
+
             continue;
         end
         
@@ -1131,6 +1150,8 @@ for ch_i=1:nch
             % | Format is Time x Frequency
             % ---------------------------------
         
+            GridType = 'TimeXFreq';
+            
             C=squeeze(ConnMatrix(i,j,:,:));
             
             if g.smooth
@@ -1181,7 +1202,11 @@ for ch_i=1:nch
             
             % Prepare the arguments for vis_TimeFreqCell()
             % This function will be called when user clicks on subplot
-            subargs.topovec     = squeeze(ALLEEG(1).icawinv(:,ALLEEG(1).CAT.curComps([j i])))';
+            if ~strcmpi(g.topoplot,'none')
+                subargs.topovec     = squeeze(ALLEEG(1).icawinv(:,ALLEEG(1).CAT.curComps([j i])))';
+            else
+                subargs.topovec = [];
+            end
             if ~isempty(ALLEEG(1).dipfit)
                 subargs.dipfitstruct = ALLEEG(1).dipfit;
                 subargs.dipfitstruct.model = subargs.dipfitstruct.model(ALLEEG(1).CAT.curComps([j i]));
@@ -1217,6 +1242,8 @@ for ch_i=1:nch
             subargs.connmethod      = CEstimator;
             subargs.nodelabels      = g.nodelabels([j i]);
             subargs.dipplot         = g.dipplot;
+            subargs.foilines        = g.foilines;
+            subargs.foilinecolor    = g.foilinecolor;
             
             set(gca,'userdata',subargs)
             set([gca h],'buttondownfcn','vis_TimeFreqCell(get(gca,''UserData''));');
@@ -1281,6 +1308,7 @@ for ch_i=1:nch
             % | Format is Causality x Frequency
             % ---------------------------------
             
+            GridType = 'CausalityXFreq';
             
             if isequal(size(StatsMatrix),size(ConnMatrix))
                 S = squeeze(StatsMatrix(i,j,:,:));
@@ -1389,6 +1417,8 @@ for ch_i=1:nch
             % ---------------------------------
             % | Format is Causality x Time
             % ---------------------------------
+            
+            GridType = 'CausalityXTime';
             
             hold on
             
@@ -1504,7 +1534,7 @@ for ch_i=1:nch
     end
 end
 
-
+            
 % ---------------------------------
 % | Beautify the image
 % ---------------------------------
@@ -1541,7 +1571,7 @@ end
 
 legendsettings = {'horizontalalignment','left','units','normalized','parent',gca,'edgecolor','none','color',g.textColor,'fontsize',g.axesFontSize};
 if strcmpi(g.MatrixLayout.arg_selection,'full')
-    text(0.1,0.5, CEstimator,legendsettings{:})
+    leghandle = text(0.1,0.5, CEstimator,legendsettings{:});
 else
     upperstr = g.MatrixLayout.triu;
     diagstr  = g.MatrixLayout.diag;
@@ -1557,7 +1587,77 @@ else
         leghandle = [leghandle text(0.1,0.15, sprintf('lower: %s',lowerstr),legendsettings{:})];
     end
 end
+set(leghandle,'Interpreter','none','fontsize',g.axesFontSize);
 
+
+% place axis labels on top/bottom/right/left of Grid
+switch GridType
+    case 'TimeXFreq'
+        RightLabelString = 'Frequency (Hz)';
+        BotLabelString   = 'Time (sec)';
+    case 'CausalityXFreq'
+        RightLabelString = 'Coupling';
+        BotLabelString   = 'Frequency (Hz)';
+    case 'CausalityXTime'
+        RightLabelString = 'Coupling';
+        BotLabelString   = 'Time (sec)';
+end
+
+% top label
+pos = [0.5 0.5 0.5 0.01];
+hlabel(1)=annotation('textbox',pos,'string','FROM', ...
+                     'color',g.textColor,'FontSize',g.titleFontSize, ...
+                     'FontWeight','bold','HorizontalAlignment','Center', ...
+                     'Margin', 0,'LineStyle','none','FitHeightToText','on');
+renderpos = get(hlabel(1),'Position');
+px = gridmargin_bot_left(1) + (1-gridmargin_bot_left(1))/2 - renderpos(3)/2;
+py = gridmargin_top_right(2) + (1-gridmargin_top_right(2))/2 - renderpos(4)/2;
+set(hlabel(1),'Position',[px py renderpos(3) renderpos(4)], ...
+              'tag','tlabel');
+
+
+% left label
+pos = [0.5 0.5];
+hlabel(2)=annotation('textarrow',pos,pos,'string','TO', ...
+                     'HeadStyle','none','LineStyle','none', ...
+                     'color',g.textColor,'FontSize',g.titleFontSize, ...
+                     'FontWeight','bold','TextRotation',90, ...
+                     'HorizontalAlignment','Center');
+renderpos = get(hlabel(2),'Position');
+px = gridmargin_bot_left(1)/1.5;
+py = gridmargin_bot_left(2) + (1-gridmargin_bot_left(2))/2 - renderpos(4)/2;
+set(hlabel(2),'X',[px px], ...
+              'Y',[py py], ...
+              'tag','tlabel');
+
+% right label
+pos = [0.5 0.5];
+hlabel(3)=annotation('textarrow',pos,pos,'string',RightLabelString, ...
+                     'HeadStyle','none','LineStyle','none', ...
+                     'color',g.textColor,'FontSize',g.titleFontSize, ...
+                     'FontWeight','bold','TextRotation',-90, ...
+                     'HorizontalAlignment','Center');
+renderpos = get(hlabel(3),'Position');
+px = 0.99;
+py = gridmargin_bot_left(2) + (1-gridmargin_bot_left(2))/2 - renderpos(4)/2;
+set(hlabel(3),'X',[px px], ...
+              'Y',[py py], ...
+              'tag','tlabel');
+
+% bottom label
+pos = [0.5 0.5 0.5 0.01];
+hlabel(4)=annotation('textbox',pos,'string',BotLabelString, ...
+                     'color',g.textColor,'FontSize',g.titleFontSize, ...
+                     'FontWeight','bold','HorizontalAlignment','Center', ...
+                     'Margin', 0,'LineStyle','none','FitHeightToText','on');
+renderpos = get(hlabel(4),'Position');
+px = gridmargin_bot_left(1) + (1-gridmargin_bot_left(1))/2 - renderpos(3)/2;
+py = 0.016; %gridmargin_bot_left(2)/2 - renderpos(4)/2;
+set(hlabel(4),'Position',[px py renderpos(3) renderpos(4)], ...
+              'tag','tlabel');
+
+% turn off rotate3D tool
+rotate3d off;
 
 % -----------------------------------------------------------------------------
 % | function h = plotmarginal(ALLEEG,curch,g,varargin)

@@ -65,7 +65,7 @@ else
     var = hlp_mergeVarargin(varargin{:});
     g = finputcheck(var, hlp_getDefaultArglist('est'), 'pop_est_fitMVAR','ignore','quiet');
     if ischar(g), error(g); end
-    if isempty(g.epochTimeLims), g.epochTimeLims = [0 ALLEEG(1).pnts/ALLEEG(1).srate]; end
+    if isempty(g.epochTimeLims), g.epochTimeLims = [0 ALLEEG(1).xmax]; end
     if isempty(g.morder) || length(g.morder)>2, error('invalid entry for field ''morder'''); end
 end
 
@@ -234,20 +234,22 @@ if popup
             end
         end
         
-        switch checkcode
-            case 'error'
-                % generate error
-                errordlg2('One or more parameters are invalid (see command-window for details)','Checking MVAR parameters...');
-                % go back to main input GUI
-            case 'warning'
-                % if OK is pressed continue onward, otherwise, go back to main input GUI
-                res=questdlg2('Some warnings were generated (see command-window for details), Continue?','Checking MVAR parameters', 'Cancel', 'OK', 'OK');
-                if strcmpi(res,'OK')
-                    cont=false; % exit loop
-                end
-            case 'ok'
-                % no warnings, exit loop;
-                cont=false;
+        if ischar(checkcode)
+            switch checkcode
+                case 'error'
+                    % generate error
+                    errordlg2('One or more parameters are invalid (see command-window for details)','Checking MVAR parameters...');
+                    % go back to main input GUI
+                case 'warning'
+                    % if OK is pressed continue onward, otherwise, go back to main input GUI
+                    res=questdlg2('Some warnings were generated (see command-window for details), Continue?','Checking MVAR parameters', 'Cancel', 'OK', 'OK');
+                    if strcmpi(res,'OK')
+                        cont=false; % exit loop
+                    end
+                case 'ok'
+                    % no warnings, exit loop;
+                    cont=false;
+            end
         end
         
     end;

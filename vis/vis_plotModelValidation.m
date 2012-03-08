@@ -125,7 +125,7 @@ for cond = 1:num_conds
         
         if size(pvals,2)>1
             % more than one window -- make lineplot
-            plot(1:length(whitestats{cond}.winStartIdx),pvals');
+            plot(1:length(whitestats{cond}.winStartIdx),pvals','Marker','.');
             xlabel('Window number');
             legend(lgnd);
             set(gca,'xlim',[0 length(whitestats{cond}.winStartIdx)+1],'Ylim',[max(0,min(pvals(:))-0.5), min(1,max(pvals(:))+0.5)]);
@@ -141,7 +141,7 @@ for cond = 1:num_conds
 %             set(gca,'xlim',[0 length(length(g.whitenessCriteria))+1],'Ylim',[max(0,min(pvals(:))-0.5), min(1,max(pvals(:))+0.5)]);
         end
         
-        hl=hline(whitestats{cond}.alpha);
+        hl=hline(whitestats{cond}.alpha,'b','p_{port}',[1.01 -0.01]);
         set(hl,'linestyle','--','linewidth',2);
         ylabel({'Whiteness p-value'});
         axcopy(gca);
@@ -149,7 +149,7 @@ for cond = 1:num_conds
         curplot=curplot+1;
         
         if ismember('acf',g.whitenessCriteria)
-            hl=hline(1-whitestats{cond}.alpha,'r');
+            hl=hline(1-whitestats{cond}.alpha,'r','p_{acf}',[1.01 -0.01]);
             set(hl,'linestyle','--','linewidth',2);
         end
     end
@@ -161,14 +161,22 @@ for cond = 1:num_conds
         if ~iscell(PCstats), PCstats = {PCstats}; end
         
         ax=subplot(numrows,numcols,curplot);
-        if length(PCstats{cond}.PC)>2
+        if length(PCstats{cond}.PC)>1
             % more than one window -- make lineplot
-            plot(1:length(PCstats{cond}.winStartIdx),PCstats{cond}.PC);
+            plot(1:length(PCstats{cond}.winStartIdx),PCstats{cond}.PC,'Marker','.');
             axes(ax);
             text(0.98,0.9,sprintf('Mean PC: %0.2f%%',mean(PCstats{cond}.PC)), ...
                 'units','normalized','horizontalalignment','right', ...
                 'edgecolor','k','backgroundcolor','w');
             xlabel('Window number');
+            
+            % make a small histogram on right side of plot
+%             axpos = get(ax,'Position');
+%             axhist = axesRelative(ax, 'Position',[1.01 0 0.1 1], 'Units','Normalized');   %axes('Position',[axpos(1)+axpos(3)+0.01 axpos(2) 0.05 axpos(4)]);
+%             hist(axhist,PCstats{cond}.PC,10);
+%             vline(mean(PCstats{cond}.PC),':r');
+%             set(axhist,'View',[90 90]);
+%             set(axhist,'xdir','rev');
         else
             % single window -- make barplot
             bar(PCstats{cond}.PC);
@@ -186,11 +194,11 @@ for cond = 1:num_conds
         
         % plot stability results
         subplot(numrows,numcols,curplot);
-        if length(stabilitystats{cond}.stability)>2
+        if length(stabilitystats{cond}.stability)>1
             % more than one window -- make lineplot
             %boxplot(real(lambda)');
             maxlambda = max(real(stabilitystats{cond}.lambda),[],2);
-            plot(1:length(stabilitystats{cond}.winStartIdx),maxlambda);
+            plot(1:length(stabilitystats{cond}.winStartIdx),maxlambda,'Marker','.');
             xlabel('Window number')
         else
             % single window -- make barplot

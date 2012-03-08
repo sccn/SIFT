@@ -305,7 +305,7 @@ for m=1:length(g.connmethods)
             sz = size(Pdiff);
             
             [statval, df, Stats.(g.connmethods{m}).pval] = statcond( { }, 'mode','perm', 'surrog', Pdiff, 'stats', zeros(sz(1:end-1)), g.statcondargs{:},'tail','both');
-            Stats.(g.connmethods{m}).pval = Stats.(g.connmethods{m}).pval;
+            
             
             % compute two-sided confidence intervals
             % NOTE: need to check whether it's 2*g.alpha or just
@@ -325,6 +325,42 @@ for m=1:length(g.connmethods)
             Stats.(g.connmethods{m}).pval = Stats.(g.connmethods{m}).pval * numel(Stats.(g.connmethods{m}).pval);
         case 'numvars'
             Stats.(g.connmethods{m}).pval = Stats.(g.connmethods{m}).pval * size(Stats.(g.connmethods{m}).pval,1)^2;
+    end
+    
+    % check if a singleton dimension was squeezed out and, if so,
+    % restore the singleton dim
+    
+    % check pval
+    if isfield(Stats.(g.connmethods{m}),'pval')
+        szp = size(g.PConn.(g.connmethods{m}));
+        szs = size(Stats.(g.connmethods{m}).pval);
+        [dummy dimidx] = setdiff(szp(1:end-1),szs);
+        if ~isempty(dimidx)
+            % a singleton dimension was squeezed out, restore it
+            Stats.(g.connmethods{m}).pval = hlp_insertSingletonDim(Stats.(g.connmethods{m}).pval,dimidx+1);
+        end
+    end
+    
+    % check ci
+    if isfield(Stats.(g.connmethods{m}),'ci')
+        szp = size(g.PConn.(g.connmethods{m}));
+        szs = size(Stats.(g.connmethods{m}).ci);
+        [dummy dimidx] = setdiff(szp(1:end-1),szs(2:end));
+        if ~isempty(dimidx)
+            % a singleton dimension was squeezed out, restore it
+            Stats.(g.connmethods{m}).ci = hlp_insertSingletonDim(Stats.(g.connmethods{m}).ci,dimidx+1);
+        end
+    end
+    
+    % check thresh
+    if isfield(Stats.(g.connmethods{m}),'thresh')
+        szp = size(g.PConn.(g.connmethods{m}));
+        szs = size(Stats.(g.connmethods{m}).thresh);
+        [dummy dimidx] = setdiff(szp(1:end-1),szs);
+        if ~isempty(dimidx)
+            % a singleton dimension was squeezed out, restore it
+            Stats.(g.connmethods{m}).thresh = hlp_insertSingletonDim(Stats.(g.connmethods{m}).thresh,dimidx+1);
+        end
     end
     
 end

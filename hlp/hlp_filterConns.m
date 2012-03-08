@@ -79,12 +79,12 @@ end
 g = finputcheck(varargin,...
     {'connmethods', ''          {}          {}; ...  % cell array of connectivity method names. If empty, we use all of them
     'connThresh'   ''          []          0; ...  % absolute thresholding to apply after significance thresholding. can be a scalar or a matrix of same size as EEG.CAT.C. Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
-    'prcThresh'    'real'      [eps 100]   100;...
+    'prcThresh'    'real'      [eps 100]   100;... % top percentile of connections to keep
     'frange'       'real'      []          [];...  % same units as Conn.freqs
     'trange'       'real'      []          [];...  % same units as EEG.times
     'sigThresh'    ''          []          [];...  % can be a scalar or a matrix of same size as EEG.CAT.C. Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
     'badchans'     'integer'   []          [];...
-    'method'       ''          ''          'mean';...        % cell array of dimensionality reduction methods to apply in a specified order. e.g.,
+    'method'       ''          ''          '';...        % cell array of dimensionality reduction methods to apply in a specified order. e.g.,
     % {'freq','net','time','peak'} will first integrate over freq, then find peak over time.
     % If method is a string, then this is taken to be the compression global dimension reduction
     % method applied to all dims in the order {'time','freq',...}
@@ -113,12 +113,16 @@ if ~isempty(g.timedim)
     timedim = g.timedim;
 elseif isfield(Conn,'dims')
     timedim=find(ismember(Conn.dims,'time'));
+else
+    timedim = [];
 end
 
 if ~isempty(g.freqdim)
     freqdim = g.freqdim;
 elseif isfield(Conn,'dims')
     freqdim=find(ismember(Conn.dims,'freq'));
+else
+    freqdim = [];
 end
 
 if isempty(freqdim)
@@ -149,6 +153,22 @@ if isempty(g.trange)
     g.trange = [Conn.erWinCenterTimes(1) Conn.erWinCenterTimes(end)];
 end
 
+if length(Conn.freqs)==1
+    Conn.freqs = repmat(Conn.freqs,1,2);
+end
+
+if length(Conn.erWinCenterTimes)==1
+    Conn.erWinCenterTimes = repmat(Conn.erWinCenterTimes,1,2);
+    Conn.winCenterTimes = repmat(Conn.winCenterTimes,1,2);
+end
+
+if isnan(g.frange)
+    g.frange = [];
+end
+
+if isnan(g.trange)
+    g.trange = [];
+end
 
 frangeidx = getindex(Conn.freqs,g.frange);
 trangeidx = getindex(Conn.erWinCenterTimes,g.trange);
@@ -173,7 +193,7 @@ for m=1:length(g.connmethods)
         end
     end
     
-    if ~strcmpi(g.method{2},'thresh')
+    if ~all(cellfun(@isempty,g.method(2:2:end))) && ~strcmpi(g.method{2},'thresh')
         if ~isempty(g.trange) && ~isempty(g.frange) && ONEMETHOD && isequal(g.method{2},'peak2d')
             % apply 2D peak identification
             if g.verb
@@ -189,8 +209,14 @@ for m=1:length(g.connmethods)
             
             for mm=1:2:length(g.method)
                 
+                curmethod = g.method{mm};
+                
+                if ~ismember(curmethod,{'time','freq'})
+                    error('unknown method %s',curmethod);
+                end
+                
                 % collapse time dim
-                if ~isempty(g.trange) && (isequal(g.method{mm},'time'))
+                if ~isempty(g.trange) && (isequal(curmethod,'time'))
                     if g.verb
                         fprintf('applying method=%s to dim=%s\n',g.method{mm+1},g.method{mm});
                     end
@@ -201,7 +227,7 @@ for m=1:length(g.connmethods)
                 end
                 
                 % collapse freq dim
-                if ~isempty(g.frange) && (isequal(g.method{mm},'freq'))
+                if ~isempty(g.frange) && (isequal(curmethod,'freq'))
                     if g.verb
                         fprintf('applying method=%s to dim=%s\n',g.method{mm+1},g.method{mm});
                     end
@@ -244,24 +270,24 @@ for m=1:length(g.connmethods)
     
 end
 
-if size(C,3)==1
+if ~isempty(frangeidx) && size(C,3)==1
     % frequency dimension has been collapsed
     % replace with median frequency within collapsed interval
-    Conn.collapsedFreqs = Conn.freqs(frangeidx(1):frangeidx(2));
+    Conn.collapsedFreqs = Conn.freqs(frangeidx(1):frangeidx(end));
     Conn.freqs          = median(Conn.collapsedFreqs);
 else
-    Conn.freqs          = Conn.freqs(frangeidx(1):frangeidx(2));
+    Conn.freqs          = Conn.freqs(frangeidx(1):frangeidx(end));
 end
 
-if size(C,4)==1
+if ~isempty(trangeidx) &&size(C,4)==1
     % time dimension has been collapsed
     % replace with median time point within collapsed interval
-    Conn.collapsedTimes     = Conn.erWinCenterTimes(trangeidx(1):trangeidx(2));
+    Conn.collapsedTimes     = Conn.erWinCenterTimes(trangeidx(1):trangeidx(end));
     Conn.erWinCenterTimes   = median(Conn.collapsedTimes);
-    Conn.winCenterTimes     = median(Conn.winCenterTimes(trangeidx(1):trangeidx(2)));
+    Conn.winCenterTimes     = median(Conn.winCenterTimes(trangeidx(1):trangeidx(end)));
 else
-    Conn.erWinCenterTimes   = Conn.erWinCenterTimes(trangeidx(1):trangeidx(2));
-    Conn.winCenterTimes     = Conn.winCenterTimes(trangeidx(1):trangeidx(2));
+    Conn.erWinCenterTimes   = Conn.erWinCenterTimes(trangeidx(1):trangeidx(end));
+    Conn.winCenterTimes     = Conn.winCenterTimes(trangeidx(1):trangeidx(end));
 end
 
 

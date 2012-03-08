@@ -1,6 +1,17 @@
-function names = hlp_getConnMethodNames(Conn)
-% return the names of all connectivity measures in a SIFT Connectivity
-% object
+function Conn = hlp_sqrt(Conn,methods)
+%
+% Compute the square root of connectivities.
+%
+% Inputs:
+% 
+%   Conn        Connectivity structure as computed by est_mvarConnectivity().
+%   methods     Cell array of strings denoting which connectivity measures
+%               (fields of Conn) to transform.
+% Outputs:
+%  
+%   Conn        Transformed connectivity structure.
+%
+% See Also: pop_est_mvarConnectivity()
 %
 % References:
 %
@@ -9,7 +20,7 @@ function names = hlp_getConnMethodNames(Conn)
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift/
 % 
 % 
-% Author: Tim Mullen 2010, SCCN/INC, UCSD. 
+% Author: Tim Mullen 2011, SCCN/INC, UCSD. 
 % Email:  tim@sccn.ucsd.edu
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
@@ -28,5 +39,18 @@ function names = hlp_getConnMethodNames(Conn)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-    names = fieldnames(Conn(1));
-    names = setdiff(names,{'winCenterTimes','erWinCenterTimes','freqs','mode','options'});
+    if ~iscell(methods)
+        error('methods must be a cell matrix of strings');
+    end
+
+    for cnd=1:length(Conn)
+        for i=1:length(methods) 
+            if ~isfield(Conn(cnd),methods{i})
+                if verb, fprintf('Conn(%d).%s does not exist. Skipping...\n',cnd,methods{i}); end
+                continue;
+            end
+            
+            Conn(cnd).(methods{i}) = sqrt(Conn(cnd).(methods{i}));
+            
+        end
+    end

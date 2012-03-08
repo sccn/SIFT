@@ -61,7 +61,7 @@ winLenPnts = floor(MODEL.winlen*EEG.srate);
 
 if isempty(g.winStartIdx)
     % starting point of each window (points)
-    g.winStartIdx  = floor(MODEL.winStartTimes*EEG.srate)+1;
+    g.winStartIdx  = round(MODEL.winStartTimes*EEG.srate)+1;
 end
 
 if g.prctWinToSample<100
@@ -74,6 +74,8 @@ if g.prctWinToSample<100
     MODEL.winStartTimes = MODEL.winStartTimes(randwin);
 end
 
+g.morder = EEG.CAT.MODEL.morder;
+
 if g.verb, h=waitbar(0,sprintf('checking stability...\nCondition: %s',EEG.condition)); end
 
 numWins = length(g.winStartIdx);
@@ -81,9 +83,11 @@ stats.stability = zeros(1,numWins);
 [nchs Mp] = size(MODEL.AR{1});
 stats.lambda = zeros(numWins,Mp);
 %lambda = [];
+I = eye(nchs*g.morder-nchs,nchs*g.morder-nchs);
+O = zeros(nchs*g.morder-nchs,nchs);
 for t=1:numWins
     % rewrite VAR[p] process as VAR[1]
-    A = [MODEL.AR{t} ; [eye(nchs*g.morder-nchs,nchs*g.morder-nchs) zeros(nchs*g.morder-nchs,nchs)]];
+    A = [MODEL.AR{t} ; [I O]];
     stats.lambda(t,:) = log(abs(eig(A)));
     stats.stability(t) = all(stats.lambda(t,:)<0);
     if g.verb,

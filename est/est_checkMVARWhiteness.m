@@ -98,7 +98,7 @@ npntsTotal = ntr*(winLenPnts-g.morder);
 
 if isempty(g.winStartIdx)
     % starting point of each window (points)
-    g.winStartIdx  = floor(MODEL.winStartTimes*EEG.srate)+1;    
+    g.winStartIdx  = round(MODEL.winStartTimes*EEG.srate)+1;    
 end
 if g.prctWinToSample<100 
     % randomly select percentage of windows to work with

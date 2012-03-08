@@ -46,6 +46,7 @@ function V = est_calcInvCovMatFourier(Rinv,E,foi,fs,M,p, verb)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+DEBUG = 0;
 
 %% extract the diagonal elements of H=Rinv
 % structure of Hd is (e.g., for p=2): 
@@ -61,11 +62,11 @@ for v=1:p
     end
 end
 
-%DEBUG
-% for j=1:M
-%     try chol(reshape(Hd(j,:),[p p])); catch; fprintf('Hj<0: j=%d - ',j); keyboard; end;
-% end
-%DEBUG
+if DEBUG
+    for j=1:N
+        try chol(reshape(Hd(j,:),[p p])); catch; fprintf('Hj<0: j=%d - ',j); keyboard; end;
+    end
+end
 
 %% create u,v index vectors
 % us = [1 2 ... p 1 2 ... p ... ]'   (p^2 length)
@@ -112,15 +113,7 @@ for f=freqs
     
     % next, reshape to desired structure (NxNx2x2)
     V(fi,:,:,:,:) = permute(reshape(Vm',2,2,M,M),[3 4 1 2]);
-    
-%     I=eye(2);
-%     % and, finally, invert each submatrix
-%     for i=1:M
-%         for j=1:M
-%             V(fi,i,j,:,:)=squeeze(V(fi,i,j,:,:))\I;
-%         end
-%     end
-    
+
     if verb, waitbar(fi/length(freqs),h); end
 end % for freqs
 
@@ -128,18 +121,3 @@ end % for freqs
 V = permute(V,[2 3 1 4 5]);
 if verb, close(h); end
 
-
-% -----------------------------------
-
-% function diags = getDiags(R,p,M,j)
-% % extract jjth diagonal element from each NxN submatrix of R
-% % result is a column vector.
-% 
-% I=repmat([0:(p-1)]'*M+j,p,1);
-% J = zeros(p,1);
-% for ii=1:p-1
-%     J=[J;ones(p,1)*ii*M];
-% end
-% J=J+j;
-% indx=sub2ind(size(R),I,J);
-% diags=R(indx);

@@ -124,7 +124,7 @@ if verb==2
         p, 'Kalman'));
 end
 
-%Kalman Filter initialsiation (Kp (K predicted or a-priori) equals K(n+1,n) )
+%Kalman Filter initialization (Kp (K predicted or a-priori) equals K(n+1,n) )
 F   = eye(L);          % observation matrix
 G   = zeros(L,M);      % Kalman Gain
 x   = zeros(L,1);      % state vector
@@ -176,6 +176,8 @@ end
 
 
 for tr=1:NTR
+    
+    % NOTE: should we re-initialize the state variables here?
     
     curval = 1;
     

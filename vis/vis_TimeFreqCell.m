@@ -205,35 +205,39 @@ g = arg_define([0 Inf],varargin, ...
     arg({'bidir','Bidirectional'},true,[],'Plot both directions','cat','DisplayProperties'), ...
     arg({'topoplot','SourceMarginPlot'},'dipole',{'none','topoplot','dipole'},'Source location plotting. Options: ''Topoplot'': plot source scalp projection. ''Dipole'': plot dipole','cat','DisplayProperties'), ...
     arg_sub({'dipplot','DipolePlottingOptions'},[], ...
-    { ...
-    arg_nogui({'mri'},'',[],'Dipplot MRI structure. Can be the name of matlab variable (in the base workspace) containing MRI structure. May also be a path to a Matlab file containing MRI structure. Default uses MNI brain.','type','char','shape','row'), ...
-    arg_nogui({'coordformat','DipoleCoordinateFormat'},'mni',{'spherical','mni'},'Coordinate format for dipplot','type','char','shape','row'), ...
-    arg_nogui({'dipplotopt','DipplotOptions'},'{}','','Additional dipplot options. Cell array of <''name'',value> pairs of additional options for dipplot (see ''doc dipplot'')','type','expression','shape','row') ...
-    },'Options for dipole plotting'), ...
+        { ...
+        arg_nogui({'mri'},'',[],'Dipplot MRI structure. Can be the name of matlab variable (in the base workspace) containing MRI structure. May also be a path to a Matlab file containing MRI structure. Default uses MNI brain.','type','char','shape','row'), ...
+        arg_nogui({'coordformat','DipoleCoordinateFormat'},'mni',{'spherical','mni'},'Coordinate format for dipplot','type','char','shape','row'), ...
+        arg_nogui({'dipplotopt','DipplotOptions'},'{}','','Additional dipplot options. Cell array of <''name'',value> pairs of additional options for dipplot (see ''doc dipplot'')','type','expression','shape','row') ...
+        },'Options for dipole plotting'), ...
     arg({'titleString','TitleString'},'','','Figure time string','type','char','cat','TextAndFont'), ...
     arg({'titleFontSize','TitleFontSize'},12,[],'Title Font Size','cat','TextAndFont'), ...
     arg({'axesFontSize','AxesFontSize'},10,[],'Axes Font Size','cat','TextAndFont'), ...
     arg({'textColor','TextColor'},[0 0 0],[],'Text color. See ''doc ColorSpec''.','type','expression','shape','row','cat','TextAndFont'), ...
     arg({'backgroundColor','BackgroundColor'},[0 0 0],[],'Background Color. See ''doc ColorSpec''.','type','expression','shape','row','cat','TextAndFont'), ...
+    arg({'foilines','FrequencyMarkers'},[],[],'Vector of frequencies (Hz) at which to draw horizontal lines','cat','FrequencyMarkers'), ...
+    arg({'foilinecolor','FrequencyMarkerColor'},[],[],'Coloring for frequency markers. If an [1 x 3] array of RBG values, then color all lines using this color. If an [N x 3] matrix of RBG values, then color the kth line with the colorspec from the kth row. If empty then cycle through colorlist','shape','matrix','cat','FrequencyMarkers'), ...
     arg({'clim','ColorLimits'},[0 100],[],'Color scaling limits. If [min max], scale by [min max]. If scalar, and all(Conn>0), limits are set to [0 maxprc]. If scalar, and any(Conn<0), limits are set to [-maxprc maxprc] where maxprc is prctile(abs(Conn),scalar)','shape','row','cat','DisplayProperties'), ...
     arg_subswitch({'thresholding','Thresholding'},'None', ...
-    {'None' { ...
-    arg_norep({'dummy1'},[],[],'dummy') ...
-    }, ...
-    'Statistics' {...
-    arg({'plotci','PlotConfidenceIntervals'},false,[],'Plot confidence intervals (if available). Does not apply to for time-frequency images.'), ...
-    arg({'sigthreshmethod','ThresholdingMethod'},StatThreshMethods{1},StatThreshMethods,'Method to use for significance masking') ...
-    arg({'alpha','AlphaSignificance'},0.05,[0 1],'P-value threshold for significance. e.g., 0.05 for p<0.05') ...
-    }, ...
-    'Simple' {...
-    arg({'prcthresh','PercentileThreshold'},0,[],'Percentile threshold. If of form [percentile, dimension], percentile is applied elementwise across the specified dimension.','type','denserealdouble','shape','row','cat','Thresholding'), ...
-    arg({'absthresh','AbsoluteThreshold'},[],[],'Exact threshold.','cat','Thresholding') ...
-    } ...
-    }, 'Thresholding options. You can choose to use statistics (passed in as ''stats'' structure), or simple percentile or absolute thresholds.','cat','Thresholding') ...
+        {'None' { ...
+        arg_norep({'dummy1'},[],[],'dummy') ...
+        }, ...
+        'Statistics' {...
+            arg({'plotci','PlotConfidenceIntervals'},false,[],'Plot confidence intervals (if available). Does not apply to for time-frequency images.'), ...
+            arg({'sigthreshmethod','ThresholdingMethod'},StatThreshMethods{1},StatThreshMethods,'Method to use for significance masking') ...
+            arg({'alpha','AlphaSignificance'},0.05,[0 1],'P-value threshold for significance. e.g., 0.05 for p<0.05') ...
+            }, ...
+        'Simple' {...
+            arg({'prcthresh','PercentileThreshold'},0,[],'Percentile threshold. If of form [percentile, dimension], percentile is applied elementwise across the specified dimension.','type','denserealdouble','shape','row','cat','Thresholding'), ...
+            arg({'absthresh','AbsoluteThreshold'},[],[],'Exact threshold.','cat','Thresholding') ...
+            } ...
+        }, 'Thresholding options. You can choose to use statistics (passed in as ''stats'' structure), or simple percentile or absolute thresholds.','cat','Thresholding') ...
     );
 
 % check inputs and handle defaults
 % ---------------------------------------------------
+colorlist   = {'k','g','b','c','m','y','r'};
+
 g.applyThreshold = ~strcmpi(g.thresholding.arg_selection,'none');
 
 if (g.applyThreshold && islogical(g.StatsMatrix)), g.thresholding.sigthreshmethod = 'logical'; end
@@ -305,7 +309,7 @@ else
 end
 
 % create figure
-figure('name',g.titleString,'DefaultAxesFontSize',g.axesFontSize); 
+figure('name',g.titleString,'DefaultAxesFontSize',g.axesFontSize);
 colormap(g.colormap);
 
 map = g.colormap;
@@ -349,7 +353,7 @@ for dir=1:numdirs
     if g.applyThreshold
         
         Stat = squeeze(g.StatsMatrix(dir,:,:,:,:));
-                
+        
         if dims(Stat)==1
             % expand Stat to dimensions of Conn
             Stat = repmat(Stat(:),[size(Conn,1) size(Conn,2)]);
@@ -426,6 +430,23 @@ for dir=1:numdirs
             set(vl,'color',events{2},'linestyle',events{3},'linewidth',events{4});
         end
     end
+    
+    % draw horizontal lines at frequencies of interest
+    if ~isempty(g.foilines)
+        for ln=1:length(g.foilines)
+            hl = hline(g.foilines(ln));
+            if isempty(g.foilinecolor)
+                color = colorlist{mod(ln-1,length(colorlist))+1};
+            elseif size(g.foilinecolor,1) > 1
+                color = g.foilinecolor(ln,:);
+            elseif size(g.foilinecolor,1) == 1
+                color = g.foilinecolor;
+            end
+            
+            set(hl,'color',color,'linestyle','-','linewidth',1);
+            set(hl,'tag','foilines');
+        end
+    end
     hold off
     
     
@@ -471,8 +492,8 @@ for dir=1:numdirs
     
     %    plot(g.alltimes,ConnMarginal, g.alltimes, ConnMarginal, 'LineWidth',g.linewidth); hold on;
     plot(g.alltimes,ConnMarginal,'LineWidth',g.linewidth); hold on;
-    vlh = vline([0 0]);
-    set(vlh,'LineWidth',0.7);
+%     vlh = vline([0 0]);
+%     set(vlh,'LineWidth',0.7);
     
     % plot bootstrap significance limits
     if ~isempty(g.StatsMatrix) && dims(Stat) > 1
@@ -492,12 +513,12 @@ for dir=1:numdirs
         
         axmin = min([ConnMarginal(:)' Stat(:)']);
         axmax = max([ConnMarginal(:)' Stat(:)']);
-        axis([min(g.alltimes) max(g.alltimes) (sign(axmin)-0.2)*abs(axmin)-10^-5 (sign(axmax)+0.2)*abs(axmax)+10^-5]);
+        axis([min(g.alltimes) max(g.alltimes) (sign(axmin)-0.2)*abs(axmin)-eps (sign(axmax)+0.2)*abs(axmax)+eps]);
     else
         if ~all(isnan(ConnMarginal(:)))
             axmin = min(ConnMarginal);
             axmax = max(ConnMarginal);
-            axis([min(g.alltimes)-eps max(g.alltimes)+eps (sign(axmin)-0.2)*abs(axmin)-10^-5 (sign(axmax)+0.2)*abs(axmax)+10^-5]);
+            axis([min(g.alltimes)-eps max(g.alltimes)+eps (sign(axmin)-0.2)*abs(axmin)-eps (sign(axmax)+0.2)*abs(axmax)+eps]);
         end
     end;
     
@@ -557,14 +578,14 @@ for dir=1:numdirs
             axmin = min([ConnMarginal(:)' Stat(:)']);
             axmax = max([ConnMarginal(:)' Stat(:)']);
             axis([g.allfreqs(1) g.allfreqs(end) ...
-                (sign(axmin)-0.2)*abs(axmin)-10^-5   (sign(axmax)+0.2)*abs(axmax)+10^-5]);
+                (sign(axmin)-0.2)*abs(axmin)-eps   (sign(axmax)+0.2)*abs(axmax)+eps]);
         end;
     else
         if ~isnan(max(ConnMarginal))
             axmin = min(ConnMarginal);
             axmax = max(ConnMarginal);
             axis([g.allfreqs(1) g.allfreqs(end) ...
-                (sign(axmin)-0.2)*abs(axmin)-10^-5   (sign(axmax)+0.2)*abs(axmax)+10^-5]);
+                (sign(axmin)-0.2)*abs(axmin)-eps   (sign(axmax)+0.2)*abs(axmax)+eps]);
         end;
     end
     
@@ -595,18 +616,20 @@ end
 
 % draw shaded region for baselines
 for i=1:length(botMargAx)
-    axes(botMargAx(i));  % setfocus
-    v = axis(gca);
+%     axes(botMargAx(i));  % setfocus
+%     v = axis(gca);
     if ~isempty(g.baseline)
         % shade in the baseline region
         base = g.alltimes(baseidx);
-        patch([base(1) base(1) base(2) base(2)],[v(3) v(4) v(4) v(3)],[0.7 0.7 1],'FaceAlpha',0.5,'EdgeColor','none');
+        hlp_vrect(base,'axesHandle',botMargAx(i),'patchProperties',{'FaceAlpha',0.5,'EdgeColor','none'});
+        
+%         patch([base(1) base(1) base(2) base(2)],[v(3) v(4) v(4) v(3)],[0.7 0.7 1],'FaceAlpha',0.5,'EdgeColor','none');
     end
     
     % plot event markers
     if ~isempty(g.events)
         for ev=1:length(g.events)
-            vl = vline(g.events{ev}{1});
+            vl = vline(g.events{ev}{1},':','',[0 0],botMargAx(i));
             set(vl,'color',g.events{ev}{2},'linestyle',g.events{ev}{3},'linewidth',g.events{ev}{4});
         end
     end
@@ -647,7 +670,7 @@ switch lower(g.topoplot)
         else
             h(16) = subplot('Position',SingleSourcePlotPos.*s+q);
         end
-
+        
         if size(g.topovec,2) <= 2
             topoplot(g.topovec(2),g.elocs,'electrodes','off', ...
                 'style', 'blank', 'emarkersize1chan', 10, 'chaninfo', g.chaninfo);
@@ -673,14 +696,14 @@ switch lower(g.topoplot)
             %             'dipolelength',0.01,'dipolesize',20,'view',[1 0 0], ...
             %             'projimg', 'off', 'projlines', 'on', 'axistight',  ...
             %             'on', 'cornermri', 'on', 'normlen', 'on','gui','off');
-
+            
             % view [1 0 0] % saggital
             % view [0 -0.99 0.01] for zeynep model
             pop_dipplot(struct('dipfit',g.dipfitstruct),1,'color',{'r'},'verbose','off','dipolelength',0.01,...
                 'dipolesize',20,'view',[1 0 0],'projimg', 'off',  ...
                 'projlines', 'on', 'axistight', 'on',            ...
                 'cornermri', 'on', 'normlen', 'on','gui','off','mri',g.dipplot.mri,'coordformat',g.dipplot.coordformat);
-
+            
             if ~isempty(str2num(g.nodelabels{1}))
                 ltext = sprintf('IC%s',g.nodelabels{1});
             else
@@ -689,7 +712,7 @@ switch lower(g.topoplot)
             dippos = get(h(15),'position');
             lpos = dippos([1 2])+[dippos(3)/2 2*dippos(4)];
             text(1.2,0.5,ltext,'horizontalalignment','left','units','normalized','parent',h(15),'fontweight','bold','fontsize',g.axesFontSize);
-
+            
             %         ylabel(g.nodelabels{1});
             %         axcopy(gca);
         end
@@ -722,13 +745,15 @@ switch lower(g.topoplot)
 end
 
 
-try 
+try
     icadefs
-    set(gcf, 'color', BACKCOLOR); 
+    set(gcf, 'color', BACKCOLOR);
 catch err
 end;
 
 
+% turn off rotate3D tool
+rotate3d off;
 
 if (~isempty(g.titleString)) % plot titleString
     axes('Position',pos,'Visible','Off');
