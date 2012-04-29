@@ -186,8 +186,7 @@ if ~isempty(ALLEEG)
     clear ALLEEG
 end
 
-verb = arg_extract(varargin,'verb');
-if isempty(verb), verb=0; end
+verb = arg_extract(varargin,{'verb','VerbosityLevel'},[],0);
 
 g = arg_define([0 Inf], varargin, ...
     arg_norep('ALLEEG',mandatory), ...
@@ -294,6 +293,12 @@ for cond=1:length(ALLEEG)
     
     EEGprep(cond).CAT.configs.prepData = args(cond);
     EEGprep(cond).CAT.configs.prepData.arg_direct = 1;
+    
+    % force double precision
+    if ~strcmpi(class(EEGprep(cond).CAT.srcdata),'double')
+        EEGprep(cond).CAT.srcdata = double(EEGprep(cond).CAT.srcdata);
+    end
+    
 end % next condition
 
 
@@ -325,23 +330,6 @@ if ~isempty(g.newtrials)
     if g.verb, fprintf('Done!\n'); end
 end
 
-% detrend or center data
-if g.detrend.arg_selection
-    g.EEG = pre_detrend('EEG',g.EEG,g.detrend,'verb',g.verb);
-end
-
-%         filter data
-if ~isempty(g.filter)
-    if g.verb, fprintf('Filtering [%0.1f-%0.1f] Hz\n', g.filter(1), g.filter(2)); end
-    
-    if g.filter(2), g.EEG = pop_eegfilt(g.EEG,0,g.filter(2)); end % lowpass
-    if g.filter(1), g.EEG = pop_eegfilt(g.EEG,g.filter(1),0); end % highpass
-    
-    %         g.EEG.CAT.pre.filtered = g.filter;
-    if g.verb, fprintf('Done!\n'); end
-end
-
-
 % re-epoch data
 if ~isempty(g.newtlims)
     if g.verb, disp(['Updating time limits to ' num2str(g.newtlims)]); end
@@ -360,6 +348,23 @@ if ~isempty(g.newtlims)
     %         g.varg.endp = g.EEG.pnts;
     if g.verb, fprintf('Done!\n'); end
 end
+
+% detrend or center data
+if g.detrend.arg_selection
+    g.EEG = pre_detrend('EEG',g.EEG,g.detrend,'verb',g.verb);
+end
+
+%         filter data
+if ~isempty(g.filter)
+    if g.verb, fprintf('Filtering [%0.1f-%0.1f] Hz\n', g.filter(1), g.filter(2)); end
+    
+    if g.filter(2), g.EEG = pop_eegfilt(g.EEG,0,g.filter(2)); end % lowpass
+    if g.filter(1), g.EEG = pop_eegfilt(g.EEG,g.filter(1),0); end % highpass
+    
+    %         g.EEG.CAT.pre.filtered = g.filter;
+    if g.verb, fprintf('Done!\n'); end
+end
+
 
 % resample
 if g.resample

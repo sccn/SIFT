@@ -1,5 +1,5 @@
 
-function p1 = hlp_plotmesh(faces, vertex, normal, newfig)
+function p1 = hlp_plotmesh(faces, vertex, normal, newfig,hax,FaceColor,colortheme)
 % plotmesh() - plot mesh defined by faces and vertex
 %
 % Usage: 
@@ -38,30 +38,33 @@ function p1 = hlp_plotmesh(faces, vertex, normal, newfig)
         help plotmesh;
         return;
     end;
-       
-    FaceColor  = [.8 .55 .35]*1.1; % ~= ruddy Caucasian - pick your complexion!
-    
-    if any(any(faces == 0)), faces = faces+1; end;
-    %vertex(:,3) = -vertex(:,3);
-    %FCmap = [jet(64); FaceColor; FaceColor; FaceColor];
-    %colormap(FCmap)
-    %W = ones(1,size(vertex,1))*(size(FCmap,1)-1);
-    %W = ones(1,size(vertex,1))' * FaceColor;
-    %size(W)
-    if nargin < 4
-        figure; 
-    end;
     if nargin < 3 
         normal = [];
     end;
+    if nargin < 4
+        figure; 
+        axes;
+    end;
+    if nargin < 5
+        hax = gca;
+    end
+    if nargin < 6
+        FaceColor  = [.8 .55 .35]*1.1; % ~= ruddy Caucasian - pick your complexion!
+    end
+    if nargin < 7
+        colortheme = [];
+    end
+    
+    if any(any(faces == 0)), faces = faces+1; end;
+ 
     if isempty(normal)
         p1 = patch('vertices', vertex, 'faces', faces, ...
-                   'facecolor', [1,.75,.65]);
+                   'facecolor', [1,.75,.65],'parent',hax);
     else
         p1 = patch('vertices', vertex, 'faces', faces, ...
-                   'facecolor', [1,.75,.65], 'vertexnormals', normal);
+                   'facecolor', [1,.75,.65], 'vertexnormals', normal,'parent','hax');
     end;
-        %           'FaceVertexCdata',W(:), 'FaceColor','interp', 'vertexnormals', normal);
+    
     set(p1,'EdgeColor','none')
     
     % Lights
@@ -74,16 +77,19 @@ function p1 = hlp_plotmesh(faces, vertex, normal, newfig)
     %                  'Style','infinite');
     %end
     %camlight left;
-    lightangle(45,30);
-    lightangle(45+180,30);
-    %set(gcf, 'renderer', 'zbuffer'); % cannot use alpha then
-    %set(hcap, 'ambientstrength', .6);
-    set(p1, 'specularcolorreflectance', 0, 'specularexponent',50);
-     
-    set(p1,'DiffuseStrength',.6,'SpecularStrength',0,...
-           'AmbientStrength',.4,'SpecularExponent',5);
-%     axis equal
-%     view(18,8);
-%     rotate3d
+    
+    
+%     lightangle(45,30);
+%     lightangle(45+180,30);
+
+    
+    if isempty(colortheme)
+        set(p1, 'specularcolorreflectance', 0, 'specularexponent',50);
+
+        set(p1,'DiffuseStrength',.6,'SpecularStrength',0,...
+               'AmbientStrength',.4,'SpecularExponent',5);
+    else
+        set(p1,colortheme{:});
+    end
+    
     axis off;
-    lighting phong;

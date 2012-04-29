@@ -65,7 +65,7 @@ else
     var = hlp_mergeVarargin(varargin{:});
     g = finputcheck(var, hlp_getDefaultArglist('est'), 'pop_est_fitMVAR','ignore','quiet');
     if ischar(g), error(g); end
-    if isempty(g.epochTimeLims), g.epochTimeLims = [0 ALLEEG(1).xmax]; end
+    if isempty(g.epochTimeLims), g.epochTimeLims = [ALLEEG(1).xmin ALLEEG(1).xmax]; end
     if isempty(g.morder) || length(g.morder)>2, error('invalid entry for field ''morder'''); end
 end
 

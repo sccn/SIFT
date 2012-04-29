@@ -24,7 +24,7 @@ loops = 0;
 min_limit = eps*10;
 
 if ~all( isfinite(sigma(:))  )
-	error('covariance matrix is not finite');
+	warning('gmmbayes:covfixer','covariance matrix is not finite');
 end
 
 % Running imagfixer is not counted as covariance fixing,

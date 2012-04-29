@@ -318,7 +318,8 @@ try, g.collapsefun;     catch, g.collapsefun = 'mean'; end                  %% T
 try, g.times;           catch, g.times = []; end                            %% TM: added (for envelope plot)
 try, g.showLatency;        catch, g.showLatency = 0; end                    %% TM: added
 try, g.verb;            catch, g.verb = 0;  end                             %% TM: added (display progress bar for making movie)
-try, g.cortexTransparency;  catch, g.cortexTransparency = 1; end                %% TM: transparency of superimposed cortex (1 = don't plot)
+try, g.cortexTransparency;  catch, g.cortexTransparency = 1; end            %% TM: transparency of superimposed cortex (1 = don't plot)
+try, g.speedy;          catch, g.speedy = true; end                         %% TM: for fast rendering -- some features disabled
 try, g.EdgeColorMappedToDirectionality; catch, g.EdgeColorMappedToDirectionality = false; end
 
 % some parameters for captions
@@ -597,7 +598,6 @@ end;
 if g.verb==2
     h=waitbar(0,'Initializing Brainmovie...');
 end
-
 
 % create movie
 % ------------
@@ -961,6 +961,10 @@ if strcmpi(g.opengl,'on')
     set(gcf, 'renderer', 'opengl');
 end
 
+
+
+% Main loop, draw frames
+% ----------------------------
 for indeximage = alltimepoints
     
     switch g.verb
@@ -975,7 +979,7 @@ for indeximage = alltimepoints
     % ------------------------------
     if ~isempty(g.flashes)
         %axes(hback); set (gcf, 'visible', g.visible);
-        if ~isempty(find(indeximage == allflashes))
+        if ~isempty(find(indeximage == allflashes, 1))
             posf = find(indeximage == allflashes);
             set(hpatch, 'facecolor', flashescol{posf});
         elseif posf == 0 % allow the color to stay 2 images
@@ -995,9 +999,10 @@ for indeximage = alltimepoints
             angle = (indeximage-1)/length(alltimepoints)*360;
             camorbit( cos(angle/180*pi)*g.path3d(1), sin(angle/180*pi)*g.path3d(2) );
         end;
-        delete( findobj( hh(tmpcond), 'tag', 'tmpmov') );
-        set (gcf, 'visible', g.visible);
         
+        % get handle to old objects (we'll delete them later)
+        oldobjs = findobj( hh(tmpcond), 'tag', 'tmpmov');
+        set (gcf, 'visible', g.visible);
         
         % draw correlations
         % -----------------
@@ -1062,7 +1067,8 @@ for indeximage = alltimepoints
             end
         end;
         
-        
+        % delete old objects
+        delete( oldobjs );
         
         % draw a bar for time probability
         % -------------------------------
@@ -1197,12 +1203,14 @@ for indeximage = alltimepoints
     % -----------------
     lighting phong;
     material shiny;
-    setfont(gcf, 'color', [0.99 0.99 0.99]); % warning, for some reasons white does not print
-    if exist('c','var')
-        for index = 1:length(c)
-            axes(c(index)); % bring back legend to front
-            set(gcf,'visible',g.visible);  % TM - restore visibility
-        end;
+    if ~g.speedy
+        setfont(gcf, 'color', [0.99 0.99 0.99]); % warning, for some reasons white does not print
+        if exist('c','var')
+            for index = 1:length(c)
+                axes(c(index)); % bring back legend to front
+                set(gcf,'visible',g.visible);  % TM - restore visibility
+            end;
+        end
     end
     
     

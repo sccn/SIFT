@@ -1,4 +1,4 @@
-function lineHandles = vline(x, lineType, label, textPosition, axesHandle, textColor)
+function [lineHandles textHandles] = vline(x, lineType, label, textPosition, axesHandle, textColor)
 
 % Draws vectical lines (specified by a vector of x)
 %

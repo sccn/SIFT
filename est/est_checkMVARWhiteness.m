@@ -84,6 +84,10 @@ if isempty(g.morder)
     g.morder = MODEL.morder;
 end
 
+if any(ismember(lower(EEG.CAT.MODEL.algorithm),{'kalman','dekf'}))
+    error('Whiteness tests currently not compatible with method ''%s''',EEG.CAT.MODEL.algorithm);
+end
+        
 % initialize vars
 acv = [];
 if ~isfield(g,'alpha') || isempty(g.alpha)
@@ -130,7 +134,7 @@ for t=1:numWins
     end
     
     if any(ismember(g.whitenessCriteria,{'ljungbox','acf','boxpierce','limcleod'}))
-
+        
 %         if size(MODEL.PE{t},2)>nchs
 %             C = MODEL.PE{t}(:,nchs*g.morder+1:nchs*(g.morder+1));
 %         else

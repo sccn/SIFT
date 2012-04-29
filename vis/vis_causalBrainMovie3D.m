@@ -1,5 +1,5 @@
 
-function [cfg handles BMout] = vis_causalBrainMovie3D(varargin)
+function [g handles BMout] = vis_causalBrainMovie3D(varargin)
 %
 % Create an interactive 3D BrainMovie from a connectivity matrix. See [1]
 % for more details on the Interactive BrainMovie3D.
@@ -335,8 +335,8 @@ function [cfg handles BMout] = vis_causalBrainMovie3D(varargin)
 %        
 % Outputs:
 %
-%       cfg:        Configuration structure. Any brainmovie can be replicated 
-%                   via the command vis_causalBrainMovie3D(ALLEEG,Conn,cfg);
+%       g:          Configuration structure. Any brainmovie can be replicated 
+%                   via the command vis_causalBrainMovie3D(ALLEEG,Conn,g);
 %       handles:    Handles to figure and other objects
 %       BMout:      Reserved for future use
 %
@@ -352,6 +352,10 @@ function [cfg handles BMout] = vis_causalBrainMovie3D(varargin)
 %
 % Author: Tim Mullen and Arnaud Delorme, 2010, SCCN/INC, UCSD. 
 % Email:  tim@sccn.ucsd.edu
+% Thanks to: Arnaud Delorme for contributing the original brainmovie3D
+%            Alejandro Ojeda for helping with LONI Atlas meshes
+%            Zeynep Akalin Acar for CSF/Scalp/Skull meshes
+%            Nima Bigdely-Shamlo and Christian Kothe for helpful visualization input
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
 %
@@ -371,7 +375,7 @@ function [cfg handles BMout] = vis_causalBrainMovie3D(varargin)
 
 
 
-[cfg handles BMout] = deal([]);
+[g handles BMout] = deal([]);
 
 subconddef = false;
 
@@ -414,42 +418,8 @@ if ~isempty(ALLEEG)
     clear ALLEEG
 end
 
-% extract stats
-% if isfield(varargin{1},'icaact') && length(varargin)==2
-%     stats = [];
-% elseif isfield(varargin{1},'icaact') && ~isempty(varargin(3:end))
-%     stats = arg_extract(varargin(3:end),'stats');
-% elseif ~isempty(varargin(3:end))
-%     stats = arg_extract(varargin,'stats');
-% elseif isempty(varargin(3:end))
-%     stats = [];
-% end
-% 
-% if isempty(stats)
-%     usestatsdef = [];  % false
-% else
-%     usestatsdef = {};  % true
-% end
-% clear stats;
-
 usestatsdef = [];  % false
 
-% if length(varargin)>1 && iscell(varargin{1})
-%     % arg_guidialog called the function...
-%     % extract some arguments
-%     varargin{1} = varargin{1}{1};
-%     connnames   = hlp_getConnMethodNames(varargin{1});
-%     conndef     = connnames{1};
-%     freqrange   = [varargin{1}.freqs(1) varargin{1}.freqs(end)];
-%     freqdef     = ['[' num2str(freqrange(1)) ':' num2str(freqrange(end)) ']'];
-%     timerange   = [varargin{1}.erWinCenterTimes(1) varargin{1}.erWinCenterTimes(end)];
-%     timedef     = [timerange(1) timerange(end)];
-%     varargin    = varargin(2:end);
-% else
-%     % user called the function
-%     [freqdef timedef conndef, ...
-%      freqrange timerange connnames] = deal([]);
-% end
 
 % ensure we have row vectors
 MyComponentNames = MyComponentNames(:)';
@@ -491,40 +461,74 @@ g = arg_define([0 2],varargin, ...
             arg_norep({'dummy1'},[],[],'dummy') ...
             }, ...
          'ICA_ERPenvelope' {...
-            arg({'icaenvelopevars'},true,MyComponentNames,'Select components to use in the display','type','logical'), ...
-            arg({'backprojectedchans'},true,MyChannelNames,'List of channels to use in the backprojection'), ...
+            arg({'icaenvelopevars','ICs'},true,MyComponentNames,'Select components to use in the display','type','logical'), ...
+            arg({'backprojectedchans','BackProjectToChans'},true,MyChannelNames,'List of channels to use in the backprojection'), ...
+            arg({'plottingmode','PlotMode'},{'all', 'envelope'},{'all','envelope'},{'Plotting Mode.' '''All'' plots all individual traces.' '''Envelope'' plots the envelope.'},'type','logical'), ...
             } ...
           'Chan_ERPenvelope' {...
-            arg({'chanenvelopevars'},true,MyChannelNames,'Select channels to use in the display','type','logical'), ...
+            arg({'chanenvelopevars','Channels'},true,MyChannelNames,'Select channels to use in the display','type','logical'), ...
+            arg({'plottingmode','PlotMode'},{'all', 'envelope'},{'all','envelope'},{'Plotting Mode.' '''All'' plots all individual traces.' '''Envelope'' plots the envelope.'},'type','logical'), ...
             } ...
            'GraphMetric' { ...
-            arg({'metric'},'NodeColor',{'NodeColor','NodeSize'},'Select a causal metric to display.'), ...
-            arg({'nodes'},true,MyComponentNames,'Select components to use in the display','type','logical'), ...
+            arg({'metric','Metric'},'NodeColor',{'NodeColor','NodeSize'},'Select a causal metric to display.'), ...
+            arg({'nodes','Nodes'},true,MyComponentNames,'Select components to use in the display','type','logical'), ...
+            arg({'plottingmode','PlotMode'},{'all', 'envelope'},{'all','envelope'},{'Plotting Mode.' '''All'' plots all individual traces.' '''Envelope'' plots the envelope.'},'type','logical'), ...
             } ...
         },'Configure footer panel displayed at the bottom of the figure. If ''off'', don''t render footer. If ''ICA_ERP_Envelope'', then display the ERP envelope of backprojected components. If ''Chan_ERP_Envelope'' then display the ERP envelope of selected channels. If ''GraphMetric'' then display a graph theoretic metric (net metric value (integral) across all nodes if multiple nodes selected)','cat','DisplayProperties'), ...
     arg_sub({'BMopts','BrainMovieOptions'},[], ...
         { ...
+            arg({'size','ImageSize'},[600 600],[],'Image size (pixels). Input should be [widthcond height]. If more than one condition is being plotted horizontally, then widthcond is the width of each condition subplot','cat','DisplayProperties') ...
             arg({'visible','Visibility'},'on',{'on','off'},'Figure visibility when rendering movie. If ''on,'' render frames on screen (slower). If ''off,'' keep them hidden (faster).','cat','DisplayProperties'), ...
             arg_nogui({'latency','LatenciesToRender'},[],[],'Subset of latencies to render (sec). Must be in TimeRange. Can be a vector The time point closest to the latency given are plotted. If empty, render all latencies in TimeRange.','cat','DataProcessing'), ...
             arg_nogui({'frames','FramesToRender'},[],[],'Vector of frame indices to compute. E.g. [1:2] only computes the first two frames. If empty, render all frames','cat','DataProcessing'), ...
             arg_nogui({'figurehandle','FigureHandle'},[],[],'Handle to a figure to render brainmovie in'), ...
-            arg_subswitch({'rotationpath3d','RotationPath3D'},'none', ...
-                {'none' {arg_norep({'junk3'},[],[],'')}, ...
-                 'automatic' {arg_norep({'junk2'},[],[],'')}, ...
-                 'manual' { ...
-                            arg({'AngleFactor'},1,[],'Angle multiplicative factor.'), ...
-                            arg({'PhaseFactor'},0.75,[],'Phase multiplicative factor.') ...
-                          } ...
-                 },'Specify the rotation path for the BrainMovie.','cat','DisplayProperties'), ...
+            arg_subtoggle({'rotationpath3d','RotationPath3D'},[], ...
+                {
+                arg({'AngleFactor'},1,[],'Angle multiplicative factor.'), ...
+                arg({'PhaseFactor'},0.75,[],'Phase multiplicative factor.'), ...
+                arg({'FramesPerCycle'},[],[],'Number of image frames per rotation cycle. Default is all frames in sequence such that exactly one cycle will be completed in the movie') ...
+                },'Specify the rotation path for the BrainMovie.','cat','DisplayProperties'), ...
             arg({'view','InitialView'},[50 36],[],'3D static starting view for the movie.  See ''help view''. Default is [50 36].','cat','DisplayProperties'), ...
             arg({'project3d','ProjectGraphOnMRI'},'off',{'on','off'},'Project the 3D graph onto the 2D MRI slices','cat','DisplayProperties'), ...
-            arg_subtoggle({'plotCortex','RenderCorticalSurface','plotcortex'},{}, ...
+            arg_sub({'theme','Theme'},[],@hlp_getBrainMovieTheme,'Brainmovie Color Theme. Each theme sets defaults for the graphic'), ...
+            arg_sub('Layers', [], ...
+            { ...
+            arg_subtoggle({'scalp','Scalp','plotscalp'},[], ...
                         { 
-                        arg({'cortexVolumeFile','VolumeMeshFile'},'standard_BEM_vol.mat',[],'Filename or path to mesh volume file.','type','char','shape','row'), ...
-                        arg({'cortexTransparency','Transparency','cortextransparency'},0.7,[0 1],'Transparency of the cortical surface. Real number in [0 1], where 0=opaque, 1=transparent.') ...
-                        },'Superimpose semi-transparent smoothed cortex on brainmovie. UseOpenGL must be set to "on"'), ...
+                        arg({'scalpres','Resolution'},'high',{'full','high','mid','low'},'Resolution for the BEM scalp mesh. Full/High/Mid/Low corresponds to 100/50/10/1% of original mesh resolution.'), ...
+                        arg({'scalptrans','Transparency','scalptransparency'},0.8,[0 1],'Transparency of the surface. Real number in [0 1], where 0=opaque, 1=transparent.') ...
+                        arg({'scalpcolor','Color'},[1,.75,.65],[],'Layer color','cat','Layers'), ...
+                        },'Superimpose semi-transparent mesh of scalp on brainmovie. UseOpenGL must be set to "on"','cat','Layers'), ...
+            arg_subtoggle({'skull','Skull','plotskull'},{}, ...
+                        { 
+                        arg({'skullres','Resolution'},'high',{'full','high','mid','low'},'Resolution for the BEM skull mesh. Full/High/Mid/Low corresponds to 100/50/10/1% of original mesh resolution.'), ...
+                        arg({'skulltrans','Transparency','skulltransparency'},0.8,[0 1],'Transparency of the surface. Real number in [0 1], where 0=opaque, 1=transparent.') ...
+                        arg({'skullcolor','Color'},[1,.75,.65],[],'Layer color','cat','Layers'), ...
+                        },'Superimpose semi-transparent mesh of skull on brainmovie. UseOpenGL must be set to "on"','cat','Layers'), ...
+            arg_subtoggle({'csf','CSF','plotcsf'},[], ...
+                        { 
+                        arg({'csfres','Resolution'},'high',{'full','high','mid','low'},'Resolution for the BEM csf mesh. Full/High/Mid/Low corresponds to 100/50/10/1% of original mesh resolution.'), ...
+                        arg({'csftrans','Transparency','csftransparency'},0.8,[0 1],'Transparency of the surface. Real number in [0 1], where 0=opaque, 1=transparent.') ...
+                        arg({'csfcolor','Color'},[1,.75,.65],[],'Layer color','cat','Layers'), ...
+                        },'Superimpose semi-transparent mesh of CSF layer on brainmovie. UseOpenGL must be set to "on"','cat','Layers'), ...
+            arg_subtoggle({'loni','LONIAtlas','plotloni'},{}, ...
+                        { 
+                        arg({'lonires','Resolution'},'full',{'full','high','mid','low','smooth'},'Resolution for the LONI mesh atlas. Full/High/Mid/Low corresponds to 100/50/10/1% of original mesh resolution.'), ...
+                        arg({'lonitrans','Transparency'},0.7,[0 1],'Transparency of the surface. Real number in [0 1], where 0=opaque, 1=transparent.') ...
+                        arg({'coloratlas','ColorAtlasRegions'},true,[],'Color probabalistic atlas regions','cat','Layers'), ...
+                        arg({'lonicolor','Color'},[1 1 1],[],'Layer color. Can also be one of the following: An [N x 3] colortable defining the color atlas (N = number of atlas labels). A string containing a function to evaluate to return the colortable (e.g. ''jet(112)''). A cell array containing a colormap function name which accepts as input the number of labels (automatically determined) (e.g. {''jet''})','cat','Layers','type','expression'), ...
+                        },'Superimpose semi-transparent LONI atlas on brainmovie. UseOpenGL must be set to "on"','cat','Layers'), ...
+            arg_subtoggle({'custom','CustomMesh'},[], ...
+                        { 
+                        arg({'volumefile','VolumeMeshFile'},'',[],'Filename or path to custom mesh volume file. This also be a variable in the base workspace. This is a struct with fields ''vertices'' and ''faces'' defining the surface mesh.','type','char','shape','row'), ...
+                        arg({'meshtrans','Transparency','transparency'},0.8,[0 1],'Transparency of the surface. Real number in [0 1], where 0=opaque, 1=transparent.') ...
+                        arg({'meshcolor','Color'},[1,.75,.65],[],'Layer color','cat','Layers'), ...
+                        },'Superimpose custom semi-transparent mesh on brainmovie. UseOpenGL must be set to "on"','cat','Layers'), ...            
+            },'Enable Visualization Layers','cat','DisplayProperties'), ...
+            arg({'facelighting','FaceLighting'},'gouraud',{'flat','gouraud','phong','none'},{'Lighting algorithm.', '''flat'' produces uniform lighting across each of the faces of the object. Fastest to render, but poorest quality','''gouraud'' calculates the vertex normals and interpolates linearly across the faces. Good quality and faster to render than phong. The default choice for most applications.','''phong'' interpolates the vertex normals across each face and calculates the reflectance at each pixel. Phong lighting generally produces better results than Gouraud lighting, but it takes longer to render.'}), ...
             arg({'opengl','UseOpenGL'},'on',{'on','off'},'OpenGL usage. OpenGL may cause rendering problems with MacOSX','cat','DisplayProperties'), ...
-            arg({'flashes','EventFlashTimes'},[],[],'Vector of time indices at which the background flashes.  Specify the color of the flash with a cell array of [1,2] cell arrays. Ex. { { 200 ''y'' } { 1500 ''5'' }} will generate two flashes, yellow at 200 ms and red at 1500 ms','type','expression','shape','row','cat','DisplayProperties'), ...
+            arg({'events','EventMarkers'},{{0 'r' ':' 2}},[],'Event marker time and style. Specify event markers with a cell array of {time, linecolor, linestyle, linewidth} cell arrays. Ex. { { 0.2 ''y'' '':'' 2} { 1.5 ''r'' '':'' 2}} will render two dotted-line event makers, yellow at 200 ms and red at 1500 ms','type','expression','shape','row','cat','DisplayProperties'), ...
+            arg({'flashEvents','FlashEvents'},true,[],'Generate a colored flash at event latencies. The color used will match the specified colors of the event markers in Events field above.'), ...
             arg_nogui({'square','Square'},'on',{'on','off'},'?','cat','Miscellaneous'), ...
             arg({'caption','DisplayLegendPanel'},'on',{'on','off'},'Display legends in BrainMovie','cat','DisplayProperties'), ...
             arg({'showLatency','ShowLatency'},true,[],'Display latency of current frame. This will render in lower left corner.','cat','DisplayProperties'), ...
@@ -552,29 +556,21 @@ g = arg_define([0 2],varargin, ...
                 arg({'framesout','ImageOutputFormat'},'jpg',{'jpg','eps','ppm','tif','ai','bmp','emf','pbm','pcx','pdf','pgm','png','fig'},'Format for saving images'), ...
                 arg({'moviename','MovieOutputFilename'},[],[],'Movie filename. E.g, ''movie.avi''. If ''prompt'', then you will be prompted to select the file from a dialog. If blank, don''t save movie.','shape','row','type','char'),...
                 arg({'movieopts','MovieOpts'},{'videoname',''},[],'Cell array of movie options for avifile function. See "help avifile".','type','expression','shape','row'), ...
-                arg({'size','ImageSize'},[600 600],[],'Image size (pixels). Input should be [widthcond height]. If more than one condition is being plotted horizontally, then widthcond is the width of each condition subplot','cat','DisplayProperties') ...
+                arg({'size','ImageSize'},[],[],'Image size (pixels). Input should be [widthcond height]. If more than one condition is being plotted horizontally, then widthcond is the width of each condition subplot','cat','DisplayProperties') ...
                 },'Options for saving the movie/figures','cat','MovieOutput'), ...
-            arg({'mri'},'',[],'Dipplot MRI structure. Can be the name of matlab variable (in the base workspace) containing MRI structure. May also be a path to a Matlab file containing MRI structure. Default uses MNI brain.','type','char','shape','row'), ...
+            arg({'mri'},'standard_BEM_mri.mat',[],'Dipplot MRI structure. Can be the name of matlab variable (in the base workspace) containing MRI structure. May also be a path to a Matlab file containing MRI structure. Default uses MNI brain.','type','char','shape','row'), ...
+            arg({'plotimgs','ShowMRISlices'},true,[],'Display axial/saggital/coronal MRI slices on the X,Y,Z axes'), ...
             arg({'coordformat','DipoleCoordinateFormat'},'spherical',{'spherical','mni'},'Coordinate format for dipplot','type','char','shape','row'), ...
             arg({'dipplotopt','DipplotOptions'},'{}','','Additional dipplot options. Cell array of <''name'',value> pairs of additional options for dipplot (see ''doc dipplot'')','type','expression','shape','row'), ...
-            arg_nogui('renderBrainMovie',true,[],'Special option. Determines whether to actually render the brainmovie (or just return values)') ...
+            arg({'bmopts_suppl','BrainMovieSuppOptions'},'{}','','Additional options to brainmovie3d_causal.m. Cell array of <''name'',value> pairs of additional options (see ''brainmovie3d_causal.m'')','type','expression','shape','row'), ...
+            arg_nogui('renderBrainMovie',true,[],'Special option. Determines whether to actually render the brainmovie (or just return values)'), ...
+            arg_nogui('speedy',true,[],'Special option. Determines whether we are in "speedy" render mode with limited legend, font, etc elements'), ...
+            arg_nogui({'mode','RenderMode'},'init_and_render',{'init','render','init_and_render'},'BrainMovie render mode. If set to ''init'', movie will only be initialized and internal state returned in BMout.BMopts.vars. If ''render'' then movie will only be rendered using {''BMopts'',BMout.BMopts{:}}. If ''init_and_render'', then both initialization and rendering is carried out'), ...
+            arg_nogui({'vars','InternalStateVariables'},[],[],'Internal state variables set during initialization') ...
             }, ...
-    'Additonal options for rendering the brainmovie','cat','DisplayProperties') ...
+    'Additional options for rendering the brainmovie','cat','DisplayProperties') ...
     );
 
-       
-    
-    % insert an arg_sub here that calls @brainmovie3D to populate
-    % arguments list
-
-    %  TODO: edit brainmovie3d to add arg specification
-
-    
-% Commit data variables to workspace    
-% [data g] = hlp_splitstruct(g,{'ALLEEG','Conn','Stats'});        
-% arg_toworkspace(data);
-% clear data;
-    
 % copy the stats structure from base to current workspace
 if ~isempty(g.stats)
     g.stats = evalin('base',g.stats);
@@ -584,8 +580,12 @@ end
 % VALIDATE INPUTS
 % ---------------------------------------------
 
-if ~isfield(g,'renderBrainMovie')
-    g.renderBrainMovie = true;
+if isempty(g.BMopts.outputFormat.size)
+    g.BMopts.outputFormat.size = g.BMopts.size;
+end
+
+if ~isfield(g.BMopts,'renderBrainMovie')
+    g.BMopts.renderBrainMovie = true;
 end
 
 if ~ismember(g.collapsefun,{'max','peak'}) && strcmpi(g.edgeColorMapping,'peakfreq')
@@ -607,6 +607,11 @@ if any(g.freqsToCollapse < freqrange(1)) || ...
         freqrange(1),freqrange(end));
 end
     
+% reset default time range
+if isempty(g.timeRange)
+    g.timeRange   = [g.Conn.erWinCenterTimes(1) g.Conn.erWinCenterTimes(end)];
+end
+
 % check that times are in valid range
 if g.timeRange(1)+1e-5 < timerange(1) || ...
    g.timeRange(2)-1e-5 > timerange(end)
@@ -634,17 +639,177 @@ if ~isempty(g.BMopts.mri)
         tmp = load(g.BMopts.mri);
         fn = fieldnames(tmp);
         g.BMopts.mri = tmp.(fn{1});
+    elseif exist(g.BMopts.mri,'file')
+        % mri file is on the path but full path is not provided
+        % so reconstruct the full path...
+        g.BMopts.mri = which(g.BMopts.mri);
+        % ... and load it
+        tmp = load(g.BMopts.mri);
+        fn = fieldnames(tmp);
+        g.BMopts.mri = tmp.(fn{1});
     else
         % User specified an invalid path to MRI file
         error('Invalid path to MRI matlab file');
     end
 end
 
-if g.BMopts.plotCortex.arg_selection
-    tmp = load(g.BMopts.plotCortex.cortexVolumeFile);
-    fn = fieldnames(tmp);
-    g.BMopts.csf.vol = tmp.(fn{1});
+% get the theme structure
+g.BMopts.theme = hlp_getBrainMovieTheme(g.BMopts.theme);
+
+% HANDLE LAYERS
+% ---------------------------------------------
+
+% handle scalp layer
+if g.BMopts.Layers.scalp.arg_selection
+    % determine the file type and load it
+    switch g.BMopts.Layers.scalp.scalpres
+        case 'full'
+            filename = 'scalp_bem_mesh_fullres';
+        case 'high'
+            filename = 'scalp_bem_mesh_50res';
+        case 'mid'
+            filename = 'scalp_bem_mesh_10res';
+        case 'low'
+            filename = 'scalp_bem_mesh_1res';
+    end
+    
+    % check if file is in the base workspace, and if so, load from there
+    if evalin('base',sprintf('exist(''%s'',''var'');',filename))
+        g.BMopts.Layers.scalp.mesh = evalin('base',filename);
+    else
+        g.BMopts.Layers.scalp.mesh = load(sprintf('%s.mat',filename));
+        fn = fieldnames(g.BMopts.Layers.scalp.mesh);
+        if length(fn)==1 && isstruct(g.BMopts.Layers.scalp.mesh.(fn{1}))
+            g.BMopts.Layers.scalp.mesh = g.BMopts.Layers.scalp.mesh.(fn{1});
+        end
+    end
+    
+    g.BMopts.Layers.scalp.color = g.BMopts.Layers.scalp.scalpcolor;
+    
+    g.BMopts.Layers.scalp.transparency = g.BMopts.Layers.scalp.scalptrans;
+else
+    g.BMopts.Layers.scalp.transparency = 1;
 end
+
+% handle skull layer
+if g.BMopts.Layers.skull.arg_selection
+    % determine the file type and load it
+    switch g.BMopts.Layers.skull.skullres
+        case 'full'
+            filename = 'skull_bem_mesh_fullres';
+        case 'high'
+            filename = 'skull_bem_mesh_50res';
+        case 'mid'
+            filename = 'skull_bem_mesh_10res';
+        case 'low'
+            filename = 'skull_bem_mesh_1res';
+    end
+    
+    % check if file is in the base workspace, and if so, load from there
+    if evalin('base',sprintf('exist(''%s'',''var'');',filename))
+        g.BMopts.Layers.skull.mesh = evalin('base',filename);
+    else
+        g.BMopts.Layers.skull.mesh = load(sprintf('%s.mat',filename));
+        fn = fieldnames(g.BMopts.Layers.skull.mesh);
+        if length(fn)==1 && isstruct(g.BMopts.Layers.skull.mesh.(fn{1}))
+            g.BMopts.Layers.skull.mesh = g.BMopts.Layers.skull.mesh.(fn{1});
+        end
+    end
+    
+    g.BMopts.Layers.skull.color = g.BMopts.Layers.skull.skullcolor;
+    
+    g.BMopts.Layers.skull.transparency = g.BMopts.Layers.skull.skulltrans;
+else
+    g.BMopts.Layers.skull.transparency = 1;
+end
+
+% handle csf layer
+if g.BMopts.Layers.csf.arg_selection
+    % determine the file type and load it
+    switch g.BMopts.Layers.csf.csfres
+        case 'full'
+            filename = 'csf_bem_mesh_fullres';
+        case 'high'
+            filename = 'csf_bem_mesh_50res';
+        case 'mid'
+            filename = 'csf_bem_mesh_10res';
+        case 'low'
+            filename = 'csf_bem_mesh_1res';
+    end
+    
+    % check if file is in the base workspace, and if so, load from there
+    if evalin('base',sprintf('exist(''%s'',''var'');',filename))
+        g.BMopts.Layers.csf.mesh = evalin('base',filename);
+    else
+        g.BMopts.Layers.csf.mesh = load(sprintf('%s.mat',filename));
+        fn = fieldnames(g.BMopts.Layers.csf.mesh);
+        if length(fn)==1 && isstruct(g.BMopts.Layers.csf.mesh.(fn{1}))
+            g.BMopts.Layers.csf.mesh = g.BMopts.Layers.csf.mesh.(fn{1});
+        end
+    end
+    
+    g.BMopts.Layers.csf.color = g.BMopts.Layers.csf.csfcolor;
+    
+    g.BMopts.Layers.csf.transparency = g.BMopts.Layers.csf.csftrans;
+else
+    g.BMopts.Layers.csf.transparency = 1;
+end
+
+% handle LONI layer
+if g.BMopts.Layers.loni.arg_selection
+    % determine the file type and load it
+    switch g.BMopts.Layers.loni.lonires
+        case 'full'
+            filename = 'LONImesh_fullres';
+        case 'high'
+            filename = 'LONImesh_50res';
+        case 'mid'
+            filename = 'LONImesh_10res';
+        case 'low'
+            filename = 'LONImesh_1res';
+        case 'smooth'
+            filename = 'LONImesh_smooth_no_coreg';
+    end
+    
+    % check if file is in the base workspace, and if so, load from there
+    if evalin('base',sprintf('exist(''%s'',''var'');',filename))
+        g.BMopts.Layers.loni.mesh = evalin('base',filename);
+    else
+        g.BMopts.Layers.loni.mesh = load(sprintf('%s.mat',filename));
+        fn = fieldnames(g.BMopts.Layers.loni.mesh);
+        if length(fn)==1 && isstruct(g.BMopts.Layers.loni.mesh.(fn{1}))
+            g.BMopts.Layers.loni.mesh = g.BMopts.Layers.loni.mesh.(fn{1});
+        end
+    end
+    
+    g.BMopts.Layers.loni.color = g.BMopts.Layers.loni.lonicolor;
+    g.BMopts.Layers.loni.transparency = g.BMopts.Layers.loni.lonitrans;
+else
+    g.BMopts.Layers.loni.transparency = 1;
+end
+
+% handle custom layer
+if g.BMopts.Layers.custom.arg_selection
+    % determine the file type and load it
+    filename = g.BMopts.Layers.custom.volumefile;
+    
+    % check if file is in the base workspace, and if so, load from there
+    if evalin('base',sprintf('exist(''%s'',''var'');',filename))
+        g.BMopts.Layers.custom.mesh = evalin('base',filename);
+    else
+        g.BMopts.Layers.custom.mesh = load(filename);
+        fn = fieldnames(g.BMopts.Layers.custom.mesh);
+        if length(fn)==1 && isstruct(g.BMopts.Layers.custom.mesh.(fn{1}))
+            g.BMopts.Layers.custom.mesh = g.BMopts.Layers.custom.mesh.(fn{1});
+        end
+    end
+    
+    g.BMopts.Layers.custom.color = g.BMopts.Layers.custom.meshcolor;
+    g.BMopts.Layers.custom.transparency = g.BMopts.Layers.custom.meshtrans;
+else
+    g.BMopts.Layers.custom.transparency = 1;
+end
+
 
 % ---------------------------------------------
 
@@ -715,7 +880,7 @@ freqIndicesToCollapse = getindex(g.Conn(1).freqs,g.freqsToCollapse);
 timeIndices =  getindex(erWinCenterTimes,g.timeRange(1)):getindex(erWinCenterTimes,g.timeRange(2));
 
 % ... and construct the time vector for the Brainmovie
-BrainMovieTimeRangeInMs = 1000*erWinCenterTimes(timeIndices);
+BrainMovieTimeRangeInSec = erWinCenterTimes(timeIndices);
 
 % ---------------------------------------------
 
@@ -779,24 +944,25 @@ for cnd = 1:length(g.Conn)
             end
             
             % extract data
-            causality = squeeze(Conn(ch1,ch2,:,timeIndices));
+            causality = squeeze(Conn(ch1,ch2,:,:));
             
 %             % make row vector if necessary
 %             if any(size(causality)==1)
 %                 causality = causality(:)';
 %             end
             
-            % collapse matrix across frequencies
+            % collapse matrix across frequencies for selected time range
             if length(g.freqsToCollapse)>1
+                % collapse across frequency
                 [causality peakidx] = hlp_collapseFrequencies( causality, ...
                   g.collapsefun,freqIndicesToCollapse,timeIndices,g.freqsToCollapse(2)-g.freqsToCollapse(1));
-            elseif size(causality,2)==1
-                % only one frequency
-                causality = causality(:,freqIndicesToCollapse);
-                peakidx = freqIndicesToCollapse;
+%             elseif size(causality,2)==1
+%                 % only one frequency
+%                 causality = causality(:,freqIndicesToCollapse);
+%                 peakidx = freqIndicesToCollapse;
             else
                 % multiple freqs, but only one frequency selected
-                causality = causality(freqIndicesToCollapse,:);
+                causality = causality(freqIndicesToCollapse,timeIndices);
                 peakidx = freqIndicesToCollapse;
             end
 
@@ -977,57 +1143,114 @@ for cnd = 1:length(g.Conn)
             
             case 'Chan_ERPenvelope'
                 % compute ERP of selected channels
-                erpvars     = ismember(MyChannelNames, ...                      % select chans
-                                       g.footerPanelSpec.chanenvelopevars);
-                erpdata     = mean(g.ALLEEG(cnd).data(erpvars,:,:),3)';         % compute ERP
-                if size(erpdata,1)>1    % if more than one channel selected
-                    erpdata     = env(erpdata);                                 % compute envelope
-                else
-                    erpdata = erpdata;
-                end
+                erpvars     = find(ismember(MyChannelNames, ...                 % select chans
+                                       g.footerPanelSpec.chanenvelopevars));
+                erpdata     = mean(g.ALLEEG(cnd).data(erpvars,:,:),3);         % compute ERP
+%                 if g.footerPanelSpec.plotallICerps
+%                     footerPanelData  = erpdata;  
+%                 else
+%                     footerPanelData = [];
+%                 end
+%                 if size(erpdata,1)>1    % if more than one channel selected
+%                     erpdata     = env(erpdata);                                 % compute envelope
+%                 end
                 
-                erptimes    = g.ALLEEG(cnd).times;
-                erptlims    = getindex(erptimes,g.timeRange*1000);
+                erptimes    = g.ALLEEG(cnd).times/1000;  % convert to sec
+                erptlims    = getindex(erptimes,g.timeRange);
                 erpdata     = erpdata(:,erptlims(1):erptlims(2));
                 erptimes    = erptimes(erptlims(1):erptlims(2));
         
+                % form the footer panel title string
+                tmpstr = '[Chan ';
+                for k=1:min(3,length(erpvars))
+                    tmpstr = [tmpstr MyChannelNames{erpvars(k)} ','];
+                end
+                tmpstr(end) = [];
+                if k<length(erpvars)
+                    tmpstr = [tmpstr '...'];
+                end
+                tmpstr = [tmpstr '] '];
+                g.BMopts.footerPanelTitle = sprintf('ERP%s: %s', ...
+                        fastif(length(erpvars)>1,'s',''), ...
+                        tmpstr);
+                    
             case 'ICA_ERPenvelope'
                 % compute ERP of selected backprojected components
                 erpvars     = g.ALLEEG(cnd).CAT.curComps( ...
                                 ismember(MyComponentNames(g.BMopts.selected),...  % select comps
                                        g.footerPanelSpec.icaenvelopevars));
-                erpchans    = ismember(MyChannelNames,g.footerPanelSpec.backprojectedchans);
-                erpdata     = mean(g.ALLEEG(cnd).icaact(erpvars,:,:),3)';       % obtain ERP
-                erpdata     = g.ALLEEG(cnd).icawinv(erpchans,erpvars)*erpdata';        % backproject ERPs to scalp
-                if size(erpdata,1)>1    % if more than one channel selected
-                    erpdata     = env(erpdata);                                 % compute envelope
-                else
-                    erpdata = erpdata;
+                erpchans    = find(ismember(MyChannelNames,g.footerPanelSpec.backprojectedchans));
+                erpdata     = mean(g.ALLEEG(cnd).icaact(erpvars,:,:),3);       % obtain ERP
+                if ~isempty(erpchans)
+                    erpdata     = g.ALLEEG(cnd).icawinv(erpchans,erpvars)*erpdata;        % backproject ERPs to scalp
                 end
                 
-                erptimes    = g.ALLEEG(cnd).times;
-                erptlims    = getindex(erptimes,g.timeRange*1000);
-                erpdata     = erpdata(:,erptlims(1):erptlims(2));
-                erptimes    = erptimes(erptlims(1):erptlims(2));
+%                 if g.footerPanelSpec.plotallICerps
+%                     footerPanelData  = erpdata;  
+%                 else
+%                     footerPanelData = [];
+%                 end
+%                 if size(erpdata,1)>1    % if more than one channel selected
+%                     erpdata     = env(erpdata);                                 % compute envelope
+%                 end
+                
+                erptimes    = g.ALLEEG(cnd).times/1000;  % convert to sec;
+                erptlims    = getindex(erptimes,g.timeRange);
+                if diff(erptlims)~=0
+                    erpdata     = erpdata(:,erptlims(1):erptlims(2));
+                    erptimes    = erptimes(erptlims(1):erptlims(2));
+                end
+                
+                % form the footer panel title string
+                tmpstr = '[IC ';
+                for k=1:min(3,length(erpvars))
+                    tmpstr = [tmpstr MyComponentNames{erpvars(k)} ','];
+                end
+                tmpstr(end) = [];
+                if k<length(erpvars)
+                    tmpstr = [tmpstr '...'];
+                end
+                tmpstr = [tmpstr '] '];
+                if ~isempty(erpchans)
+                    tmpstr      = [tmpstr '-> [Chan '];
+                    for k=1:min(3,length(erpchans))
+                        tmpstr = [tmpstr MyChannelNames{erpchans(k)} ','];
+                    end
+                    tmpstr(end) = [];
+                    if k<length(erpchans)
+                        tmpstr = [tmpstr '...'];
+                    end
+                    tmpstr = [tmpstr '] '];
+                end
+                g.BMopts.footerPanelTitle = sprintf('%sERP%s: %s', ...
+                        fastif(~isempty(erpchans),'Back-projected ',''), ...
+                        fastif(length(erpvars)>1 || length(erpchans)>1,'s',''), ...
+                        tmpstr);
                 
             case 'GraphMetric'
 %                 erpvars     = g.ALLEEG(cnd).CAT.curComps( ...
 %                                 ismember(MyComponentNames(g.BMopts.selected),...  % select comps
 %                                        g.footerPanelSpec.nodes));
                 erpvars     = find(ismember(MyComponentNames(g.BMopts.selected),...  % select comps
-                                       g.footerPanelSpec.nodes));
-                % compute net graph metric over selected nodes
+                                            g.footerPanelSpec.nodes));
+                % compute graph metric over selected nodes
                 eval(sprintf('tmp=%s;',g.footerPanelSpec.metric));
                 tmp(isnan(tmp) | isinf(tmp))=0;
-                erpdata = sum(tmp(erpvars,:),1);
+                erpdata = tmp(erpvars,:);
+%                 if g.footerPanelSpec.plotallICerps
+%                     footerPanelData  = graphdata;  
+%                 else
+%                     footerPanelData = [];
+%                 end
+%                 erpdata = env(graphdata);
                 
                 % if all nan, set to zeros
                 if all(isnan(erpdata(:)))
                     erpdata = zeros(size(erpdata));
                 end
                 
-                erptimes = erWinCenterTimes(timeIndices)*1000;
-                erptlims    = getindex(erptimes,g.timeRange*1000);
+                erptimes    = erWinCenterTimes(timeIndices);
+                erptlims    = getindex(erptimes,g.timeRange);
                 erpdata     = erpdata(:,erptlims(1):erptlims(2));
                 erptimes    = erptimes(erptlims(1):erptlims(2));
                 
@@ -1049,12 +1272,13 @@ for cnd = 1:length(g.Conn)
 
         if g.resample
             % resample the envelope timecourse to make consistent
-            envdata(:,:,cnd)    = resample(envdata' ,g.resample(1),g.resample(2))';
+            envdata(:,:,cnd)    = resample(erpdata' ,g.resample(1),g.resample(2))';
             envtimes(:,cnd)     = resample(erptimes,g.resample(1),g.resample(2));
         else
             envdata(:,:,cnd)    = erpdata;
             envtimes(:,cnd)     = erptimes;
         end
+        
     end
     
 end  % loop over conditions
@@ -1102,6 +1326,8 @@ coords = {g.ALLEEG(cnd).dipfit.model.posxyz};
 coords = coords(g.ALLEEG(cnd).CAT.curComps);
 BMopts.coordinates = coords;
 
+BMopts.windowLength = g.ALLEEG(cnd).CAT.MODEL.winlen;
+
 % determine whether to render and/or modulate properties of edges/nodes 
 BMopts.crossfphasecolor = fastif(strcmpi('none',g.edgeColorMapping),'off','on');    % do/don't modulate edgecolor
 BMopts.crossf           = fastif(strcmpi('none',g.edgeSizeMapping),'off','on');     % do/don't render edges
@@ -1139,35 +1365,31 @@ if strcmpi(BMopts.outputFormat.moviename,'prompt')
 end
 
 
-BMopts.times        = envtimes;
-BMopts.envelope     = envdata;
+BMopts.footerPanelTimes     = envtimes;
+BMopts.footerPanelData      = envdata;
+BMopts.footerPanelPlotMode  = g.footerPanelSpec.plottingmode;
+
+% BMopts.footerPanelData      = footerPanelData;
 
 % get latencies for movie
 if isempty(g.BMopts.latency) && isempty(g.BMopts.frames)
     % default: use all latencies in time range
-    BMopts.latency = BrainMovieTimeRangeInMs;
+    BMopts.latency = BrainMovieTimeRangeInSec;
 else
     % convert to ms
-    BMopts.latency = 1000*g.BMopts.latency;
+    BMopts.latency = g.BMopts.latency;
 end
 
 
 % setup the rotation path for the movie
-switch lower(BMopts.rotationpath3d.arg_selection)
-    case 'none'
-        BMopts.path3d = 'off';
-    case 'automatic'
-        BMopts.path3d = 'on';
-    case 'manual'
-        % polar rotation factors specified 
-        BMopts.path3d = ...
-        [BMopt.rotationpath3d.AngleFactor, BMopt.rotationpath3d.PhaseFactor];
+if ~BMopts.rotationpath3d.arg_selection
+    BMopts.rotationpath3d = [];
 end
     
-if ~BMopts.plotCortex.arg_selection
-    % don't superimpose cortex
-    BMopts.cortexTransparency = 1;
-end
+% if ~BMopts.plotCortex.arg_selection
+%     % don't superimpose cortex
+%     BMopts.cortexTransparency = 1;
+% end
 
 if strcmpi(g.edgeColorMapping,'Directionality')
     BMopts.EdgeColorMappedToDirectionality = true;
@@ -1202,16 +1424,18 @@ BMopts.edgeSizeMapping  = g.edgeSizeMapping;
 BMopts.ConnMethod       = g.connmethod;
 
 % convert options structure to ('name',value) arglist
-bmargs = hlp_struct2varargin(hlp_flattenStruct(BMopts,'exclude',{'mri','csf'}),'suppress', ...
-                             {'arg_selection','arg_direct',...
-                             'rotationpath3d','AngleFactor',...
-                             'PhaseFactor'});
+bmargs = hlp_struct2varargin(hlp_flattenStruct(BMopts,Inf,{'mri','vars','Layers','rotationpath3d','theme'}),'suppress', ...
+                     {'arg_selection','arg_direct','bmopts_suppl'});
 
-if g.renderBrainMovie
+bmargs = hlp_remDupNVPs([bmargs BMopts.bmopts_suppl], false);
+
+if g.BMopts.renderBrainMovie
     % Call BrainMovie3D
-    brainmovie3d_causal( ...
+    [dummy dummy g.BMopts] = brainmovie3d_causal( ...
         NodeSizeCell,NodeColorCell,EdgeSizeCell,EdgeColorCell, ...
-        BrainMovieTimeRangeInMs,1,g.BMopts.selected,bmargs{:});
+        BrainMovieTimeRangeInSec,1,g.BMopts.selected,bmargs{:});
+    
+    handles.figurehandle = g.BMopts.figurehandle;
 end
 
 % EOF

@@ -30,6 +30,7 @@ function [MODEL params] = est_fitMVARKalman(EEG,typeproc,varargin)
 %       .PE             (numvars x coeffs) prediction error (noise covariance) coefficients
 %       .algorithm      string denoting algorithm used for estimation
 %       .modelclass     string denoting model class (here, 'mvar')
+%       .Kalman         Kalman state object
 %
 % See Also: est_fitMVAR(), mvaar()
 %
@@ -132,11 +133,11 @@ end
 if isempty(g.storage)
     [VAR MODEL.Q2] = mvaar(permute(EEG.CAT.srcdata,[2 1 3]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
 elseif ismember('residuals',lower(g.storage))
-    [VAR,MODEL.Q2, MODEL.residuals] = mvaar(permute(EEG.CAT.srcdata,[2 1 3]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
+    [VAR MODEL.Q2, MODEL.residuals] = mvaar(permute(EEG.CAT.srcdata,[2 1 3]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
 elseif ismember('kalman',lower(g.storage));
-    [VAR,MODEL.Q2, MODEL.residuals] = mvaar(permute(EEG.CAT.srcdata,[2 1 3]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
+    [VAR MODEL.Q2, MODEL.residuals MODEL.Kalman] = mvaar(permute(EEG.CAT.srcdata,[2 1 3]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
 elseif ismember('state_covariance',lower(g.storage))
-    [VAR, MODEL.Q2,MODEL.residuals,MODEL.Kalman, MODEL.Q1] = mvaar(permute(EEG.CAT.srcdata,[2 1 3]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
+    [VAR MODEL.Q2,MODEL.residuals,MODEL.Kalman, MODEL.Q1] = mvaar(permute(EEG.CAT.srcdata,[2 1 3]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
 else
     error('unknown storage option %s',g.storage{1});
 end

@@ -51,7 +51,7 @@ if isstruct(Conn)
 
     if nargin<3
         connmethods = hlp_getConnMethodNames(Conn);
-    elseif iscell(varargin{3})
+    elseif iscell(varargin{1})
         connmethods = varargin{1};
     else
         error('incorrect option for ''connmethods''');

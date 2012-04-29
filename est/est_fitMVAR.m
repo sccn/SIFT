@@ -70,7 +70,7 @@ end
 var = hlp_mergeVarargin(varargin{:});
 g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_fitMVAR','ignore','quiet');
 if ischar(g), error(g); end
-if isempty(g.epochTimeLims), g.epochTimeLims = [0 EEG.xmax]; end
+if isempty(g.epochTimeLims), g.epochTimeLims = [EEG.xmin EEG.xmax]; end
 if isempty(g.morder) || length(g.morder)>1, error('invalid entry for field ''morder.'' Make sure the model order is a single integer.'); end
 
 % initialize defaults for scsa
@@ -146,10 +146,12 @@ if ~all(isequal(EEG.times(tidx),g.epochTimeLims*1000))
     end
 end
 
-winLenPnts = floor(g.winlen*EEG.srate); % window size in points
+winLenPnts  = round(g.winlen*EEG.srate); % window size in points
+winStepPnts = round(g.winstep*EEG.srate);
+
 if isempty(g.winStartIdx)
     % starting point of each window (points)
-    g.winStartIdx  = round((g.epochTimeLims(1):g.winstep:g.epochTimeLims(2)-g.winlen)*EEG.srate)+1;
+    g.winStartIdx  = tidx(1):winStepPnts:(tidx(2)-winLenPnts)+1; %   round((double(g.epochTimeLims(1):g.winstep:g.epochTimeLims(2)-g.winlen)*EEG.srate)+1;
 end
 if g.prctWinToSample<100
     % randomly select percentage of windows to work with
@@ -265,7 +267,7 @@ for t=1:numWins
                 AR0 = g.gladmm.initAR;
             end
             
-            [AR{t} PE{t}] = mvar_glADMM(EEG.CAT.srcdata(:,winpnts,:),g.morder,g.gladmm.lambda,g.gladmm.rho,g.gladmm.alpha,AR0,g.gladmm.verb,g.gladmm.max_iter);
+            [AR{t} PE{t}] = mvar_glADMM(EEG.CAT.srcdata(:,winpnts,:),g.morder,AR0,g.verb,'admm_args',g.gladmm);
             RC{t} = [];
         otherwise
             if exist('mvar','file')
@@ -318,11 +320,11 @@ MODEL.RC = RC;
 if strcmpi(g.algorithm,'arfit')
     MODEL.th = th;
 end
-MODEL.winStartTimes = (g.winStartIdx-1)/EEG.srate;
-MODEL.morder = g.morder;
-MODEL.winstep = g.winstep;
-MODEL.winlen = g.winlen;
-MODEL.algorithm = g.algorithm;
-MODEL.modelclass = 'mvar';
-MODEL.timeelapsed = timeElapsed;
-MODEL.normalize = g.normalize;
+MODEL.winStartTimes = (g.winStartIdx-1)/EEG.srate; %EEG.times(g.winStartIdx)/1000;
+MODEL.morder        = g.morder;
+MODEL.winstep       = g.winstep;
+MODEL.winlen        = g.winlen;
+MODEL.algorithm     = g.algorithm;
+MODEL.modelclass    = 'mvar';
+MODEL.timeelapsed   = timeElapsed;
+MODEL.normalize     = g.normalize;

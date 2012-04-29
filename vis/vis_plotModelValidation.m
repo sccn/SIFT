@@ -79,6 +79,9 @@ if ~isempty(whitestats{1})
     end
 end
 
+num_conds = max([length(whitestats),length(PCstats),length(stabilitystats)]);
+
+
 g = finputcheck(varargin, ...
     {'whitenessCriteria'   'cell'  whitenessCriteria   whitenessCriteria; ...
     'checkWhiteness',     'boolean'   []          true; ...
@@ -87,19 +90,17 @@ g = finputcheck(varargin, ...
     'conditions'          'cell'      {}          {}; ...
     },'mode','ignore','quiet');
 
-
 if isempty(whitestats{1}),         g.checkWhiteness    = false;    end
 if isempty(PCstats{1}),            g.checkConsistency  = false;    end
 if isempty(stabilitystats{1}),     g.checkStability    = false;    end
-
-num_conds = max([length(whitestats),length(PCstats),length(stabilitystats)]);
+if isempty(g.conditions),          g.conditions        = cell(1,num_conds); end
 
 numrows = sum([g.checkWhiteness g.checkConsistency g.checkStability]);
 numcols = 1;
 
 for cond = 1:num_conds
     
-    if isempty(g.conditions)
+    if isempty(g.conditions{cond})
         g.conditions{cond} = sprintf('Condition %d',cond);
     end
     

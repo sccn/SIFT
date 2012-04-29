@@ -199,7 +199,7 @@ switch lower(method)
     case 'min'
         % 1-D min along dimension dim
         [C peaks] = min(getRange(C,dim,range),[],dim);
-    case 'shrinkonly'
+    case {'getrange' 'shrinkonly'}
         C = getRange(C,dim,range);
     otherwise
         try

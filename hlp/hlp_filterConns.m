@@ -9,19 +9,24 @@ function [Conn peaks] = hlp_filterConns(Conn, varargin)
 %               containing [nchs x nchs x num_freqs x num_times]
 %               connectivity matrices
 %
-% Options:
+% Optional:
 %
-%       'connThresh'    -     [real]. Connectivity threshold
-%                             (only keep C<connThresh)
+%       'connThresh'    [real]. Absolute thresholding to apply after
+%                               significance thresholding. Can be be a 
+%                               scalar or a matrix of same size as 
+%                               EEG.CAT.Conn.(connmethod). Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
 %       'prcThresh'     -     [real] The upper percent [1-100] of filtered
 %                             connections to keep {def: 100}
 %       'method'              cell array of dimensionality reduction methods to apply in a specified order. e.g.,
 %                             {'freq','net','time','peak'} will first integrate over freq, then find peak over time.
 %                             If method is a string, then this is taken to be the compression global dimension reduction
 %                             method applied to all dims in the order {'time','freq',...}.
-%                             allowed methods:  'mean', 'net', 'peak', 'shrinkonly'
+%                             allowed methods:  'mean', 'net', 'peak', 'getrange'
 %        ...
 %
+    
+    
+    
 % Outputs:
 %
 %   Conn        filtered connectivity structure
@@ -77,17 +82,27 @@ end
 
 % parse inputs
 g = finputcheck(varargin,...
-    {'connmethods', ''          {}          {}; ...  % cell array of connectivity method names. If empty, we use all of them
-    'connThresh'   ''          []          0; ...  % absolute thresholding to apply after significance thresholding. can be a scalar or a matrix of same size as EEG.CAT.C. Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
-    'prcThresh'    'real'      [eps 100]   100;... % top percentile of connections to keep
-    'frange'       'real'      []          [];...  % same units as Conn.freqs
-    'trange'       'real'      []          [];...  % same units as EEG.times
-    'sigThresh'    ''          []          [];...  % can be a scalar or a matrix of same size as EEG.CAT.C. Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
+   {'connmethods', ''          {}          {}; ...      % cell array of connectivity method names. If empty, we use all of them
+    'connThresh'   ''          []          0; ...       % absolute thresholding to apply after significance thresholding. can be a scalar or a matrix of same size as EEG.CAT.C. Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
+    'prcThresh'    'real'      [eps 100]   100;...      % top percentile of connections to keep
+    'frange'       'real'      []          [];...       % same units as Conn.freqs
+    'trange'       'real'      []          [];...       % same units as EEG.times
+    'sigThresh'    ''          []          [];...       % can be a scalar or a matrix of same size as EEG.CAT.C. Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
     'badchans'     'integer'   []          [];...
-    'method'       ''          ''          '';...        % cell array of dimensionality reduction methods to apply in a specified order. e.g.,
-    % {'freq','net','time','peak'} will first integrate over freq, then find peak over time.
-    % If method is a string, then this is taken to be the compression global dimension reduction
-    % method applied to all dims in the order {'time','freq',...}
+    'method'       ''          ''          '';...       % cell array of dimensionality reduction methods to apply in a specified order.
+                                                        % e.g. {'freq','net','time','peak'} will first integrate over freq, then find peak over time.
+                                                        % If method is a string, then this is taken to be the compression global dimension reduction
+                                                        % method applied to all dims in the order {'time','freq',...}
+                                                        % Allowed compression methods are:
+                                                        % 'net'         (integrate)
+                                                        % 'mean'        (average)
+                                                        % 'peak'        (1-D peak search along given dim)
+                                                        % 'peak2d'      (2-D peak search) 
+                                                        % 'getrange'    (extract a data range from given dimension)
+                                                        % 'maxmag'      (1-D max magnitude (max of absval) along given dimension)
+                                                        % 'max'         (1-D max along given dimension)
+                                                        % 'min'         (1-D min along given dimension)
+
     'peakWidth'    'integer'   []          2;...
     'chanlocs'     ''          []          [];...
     'distRad'      'real'      []          [];...
@@ -99,6 +114,7 @@ g = finputcheck(varargin,...
     'verb',        'boolean'   []          1; ...
     },'hlp_filterConns','error','quiet');
 
+        
 if ischar(g)
     error(g);
 end
@@ -200,9 +216,9 @@ for m=1:length(g.connmethods)
                 fprintf('applying method=%s to dim=%s and %s\n',g.method{2},g.method{1},g.method{3});
             end
             C = collapseDim(C,'dim',4,'range',trangeidx, ...
-                'method','shrinkonly');     % extract time range
+                'method','getrange');     % extract time range
             C = collapseDim(C,'dim',3,'range',frangeidx, ...
-                'method','shrinkonly');     % extract freq range
+                'method','getrange');     % extract freq range
             [C peaks] = collapseDim(C,'dim',4,'range',[], 'method','peak2d', ...
                 'peakWidth',g.peakWidth,'minpeakheight',g.connThresh); % find peaks
         else

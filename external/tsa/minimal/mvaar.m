@@ -177,7 +177,7 @@ end
 
 for tr=1:NTR
     
-    % NOTE: should we re-initialize the state variables here?
+    % TODO: add option to re-initialize the state variables here
     
     curval = 1;
     

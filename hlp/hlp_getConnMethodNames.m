@@ -1,6 +1,13 @@
-function names = hlp_getConnMethodNames(Conn)
+function [names] = hlp_getConnMethodNames(Conn)
 % return the names of all connectivity measures in a SIFT Connectivity
 % object
+%
+% Input:
+%       Conn:       SIFT connectivity object
+%
+% Output
+%
+%       names:       cell array of names of connectivity measures in Conn
 %
 % References:
 %
@@ -30,3 +37,5 @@ function names = hlp_getConnMethodNames(Conn)
 
     names = fieldnames(Conn(1));
     names = setdiff(names,{'winCenterTimes','erWinCenterTimes','freqs','mode','options'});
+    
+    

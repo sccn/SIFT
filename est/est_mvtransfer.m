@@ -126,7 +126,7 @@ dependencies = {...
 % calculate.
 alldescriptors = dependencies(:,1);
 
-methodsneeded = alldescriptors(find(isneeded(alldescriptors,connmethods,dependencies)));
+methodsneeded = alldescriptors(hlp_microcache('blah',@isneeded,alldescriptors,connmethods,dependencies));
 univariate_measures = {'mCoh'};  % list of measures that are univariate (nchs x freqs)
 singleton_measures = {'DC'};     % list of measures that do not depend on frequency (nchs x 1)
 
@@ -357,7 +357,7 @@ function needed = isneeded(curmethod,allmethods,dependencies)
 nmethods = length(curmethod);
 
 if iscell(curmethod) && nmethods >1
-    needed = zeros(1,nmethods);
+    needed = false(1,nmethods);
     for i=1:nmethods
         needed(i) = isneeded(curmethod{i},allmethods,dependencies);
     end
@@ -365,10 +365,10 @@ if iscell(curmethod) && nmethods >1
 end
 
 if isempty(curmethod)
-    needed =0;
+    needed = false;
     return;
 elseif ismember(curmethod,allmethods)
-    needed = 1;
+    needed =  true;
     return;
 else
     % recursively determine whether any of the other methods the user
@@ -377,11 +377,11 @@ else
     if ~any(idx) || isempty(dependencies(idx,2)), needed=0; return; end
     children=dependencies(idx,2);
     if any(isneeded(children{1},allmethods,dependencies))
-        needed = 1;
+        needed = true;
         return;
     end
 end
 
 % if we get here, this particular curmethod is not needed
-needed = 0;
+needed = false;
 

@@ -170,7 +170,7 @@ if ~isempty(varargin)
     elseif isfield(varargin{1},'icaact')
         stats = arg_extract(varargin(3:end),'stats');
     else
-        stats = arg_extract(varargin,'stats');
+        stats = arg_extract(varargin,'stats',[],[]);
     end
     
     if isempty(stats)
@@ -356,7 +356,11 @@ for dir=1:numdirs
         
         if dims(Stat)==1
             % expand Stat to dimensions of Conn
-            Stat = repmat(Stat(:),[size(Conn,1) size(Conn,2)]);
+            Stat = repmat(Stat,[size(Conn,1) size(Conn,2)]);
+        elseif size(Stat,1)==1
+            stmp = Stat; Stat = [];
+            Stat(:,:,1) = repmat(stmp(1),size(Conn));
+            Stat(:,:,2) = repmat(stmp(2),size(Conn));
         end
         
         switch g.thresholding.arg_selection

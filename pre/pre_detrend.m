@@ -105,7 +105,8 @@ for i=1:length(g.method)
     fitlines = zeros(size(EEG.data));
     
     % apply the detrending/centering
-    for ch=1:size(EEG.icaact,1)
+    for ch=1:EEG.nbchan
+        if g.verb, fprintf('%d/%d...',ch,EEG.nbchan); end
         if g.plot
             % return detrended data as well as fitted curves
             [EEG.data(ch,:,:) fitlines(ch,:,:)] = locdetrend_siftmod(squeeze(EEG.data(ch,:,:)),EEG.srate,windowing_params,m);
@@ -113,7 +114,9 @@ for i=1:length(g.method)
             % return only detrended data (faster)
             EEG.data(ch,:,:) = locdetrend_siftmod(squeeze(EEG.data(ch,:,:)),EEG.srate,windowing_params,m);
         end
+        
     end
+    if g.verb, fprintf('\n'); end
 end
 
 if g.plot
