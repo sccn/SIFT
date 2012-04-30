@@ -151,6 +151,7 @@
 %                                                  % used to generate the movie.
 
 % arno@salk.edu, Arnaud Delorme, CNL / Salk Institute, 2003
+% tim@ucsd.edu,  Tim Mullen, SCCN/INC/UCSD 2010
 
 % This program is free software; you can redistribute it and/or
 % modify it.
@@ -260,91 +261,91 @@ nbconditions = size(ALLERSP,2);
 nbcomponents = size(ALLERSP,1);
 
 
-try, g.dipplotopt;      catch, g.dipplotopt = {}; end
-try, g.mri;             catch, g.mri = ''; end
-try, g.figurehandle;    catch, g.figurehandle = []; end
-try, g.opengl;          catch, g.opengl='on'; end
-try, g.head; 			catch, g.head=''; end;
-try, g.visible; 		catch, g.visible='on'; end;
-try, g.square; 		    catch, g.square='on'; end;
-try, g.moviename; 	    catch, g.moviename='output.avi'; end;
-try, g.movieopts; 	    catch, g.movieopts={}; end;
-try, g.rt; 	        	catch, g.rt={}; end;
-try, g.power; 	    	catch, g.power='on'; end;
-try, g.latency; 	   	catch, g.latency=[]; end;
-try, g.itc; 	    	catch, g.itc='on'; end;
-try, g.magnify; 	    catch, g.magnify=1; end;
-try, g.crossf; 			catch, g.crossf='on'; end;
-try, g.crossfcoh; 		catch, g.crossfcoh='on'; end;
-try, g.size; 			catch, g.size=[400 400]; end;
-try, g.crossfphasecolor;catch, g.crossfphasecolor='on'; end;
-try, g.crossfphasespeed;catch, g.crossfphasespeed='off'; end;
-try, g.crossfphaseunit; catch, g.crossfphaseunit='degree'; end;
+try, g.dipplotopt;          catch, g.dipplotopt = {}; end
+try, g.mri;                 catch, g.mri = ''; end
+try, g.figurehandle;        catch, g.figurehandle = []; end
+try, g.opengl;              catch, g.opengl='on'; end
+try, g.head;                catch, g.head=''; end;
+try, g.visible;             catch, g.visible='on'; end;
+try, g.square;              catch, g.square='on'; end;
+try, g.moviename;           catch, g.moviename='output.avi'; end;
+try, g.movieopts;           catch, g.movieopts={}; end;
+try, g.rt;                  catch, g.rt={}; end;
+try, g.power;               catch, g.power='on'; end;
+try, g.latency;             catch, g.latency=[]; end;
+try, g.itc;                 catch, g.itc='on'; end;
+try, g.magnify;             catch, g.magnify=1; end;
+try, g.crossf;              catch, g.crossf='on'; end;
+try, g.crossfcoh;           catch, g.crossfcoh='on'; end;
+try, g.size;                catch, g.size=[400 400]; end;
+try, g.crossfphasecolor;    catch, g.crossfphasecolor='on'; end;
+try, g.crossfphasespeed;    catch, g.crossfphasespeed='off'; end;
+try, g.crossfphaseunit;     catch, g.crossfphaseunit='degree'; end;
 
-try, g.nodeSizeDataRange;  catch, g.nodeSizeDataRange  = []; end;
-try, g.nodeSizeLimits;     catch, g.nodeSizeLimits     = [0.1 1]; end;
-try, g.nodeColorDataRange; catch, g.nodeColorDataRange = []; end;
-try, g.nodeColorLimits;    catch, g.nodeColorLimits    = [0 1]; end;
+try, g.nodeSizeDataRange;   catch, g.nodeSizeDataRange  = []; end;
+try, g.nodeSizeLimits;      catch, g.nodeSizeLimits     = [0.1 1]; end;
+try, g.nodeColorDataRange;  catch, g.nodeColorDataRange = []; end;
+try, g.nodeColorLimits;     catch, g.nodeColorLimits    = [0 1]; end;
 
-try, g.edgeSizeDataRange;  catch, g.edgeSizeDataRange  = []; end;
-try, g.edgeSizeLimits;     catch, g.edgeSizeLimits     = [0.1 1]; end;
-try, g.edgeColorDataRange; catch, g.edgeColorDataRange = []; end;
-try, g.edgeColorLimits;    catch, g.edgeColorLimits    = [0 1]; end;
+try, g.edgeSizeDataRange;   catch, g.edgeSizeDataRange  = []; end;
+try, g.edgeSizeLimits;      catch, g.edgeSizeLimits     = [0.1 1]; end;
+try, g.edgeColorDataRange;  catch, g.edgeColorDataRange = []; end;
+try, g.edgeColorLimits;     catch, g.edgeColorLimits    = [0 1]; end;
 
-try, g.diskscale;       catch, g.diskscale = 1; end;
-try, g.framefolder;     catch, g.framefolder = ''; end;
-try, g.footerPanelData;        catch, g.footerPanelData = []; end;
-try, g.caption;			catch, g.caption = 'on'; end;
-try, g.frames;			catch, g.frames = []; end;
-try, g.envvert;			catch, g.envvert = {}; end;
-try, g.events;          catch, g.events = {}; end;
-try, g.polarity;		catch, g.polarity = 'pos'; end;
-try, g.framesout;	    catch, g.framesout = 'tiff'; end;
-try, g.condtitle;		catch, g.condtitle = []; end;
-try, g.condtitleformat;	catch, g.condtitleformat = {'fontsize', 14, 'fontweight', 'bold', 'color' 'w'}; end;
-try, g.title;			catch, g.title = ''; end;
-try, g.envylabel;		catch, g.envylabel = '\muV'; end;
-try, g.plotorder;       catch, g.plotorder = SELECTED; end;
-try, g.coordformat;     catch, g.coordformat = 'spherical'; end;
-try, g.stereo;          catch, g.stereo = []; end;
-try, g.backcolor;       catch, g.backcolor = [0 0 0]; end;
-try, g.rotationpath3d;  catch, g.rotationpath3d = struct('AngleFactor',1,'PhaseFactor',0.75,'FramesPerCycle',max(1,length(g.latency))); end;
-try, g.project3d;       catch, g.project3d = 'off'; end;
-try, g.view;            catch, g.view = [43.6650 30.4420]; end;
+try, g.diskscale;           catch, g.diskscale = 1; end;
+try, g.framefolder;         catch, g.framefolder = ''; end;
+try, g.footerPanelData;     catch, g.footerPanelData = []; end;
+try, g.caption;             catch, g.caption = 'on'; end;
+try, g.frames;              catch, g.frames = []; end;
+try, g.envvert;             catch, g.envvert = {}; end;
+try, g.events;              catch, g.events = {}; end;
+try, g.polarity;            catch, g.polarity = 'pos'; end;
+try, g.framesout;           catch, g.framesout = 'tiff'; end;
+try, g.condtitle;           catch, g.condtitle = []; end;
+try, g.condtitleformat;     catch, g.condtitleformat = {'fontsize', 14, 'fontweight', 'bold', 'color' 'w'}; end;
+try, g.title;               catch, g.title = ''; end;
+try, g.envylabel;           catch, g.envylabel = '\muV'; end;
+try, g.plotorder;           catch, g.plotorder = SELECTED; end;
+try, g.coordformat;         catch, g.coordformat = 'spherical'; end;
+try, g.stereo;              catch, g.stereo = []; end;
+try, g.backcolor;           catch, g.backcolor = [0 0 0]; end;
+try, g.rotationpath3d;      catch, g.rotationpath3d = struct('AngleFactor',1,'PhaseFactor',0.75,'FramesPerCycle',max(1,length(g.latency))); end;
+try, g.project3d;           catch, g.project3d = 'off'; end;
+try, g.view;                catch, g.view = [43.6650 30.4420]; end;
 try, g.footerPanelPlotMode; catch, g.footerPanelPlotMode = {'all','envelope'}; end; %% Plot mode for footer panel display (plot all traces and/or envelope)
-try, g.makeCompass; catch, g.makeCompass = false; end %% TM: label cardinal directions (posterior,anterior, left, right)
-try, g.windowLength;    catch; g.windowLength = []; end;                    %% length of sliding window (for footer panel display)
-try, g.footerPanelTitle; catch, g.footerPanelTitle = ''; end;               %% TM: Title for footer panel display
-try, g.flashEvents;     catch, g.flashEvents = true; end                    %% TM: whether or not to flash screen at event times
-try, g.LONImesh;        catch, g.LONImesh = []; end                         %% TM
-try, g.LONITransparency;catch, g.LONITransparency = 1; end                  %% TM
-try, g.causality;       catch, g.causality = 0; end                         %% TM: added
-try, g.nodelabels;      catch, g.nodelabels = {}; end                       %% TM: added
-try, g.collapsefun;     catch, g.collapsefun = 'mean'; end                  %% TM: added  (can be 'integrate','mean','max','absmax','peak')
-try, g.footerPanelTimes;           catch, g.footerPanelTimes = TIMES; end                            %% TM: added (for envelope plot)
-try, g.showLatency;        catch, g.showLatency = 0; end                    %% TM: added
-try, g.verb;            catch, g.verb = 0;  end                             %% TM: added (display progress bar for making movie)
-try, g.csf;             catch, g.csf = []; end                              %% TM
-try, g.cortexTransparency;  catch, g.cortexTransparency = 1; end            %% TM: transparency of superimposed cortex (1 = don't plot)
-try, g.speedy;          catch, g.speedy = true; end                         %% TM: for fast rendering -- some features disabled
-try, g.mode;        catch, g.mode = 'init_and_render'; end                  %% TM: initialization mode. if 'init', then initialize only and current state of BM will be returned in g.vars, pass g in as subsequent input. If 'render', then skip init and use g.vars for rendering. if 'init_and_render' then do both (overwrites g.vars)
-try, g.vars;            catch, g.vars = []; end                             %% TM: a structure to hold initialization variables.
-try, g.facelighting;    catch, g.facelighting = 'phong'; end % 'gouraud'    %% TM: facelighting -- phong better but slower than gouraud
-try, g.plotimgs;        catch, g.plotimgs = true; end;                      %% plot background MRI plates on axes
-try, g.theme;           catch, g.theme = hlp_getBrainMovieTheme('theme','classic');  end %% TM: color theme structure
+try, g.makeCompass;         catch, g.makeCompass = false; end                       %% TM: label cardinal directions (posterior,anterior, left, right)
+try, g.windowLength;        catch; g.windowLength = []; end;                        %% length of sliding window (for footer panel display)
+try, g.footerPanelTitle;    catch, g.footerPanelTitle = ''; end;                    %% TM: Title for footer panel display
+try, g.flashEvents;         catch, g.flashEvents = true; end                    	%% TM: whether or not to flash screen at event times
+try, g.LONImesh;            catch, g.LONImesh = []; end                             %% TM
+try, g.LONITransparency;    catch, g.LONITransparency = 1; end                      %% TM
+try, g.causality;           catch, g.causality = 0; end                             %% TM: added
+try, g.nodelabels;          catch, g.nodelabels = {}; end                           %% TM: added
+try, g.collapsefun;         catch, g.collapsefun = 'mean'; end                      %% TM: added  (can be 'integrate','mean','max','absmax','peak')
+try, g.footerPanelTimes;    catch, g.footerPanelTimes = TIMES; end                  %% TM: added (for envelope plot)
+try, g.showLatency;         catch, g.showLatency = 0; end                           %% TM: added
+try, g.verb;                catch, g.verb = 0;  end                                 %% TM: added (display progress bar for making movie)
+try, g.csf;                 catch, g.csf = []; end                                  %% TM
+try, g.cortexTransparency;  catch, g.cortexTransparency = 1; end                    %% TM: transparency of superimposed cortex (1 = don't plot)
+try, g.speedy;              catch, g.speedy = true; end                         	%% TM: for fast rendering -- some features disabled
+try, g.mode;                catch, g.mode = 'init_and_render'; end                  %% TM: initialization mode. if 'init', then initialize only and current state of BM will be returned in g.vars, pass g in as subsequent input. If 'render', then skip init and use g.vars for rendering. if 'init_and_render' then do both (overwrites g.vars)
+try, g.vars;                catch, g.vars = []; end                                 %% TM: a structure to hold initialization variables.
+try, g.facelighting;        catch, g.facelighting = 'phong'; end % 'gouraud'        %% TM: facelighting -- phong better but slower than gouraud
+try, g.plotimgs;            catch, g.plotimgs = true; end;                          %% plot background MRI plates on axes
+try, g.theme;               catch, g.theme = hlp_getBrainMovieTheme('theme','classic');  end %% TM: color theme structure
 try, g.EdgeColorMappedToDirectionality; catch, g.EdgeColorMappedToDirectionality = false; end
 
 % some parameters for captions
-try, g.nodeColorMapping; catch, g.nodeColorMapping = ''; end
-try, g.EdgeColorMapping; catch, g.EdgeColorMapping = ''; end
-try, g.NodeSizeMapping; catch, g.NodeSizeMapping = ''; end
-try, g.EdgeSizeMapping; catch, g.EdgeSizeMapping = ''; end
-try, g.ConnMethod; catch, g.ConnMethod = 'Connectivity'; end
-try, g.nodeColorPolarity; catch, g.nodeColorPolarity = 'pos'; end
-try, g.edgeColorPolarity; catch, g.edgeColorPolarity = 'pos'; end
-try, g.centerDataRange;   catch, g.centerDataRange = true; end
-try, g.colorshadow;     catch, g.colorshadow = 1; end
-try, g.nodeColormap;       catch,
+try, g.nodeColorMapping;    catch, g.nodeColorMapping = ''; end
+try, g.EdgeColorMapping;    catch, g.EdgeColorMapping = ''; end
+try, g.NodeSizeMapping;     catch, g.NodeSizeMapping = ''; end
+try, g.EdgeSizeMapping;     catch, g.EdgeSizeMapping = ''; end
+try, g.ConnMethod;          catch, g.ConnMethod = 'Connectivity'; end
+try, g.nodeColorPolarity;   catch, g.nodeColorPolarity = 'pos'; end
+try, g.edgeColorPolarity;   catch, g.edgeColorPolarity = 'pos'; end
+try, g.centerDataRange;     catch, g.centerDataRange = true; end
+try, g.colorshadow;         catch, g.colorshadow = 1; end
+try, g.nodeColormap;        catch,
     colormtmp = hot(64);
     colormtmp(end,3) = (colormtmp(end,3)+colormtmp(end-1,3))/2; % white does not come out when the
     g.nodeColormap = colormtmp;                                    % the figure is printed to ppm
@@ -369,7 +370,7 @@ try, g.rthistloc; 	    catch, g.rthistloc(1) = (g.xlimaxes(2)-g.xlimaxes(1))*0.7
     g.rthistloc(2) = (g.ylimaxes(2)-g.ylimaxes(1))*0.34 + g.ylimaxes(1); % ordinate
     g.rthistloc(4) = (g.ylimaxes(2)-g.ylimaxes(1))*0.1; % max height
 end;
-try, g.coordinates; catch,
+try, g.coordinates; catch
     % coordinates around a circle
     g.coordinates = zeros( nbcomponents, 3 );
     count = 0;
@@ -890,7 +891,7 @@ if ismember(lower(g.mode),{'init','init_and_render'})
                     if length(events) < 2
                         events{2} = 'r';    end
                     
-                        
+                    
                     lh = vline(events{1},events{2},events{5},0,g.vars.hFooterPanel(tmpcond));
                     set(lh,'linestyle',events{3},'linewidth',events{4}*g.resmult);
                 end
@@ -909,13 +910,13 @@ if ismember(lower(g.mode),{'init','init_and_render'})
         
         % create a little title bar in right-top corner
         text((maxcoordx+(1.1-maxcoordx)/2)*s(1)+q(1), 0.9459, [fastif(iscell(g.title),g.title,{g.title}) {g.ConnMethod}],'HorizontalAlignment','center','fontsize',12*g.resmult,'units','normalized','fontweight','bold','parent',findobj(g.figurehandle,'tag','figureBackground'),'color','w');
-    
+        
         % draw a 'compass' indicating the directions
         if g.makeCompass
             % %- IN PREP
             g.vars.hCompass = axes('position', [0.0244/nbconditions+maxcoordx/nbconditions*(tmpcond-1), 0.8631, ...
-                    maxcoordx/nbconditions-0.05/nbconditions, ordinate-0.1].*s+q,'visible', g.visible,'color','none','xcolor','w','ycolor','w','parent',g.figurehandle);
-
+                maxcoordx/nbconditions-0.05/nbconditions, ordinate-0.1].*s+q,'visible', g.visible,'color','none','xcolor','w','ycolor','w','parent',g.figurehandle);
+            
             % draw a 3d arrow pointing the direction of the nose using arrow3d
             
             %         0.0231    0.9856
@@ -923,7 +924,7 @@ if ismember(lower(g.mode),{'init','init_and_render'})
             %         0.1944    0.8631
             %         0.1919    0.9856
         end
-
+        
     end
     
     % adjust the colormap as needed
@@ -1048,7 +1049,7 @@ if ismember(lower(g.mode),{'init','init_and_render'})
         case 'off', maxcoordx = 1;
     end;
     
-        
+    
     % draw white axis on envelop if flashes DOES NOT WORK WHEN PRINTING IN EPS
     % -------------------------------------
     %if ~isempty(g.events)
@@ -1266,11 +1267,11 @@ for indeximage = g.vars.alltimepoints
         camva(g.vars.hbrainax,(1/g.magnify)*6.7021);
         
         
-%                 if ~isempty(g.title) & tmpcond == 1
-%                     t = textsc(g.title{1},'title');
-%                     set(t,'VerticalAlignment','top', 'fontsize', 15);
-%                 end;
-%         
+        %                 if ~isempty(g.title) & tmpcond == 1
+        %                     t = textsc(g.title{1},'title');
+        %                     set(t,'VerticalAlignment','top', 'fontsize', 15);
+        %                 end;
+        %
     end;  % LOOP OVER CONDITIONS
     
     % put the time in the right bottom corner
@@ -1289,9 +1290,9 @@ for indeximage = g.vars.alltimepoints
     % update the current time
     %     axes(g.vars.hFooterPanel(tmpcond)); cla; axis off; set (g.figurehandle, 'visible', g.visible);
     if ~isempty( g.footerPanelData )
-
+        
         for tmpcond = 1:nbconditions
-%             cla(g.vars.hFooterPanel(tmpcond)); axis(g.vars.hFooterPanel(tmpcond),'on'); % set (g.figurehandle, 'visible', g.visible);
+            %             cla(g.vars.hFooterPanel(tmpcond)); axis(g.vars.hFooterPanel(tmpcond),'on'); % set (g.figurehandle, 'visible', g.visible);
             hold(g.vars.hFooterPanel(tmpcond),'on');
             
             % draw line for current time point
@@ -1337,7 +1338,7 @@ for indeximage = g.vars.alltimepoints
     
     % reset text fontcolor to white
     set(findobj(g.vars.hlgnd,'type','text'),'color',[0.99 0.99 0.99]);
-
+    
     drawnow;
     
     
