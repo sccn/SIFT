@@ -2,30 +2,30 @@
 %               event-related spectral perturbations, and inter-trial coherence
 %               of localized EEG waveforms. Uses outputs of timef() and cross().
 % Usage:
-%   >> brainmovie3d(ersps,itcs,crossfs_amp,crossfs_phase,times,freqs,selected,...
+%   >> brainmovie3d(ersps,itcs,crossfs_amp,crossfs_phase,TIMES,freqs,SELECTED,...
 %                         'keyword1',value1,...); % creates files image0001.eps, etc.
 %
 % Inputs:
 % ersps         - Cell array (components,conditions) of ERSP arrays
-% (freqs,times)
+% (freqs,TIMES)
 %                 ERSP = event-related spectral perturbation; returned by
 %                 timef()
 % itcs          - Cell array (components,conditions) of ITC arrays
-% (freqs,times)
+% (freqs,TIMES)
 %                 ITC = inter-trial coherence; returned by timef()
 % crossfs_amp   - Cell array (components,components,conditions) of crossf()
 %
-%                 amplitude output arrays of size (freqs,times).
+%                 amplitude output arrays of size (freqs,TIMES).
 % crossfs_phase - Cell array (components,components,conditions) of crossf() phase
-%                 output arrays of size (freqs,times). (Only the upper diagonal part
+%                 output arrays of size (freqs,TIMES). (Only the upper diagonal part
 %                 of the matrix is taken into account).
-% times         - Array of times returned by timef() or crossf()
+% TIMES         - Array of TIMES returned by timef() or crossf()
 % freqs         - Indices into the array of freqs returned by timef() or
 % crossf()
-%                 (e.g., [1:2] means plot the mean of the first two frequencies).
+%                 (v.henv.g., [1:2] means plot the mean of the first two frequencies).
 %                 These indexes determine for which freqs plotting will be
 %                 performed.
-% selected      - Component indices to plot (default all)
+% SELECTED      - Component indices to plot (default all)
 %
 % Optional 'keyword' parameters:
 % 'latency'   - plot only a subset of latencies. The time point closest to the
@@ -35,8 +35,8 @@
 % 'envelope'  - (2,points,conditions) envelopes of the average data (ERP)
 %               in each condition
 %               (envelope =  min and max traces of each ERP across all
-%               channels and times)
-% 'rt'        - cell array of vector containing reaction times of the subject in
+%               channels and TIMES)
+% 'rt'        - cell array of vector containing reaction TIMES of the subject in
 %               each conditions. This will plot a small bar which height will vary
 %               based on the probability of response (default {} -> ignored)
 % 'flashes'   - vector of time indices at which the background flashes.  Specify the color
@@ -76,7 +76,7 @@
 % 'diskscale'   - numeric value that scales the size of disks {default: [1.0]}
 % 'xlimaxes'    - x-axis limits axis for the component locations {default: [-1 1]}
 % 'ylimaxes'    - y-axis limits axis for the component locations {default: [-1 to 1]}
-% 'coordinates' - 3-column array of [x y z] coordinates of the selected components
+% 'coordinates' - 3-column array of [x y z] coordinates of the SELECTED components
 %                 {default: spaced evenly around the head circle boundary}
 % 'square'    - ['on'|'off'] re-square all coordinates (so X and Y width is the same)
 %               default is 'on';
@@ -95,7 +95,7 @@
 % 'condtitle'   - (string array) condition titles (one condition title per row)
 % 'condtitleformat' - list of title properties. Ex: { 'fontize', 12,
 % 'fontweight', 'bold' }
-% 'plotorder'   - [integer vector] component plot order from 1 to the number of selected
+% 'plotorder'   - [integer vector] component plot order from 1 to the number of SELECTED
 %                 components.
 % 'backcolor' - [float array] background color. Default is [1 1 1] (white).
 %
@@ -131,20 +131,19 @@
 % % re stimulus onset) assuming a 250-Hz sampling rate and 100 output
 % frames
 %
-% >> [ersps{1,1},itcs{1,1},powbase,times,freqs] = ...                          % timef for
+% >> [ersps{1,1},itcs{1,1},powbase,TIMES,freqs] = ...                          % timef for
 %                timef(icaact(1,:),176,[-100 600],'Component
 %                1',250,1,32,100); %     1st comp
-% >> [ersps{2,1},itcs{2,1},powbase,times,freqs] = ...                          % timef for
+% >> [ersps{2,1},itcs{2,1},powbase,TIMES,freqs] = ...                          % timef for
 %                timef(icaact(2,:),176,[-100 600],'Component 2',250,1,32,100); %     2nd comp
-% >> [crossfs_amp{1,2},mcoh,times,freqs,cohboot,crossfs_phase{1,2}] = ...      % crossf for
+% >> [crossfs_amp{1,2},mcoh,TIMES,freqs,cohboot,crossfs_phase{1,2}] = ...      % crossf for
 %      crossf_(icaact(1,:),icaact(2,:),176,[-100 600],'Crossf 1 and
 %      2',250,1,32,100); % both
 %
-% >> brainmovie3d( ersps, itcs, crossfs_amp, crossfs_phase, times, [1:2] );
+% >> brainmovie3d( ersps, itcs, crossfs_amp, crossfs_phase, TIMES, [1:2] );
 %
 % Author: Arnaud Delorme, SCCN, INC, UCSD, 30 Mai 2003
-%
-% Modified: Tim Mullen, SCCN/INC, UCSD 2010
+%         Tim Mullen, SCCN/INC, UCSD 2010
 %
 % Note: Better resolution movies can be generated by .eps -> .ppm -> .avi,
 %       (or, under a planned upgrade to brainmovie3d, from Matlab6 to .avi directly).
@@ -233,7 +232,7 @@
 % Initial revision
 %
 
-function [alltimepoints mov] = brainmovie3d_causal(ALLERSP,ALLITC,ALLCROSSF,ALLCROSSFANGLE,times,FREQS,selected,varargin);
+function [alltimepoints mov g] = brainmovie3d_causal(ALLERSP,ALLITC,ALLCROSSF,ALLCROSSFANGLE,TIMES,FREQS,SELECTED,varargin)
 
 if nargin < 6
     help brainmovie3d_causal;
@@ -254,14 +253,14 @@ else
 end;
 
 if nargin < 7
-    selected = 1:size(ALLERSP, 1);
+    SELECTED = 1:size(ALLERSP, 1);
 end;
 
 nbconditions = size(ALLERSP,2);
 nbcomponents = size(ALLERSP,1);
 
-try, g.csf,             catch, g.csf = []; end
-try, g.dipplotopt,      catch, g.dipplotopt = {}; end
+
+try, g.dipplotopt;      catch, g.dipplotopt = {}; end
 try, g.mri;             catch, g.mri = ''; end
 try, g.figurehandle;    catch, g.figurehandle = []; end
 try, g.opengl;          catch, g.opengl='on'; end
@@ -294,32 +293,45 @@ try, g.edgeColorLimits;    catch, g.edgeColorLimits    = [0 1]; end;
 
 try, g.diskscale;       catch, g.diskscale = 1; end;
 try, g.framefolder;     catch, g.framefolder = ''; end;
-try, g.envelope;        catch, g.envelope = []; end;
+try, g.footerPanelData;        catch, g.footerPanelData = []; end;
 try, g.caption;			catch, g.caption = 'on'; end;
 try, g.frames;			catch, g.frames = []; end;
 try, g.envvert;			catch, g.envvert = {}; end;
-try, g.flashes;			catch, g.flashes = []; end;
+try, g.events;          catch, g.events = {}; end;
 try, g.polarity;		catch, g.polarity = 'pos'; end;
 try, g.framesout;	    catch, g.framesout = 'tiff'; end;
 try, g.condtitle;		catch, g.condtitle = []; end;
-try, g.condtitleformat;	catch, g.condtitleformat = {'fontsize', 14', 'fontweight', 'bold' }; end;
-try, g.title;			catch, g.title = []; end;
+try, g.condtitleformat;	catch, g.condtitleformat = {'fontsize', 14, 'fontweight', 'bold', 'color' 'w'}; end;
+try, g.title;			catch, g.title = ''; end;
 try, g.envylabel;		catch, g.envylabel = '\muV'; end;
-try, g.plotorder;       catch, g.plotorder = selected; end;
+try, g.plotorder;       catch, g.plotorder = SELECTED; end;
 try, g.coordformat;     catch, g.coordformat = 'spherical'; end;
 try, g.stereo;          catch, g.stereo = []; end;
 try, g.backcolor;       catch, g.backcolor = [0 0 0]; end;
-try, g.path3d;          catch, g.path3d = 'off'; end;
+try, g.rotationpath3d;  catch, g.rotationpath3d = struct('AngleFactor',1,'PhaseFactor',0.75,'FramesPerCycle',max(1,length(g.latency))); end;
 try, g.project3d;       catch, g.project3d = 'off'; end;
 try, g.view;            catch, g.view = [43.6650 30.4420]; end;
+try, g.footerPanelPlotMode; catch, g.footerPanelPlotMode = {'all','envelope'}; end; %% Plot mode for footer panel display (plot all traces and/or envelope)
+try, g.makeCompass; catch, g.makeCompass = false; end %% TM: label cardinal directions (posterior,anterior, left, right)
+try, g.windowLength;    catch; g.windowLength = []; end;                    %% length of sliding window (for footer panel display)
+try, g.footerPanelTitle; catch, g.footerPanelTitle = ''; end;               %% TM: Title for footer panel display
+try, g.flashEvents;     catch, g.flashEvents = true; end                    %% TM: whether or not to flash screen at event times
+try, g.LONImesh;        catch, g.LONImesh = []; end                         %% TM
+try, g.LONITransparency;catch, g.LONITransparency = 1; end                  %% TM
 try, g.causality;       catch, g.causality = 0; end                         %% TM: added
 try, g.nodelabels;      catch, g.nodelabels = {}; end                       %% TM: added
 try, g.collapsefun;     catch, g.collapsefun = 'mean'; end                  %% TM: added  (can be 'integrate','mean','max','absmax','peak')
-try, g.times;           catch, g.times = []; end                            %% TM: added (for envelope plot)
+try, g.footerPanelTimes;           catch, g.footerPanelTimes = TIMES; end                            %% TM: added (for envelope plot)
 try, g.showLatency;        catch, g.showLatency = 0; end                    %% TM: added
 try, g.verb;            catch, g.verb = 0;  end                             %% TM: added (display progress bar for making movie)
+try, g.csf;             catch, g.csf = []; end                              %% TM
 try, g.cortexTransparency;  catch, g.cortexTransparency = 1; end            %% TM: transparency of superimposed cortex (1 = don't plot)
 try, g.speedy;          catch, g.speedy = true; end                         %% TM: for fast rendering -- some features disabled
+try, g.mode;        catch, g.mode = 'init_and_render'; end                  %% TM: initialization mode. if 'init', then initialize only and current state of BM will be returned in g.vars, pass g in as subsequent input. If 'render', then skip init and use g.vars for rendering. if 'init_and_render' then do both (overwrites g.vars)
+try, g.vars;            catch, g.vars = []; end                             %% TM: a structure to hold initialization variables.
+try, g.facelighting;    catch, g.facelighting = 'phong'; end % 'gouraud'    %% TM: facelighting -- phong better but slower than gouraud
+try, g.plotimgs;        catch, g.plotimgs = true; end;                      %% plot background MRI plates on axes
+try, g.theme;           catch, g.theme = hlp_getBrainMovieTheme('theme','classic');  end %% TM: color theme structure
 try, g.EdgeColorMappedToDirectionality; catch, g.EdgeColorMappedToDirectionality = false; end
 
 % some parameters for captions
@@ -361,9 +373,9 @@ try, g.coordinates; catch,
     % coordinates around a circle
     g.coordinates = zeros( nbcomponents, 3 );
     count = 0;
-    for index = selected
-        if length(selected) > 1
-            g.coordinates( index,:) = [ cos(count/length(selected)*2*pi) sin(count/length(selected)*2*pi) 0 ] * 0.7;
+    for index = SELECTED
+        if length(SELECTED) > 1
+            g.coordinates( index,:) = [ cos(count/length(SELECTED)*2*pi) sin(count/length(SELECTED)*2*pi) 0 ] * 0.7;
         else	g.coordinates(index,:) = [ 0.01 0.01 0 ];
         end;
         count = count + 1;
@@ -371,14 +383,14 @@ try, g.coordinates; catch,
 end;
 try, g.circfactor; catch, g.circfactor = ones( nbcomponents, nbcomponents )*0.01; end;
 if isempty(g.circfactor), g.circfactor = ones( nbcomponents, nbcomponents )*0.01; end;
-if isstr(g.path3d)
-    switch g.path3d
-        case 'on', g.path3d = [ 1 0.75];
-        case 'off', g.path3d = [];
-    end;
-else
-    if length(g.path3d) ~= 2, error('path3d length have to be a string or a 2 element vector'); end;
-end;
+% if ischar(g.rotationpath3d)
+%     switch g.rotationpath3d
+%         case 'on', g.rotationpath3d = [ 1 0.75];
+%         case 'off', g.rotationpath3d = [];
+%     end;
+% else
+%     if length(g.rotationpath3d) ~= 2, error('path3d length have to be a string or a 2 element vector'); end;
+% end;
 
 % add defaults ranges
 %--------------------
@@ -388,14 +400,14 @@ if isempty(g.nodeSizeDataRange)
         g.nodeSizeDataRange(1) = min(g.nodeSizeDataRange(1), min(ALLERSP{i}(:)));
         g.nodeSizeDataRange(2) = max(g.nodeSizeDataRange(2), max(ALLERSP{i}(:)));
     end;
-
+    
     % make 0 in the center of colormap
     if g.centerDataRange
         g.nodeSizeDataRange(1) = -max(g.nodeSizeDataRange);
         g.nodeSizeDataRange(2) =  max(g.nodeSizeDataRange);
     end
-    fprintf('Node size data range automatically set to %1.2f to %1.2f\n', g.nodeSizeDataRange(1), g.nodeSizeDataRange(2));
-end;
+    if g.verb, fprintf('Node size data range automatically set to %1.2f to %1.2f\n', g.nodeSizeDataRange(1), g.nodeSizeDataRange(2)); end
+end
 if isempty(g.nodeColorDataRange)
     g.nodeColorDataRange = [Inf -Inf];
     for i=1:length(ALLITC)
@@ -409,7 +421,7 @@ if isempty(g.nodeColorDataRange)
         g.nodeColorDataRange(2) =  max(g.nodeColorDataRange);
     end
     
-    fprintf('Node color data range automatically set to %1.2f to %1.2f\n', g.nodeColorDataRange(1), g.nodeColorDataRange(2));
+    if g.verb, fprintf('Node color data range automatically set to %1.2f to %1.2f\n', g.nodeColorDataRange(1), g.nodeColorDataRange(2)); end
 end;
 if isempty(g.edgeSizeDataRange)
     g.edgeSizeDataRange = [Inf -Inf];
@@ -425,7 +437,7 @@ if isempty(g.edgeSizeDataRange)
         g.edgeSizeDataRange(1) = -max(g.edgeSizeDataRange);
         g.edgeSizeDataRange(2) =  max(g.edgeSizeDataRange);
     end
-    fprintf('Edge size data range automatically set to %1.2f to %1.2f\n', g.edgeSizeDataRange(1), g.edgeSizeDataRange(2));
+    if g.verb, fprintf('Edge size data range automatically set to %1.2f to %1.2f\n', g.edgeSizeDataRange(1), g.edgeSizeDataRange(2)); end
 end;
 if isempty(g.edgeColorDataRange)
     g.edgeColorDataRange = [Inf -Inf];
@@ -436,13 +448,13 @@ if isempty(g.edgeColorDataRange)
         end;
     end;
     
-     % make 0 in the center of colormap
+    % make 0 in the center of colormap
     if g.centerDataRange
         g.edgeColorDataRange(1) = -max(g.edgeColorDataRange);
         g.edgeColorDataRange(2) =  max(g.edgeColorDataRange);
     end
     
-    fprintf('Edge color data range automatically set to %1.2f to %1.2f\n', g.edgeColorDataRange(1), g.edgeColorDataRange(2));
+    if g.verb, fprintf('Edge color data range automatically set to %1.2f to %1.2f\n', g.edgeColorDataRange(1), g.edgeColorDataRange(2)); end
 end;
 
 % check size of inputs
@@ -467,14 +479,14 @@ try
         if ~(size(ALLCROSSFANGLE{1,2,1},2) == size(ALLITC{1,1},2))
             disp('Error: number of time points (columns) different in ERSP and Crossf arrays'); return;
         end;
-        if ~(size(ALLCROSSF{1,2,1},2) == length(times))
-            disp('Error: number of time points (columns) different in times and Crossf arrays'); return;
+        if ~(size(ALLCROSSF{1,2,1},2) == length(TIMES))
+            disp('Error: number of time points (columns) different in TIMES and Crossf arrays'); return;
         end;
     end;
-    try, tmp = ALLERSP{1,1}; tmp(FREQS,:); catch, disp('Error: unable to access the defined frequencies in ERSPs (out of bounds) '); return; end;
-    try, ALLERSP{selected,1}; catch, disp('Error: unable to access the defined components in ERSPs (out of bounds)'); return; end;
+    try tmp = ALLERSP{1,1}; tmp(FREQS,:); catch, disp('Error: unable to access the defined frequencies in ERSPs (out of bounds) '); return; end;
+    try ALLERSP{SELECTED,1}; catch, disp('Error: unable to access the defined components in ERSPs (out of bounds)'); return; end;
 catch
-    disp('Error accessing one of the variable. Remember: Except for selected, freqs, times and circfactor, all vars are cell arrays. Check also: dimensions and content.'); return;
+    disp('Error accessing one of the variable. Remember: Except for SELECTED, freqs, TIMES and circfactor, all vars are cell arrays. Check also: dimensions and content.'); return;
 end;
 
 % check structure content
@@ -529,11 +541,11 @@ switch lower(g.polarity)
     otherwise disp('Error: Polarity must be either ''pos'' or ''posneg'''); return;
 end;
 if ~isempty(g.envvert),
-    if ~iscell(g.envvert) & ~( isstruct(g.envvert{1}) | isnumeric(g.envvert{1}) )
+    if ~iscell(g.envvert) && ~( isstruct(g.envvert{1}) || isnumeric(g.envvert{1}) )
         disp('Error: Invalid type for Envvert.'); return;
     end
 end
-if ~isempty(g.latency) & ~isnumeric(g.latency)
+if ~isempty(g.latency) && ~isnumeric(g.latency)
     disp('Error: Latency must be a vector'); return;
 end;
 if length(g.nodeSizeDataRange) ~= 2
@@ -542,7 +554,7 @@ end;
 if length(g.edgeSizeDataRange) ~= 2
     disp('Error: Scalecoher must be a 2-element array'); return;
 end;
-if (length(g.diskscale) ~= 1 | g.diskscale < 0)
+if (length(g.diskscale) ~= 1 || g.diskscale < 0)
     disp('Error: Diskscale must be a scalar value >= 0.'); return;
 end
 if size(g.nodeColormap,2) ~= 3
@@ -554,20 +566,20 @@ end;
 if size(g.circfactor,1) ~= size(g.circfactor,2)
     disp('Error: Circfactor must be a square matrix'); return;
 end;
-if ~iscell(g.coordinates) & ~isempty(g.circfactor)
+if ~iscell(g.coordinates) && ~isempty(g.circfactor)
     if size(g.circfactor,1) ~= size(g.coordinates,1)
         disp('Error: Circfactor must have the same number of rows as the number of rows of coordinates'); return;
     end;
     if nbcomponents ~= size(g.coordinates,1)
-        disp('Error: The array of selected components must have length nrows of the array coordinates'); return;
+        disp('Error: The array of SELECTED components must have length nrows of the array coordinates'); return;
     end;
 end;
-if ~isstr(g.envylabel)
+if ~ischar(g.envylabel)
     disp('Error: envelope label must be a string'); return;
 end;
-if ~isempty(g.envelope) && isempty(g.times)
-    if (size( g.envelope,1 ) ~=2) | (size( g.envelope,2 ) ~= length(times)) | (size( g.envelope,3 ) ~= nbconditions)
-        fprintf('Error: Envelope array does not have the right size (%s), i.e. 2 x %d (number of time points) x %d (number of conditions)\n', int2str(size( g.envelope)), length(times), nbconditions); return;
+if ~isempty(g.footerPanelData) && isempty(g.footerPanelTimes)
+    if (size( g.footerPanelData,1 ) > 2) || (size( g.footerPanelData,2 ) ~= length(g.footerPanelTimes)) || (size( g.footerPanelData,3 ) ~= nbconditions)
+        fprintf('Error: Envelope array does not have the right size (%s), i.v.henv. 2 x %d (number of time points) x %d (number of conditions)\n', int2str(size( g.footerPanelData)), length(TIMES), nbconditions); return;
     end;
 end;
 if ~isempty(g.condtitle)
@@ -576,447 +588,541 @@ if ~isempty(g.condtitle)
         fprintf('Error: The number of rows in the title array(%d) must match the number of conditions (%d)\n', size(g.condtitle,1), nbconditions); return;
     end;
 end;
-if length(g.plotorder) ~= length(selected)
-    error([ 'Error: ''plotorder'' must be the same size as the number of selected components:' int2str(length(selected)) ]);
+if length(g.plotorder) ~= length(SELECTED)
+    error([ 'Error: ''plotorder'' must be the same size as the number of SELECTED components:' int2str(length(SELECTED)) ]);
 end;
-if max(g.plotorder) > max(selected)
-    error([ 'Error: ''plotorder'' must be below the number of selected components:' int2str(max(selected)) ]);
+if max(g.plotorder) > max(SELECTED)
+    error([ 'Error: ''plotorder'' must be below the number of SELECTED components:' int2str(max(SELECTED)) ]);
 end;
 
 SLASH = fastif(isunix,'/','\');
 
 if ~isempty(g.framefolder) && ~isdir(g.framefolder)
-    error(fprintf('%s does not exist',g.framefolder));
-%     [tmp1 tmp2] = mkdir(SLASH, g.framefolder(2:end) );
+    error('%s does not exist',g.framefolder);
+    %     [tmp1 tmp2] = mkdir(SLASH, g.framefolder(2:end) );
 end;
 
 % append a slash to framefolder, if necessary
-if ~isempty(g.framefolder) && g.framefolder(end) ~= SLASH 
-    g.framefolder = [g.framefolder SLASH]; 
+if ~isempty(g.framefolder) && g.framefolder(end) ~= SLASH
+    g.framefolder = [g.framefolder SLASH];
 end;
-    
+
 if g.verb==2
-    h=waitbar(0,'Initializing Brainmovie...');
+    g.vars.hwaitbar=waitbar(0,'Initializing Brainmovie...');
 end
 
-% create movie
-% ------------
-if ~isempty(g.moviename)
-%     fprintf('A movie is being saved under %s (movie parameters shown below):',g.moviename);
-    mov = avifile(g.moviename, g.movieopts{:});
-end
+mov = [];
+alltimepoints = [];
 
 % other variables
 % ---------------
-%limits: power -6 to 6
-%limits: ITC 0-1
-%limits: coherence 0-1
-%limits: coherence angle -180 to 180
 g.factproj = [-88 88 -71]; %[-71 88 -71];
 g.projcolor = [0.35 0.35 0.35];
 g.rthistcolor  = [1 1 1];
 g.resmult = 1;
-currentphase   = zeros( length(selected), length(selected), nbconditions);
-tmp = ALLERSP{1,1};
-nwin = size(tmp,2);
 
-%for index = 1:64
-%	circle(1+index,1, 0.5, g.colormaphsv(index, :));
-%end;
+% latency and color of flash events
+g.vars.flashTimes = [];
+g.vars.flashColor = {};
 
-% optional resqure of all coordinates
-% -----------------------------------
-g.magnify = g.magnify/4;
-
-% compute RT distribution
-% -----------------------
-if ~isempty(g.rt)
-    RTdist = zeros(nbconditions,nwin);
-    for index = 1:nbconditions
-        if ~isempty(g.rt{index})
-            timestep = (times(2)-times(1))/2;
-            for indeximage = 1:nwin
-                RTdist(index, indeximage) = length( intersect( find( g.rt{index} > times(indeximage)-timestep ) , ...
-                    find(  g.rt{index} <= times(indeximage)+timestep ) ) );
+if ismember(lower(g.mode),{'init','init_and_render'})
+    
+    
+    % create movie
+    % ------------
+    if ~isempty(g.moviename)
+        %     fprintf('A movie is being saved under %s (movie parameters shown below):',g.moviename);
+        mov = avifile(g.moviename, g.movieopts{:});
+    end
+    
+    
+    currentphase   = zeros( length(SELECTED), length(SELECTED), nbconditions);
+    tmp = ALLERSP{1,1};
+    nwin = size(tmp,2);
+    
+    %     % optional resquare of all coordinates
+    %     % -----------------------------------
+    %     g.magnify = g.magnify/4;
+    
+    % compute RT distribution
+    % -----------------------
+    if ~isempty(g.rt)
+        RTdist = zeros(nbconditions,nwin);
+        for index = 1:nbconditions
+            if ~isempty(g.rt{index})
+                timestep = (TIMES(2)-TIMES(1))/2;
+                for indeximage = 1:nwin
+                    RTdist(index, indeximage) = length( intersect( find( g.rt{index} > TIMES(indeximage)-timestep ) , ...
+                        find(  g.rt{index} <= TIMES(indeximage)+timestep ) ) );
+                end;
+                RTdist(index,:) = RTdist(index,:)/max(RTdist(index,:));
             end;
-            RTdist(index,:) = RTdist(index,:)/max(RTdist(index,:));
         end;
+        RTdist = RTdist/max(RTdist(:));
     end;
-    RTdist = RTdist/max(RTdist(:));
-end;
-
-if ~isempty(g.figurehandle)
-    try 
-        figure(g.figurehandle);
-        clf
-    catch
+    
+    if ~isempty(g.figurehandle) && ishandle(g.figurehandle)
+        % clear the current figure
+        clf(g.figurehandle);
+    else
+        % create a new figure
         g.figurehandle = figure( 'position', [100, 100, ceil(nbconditions*g.size(1)/4)*4, ceil(g.size(2)/4)*4], ...
             'PaperPositionMode', 'auto', 'papertype', 'A1', 'visible',g.visible,'tag','BrainMovieFigure'); %'paperorientation', 'landscape' );
     end
-else
-   g.figurehandle = figure( 'position', [100, 100, ceil(nbconditions*g.size(1)/4)*4, ceil(g.size(2)/4)*4], ...
-        'PaperPositionMode', 'auto', 'papertype', 'A1', 'visible',g.visible,'tag','BrainMovieFigure'); %'paperorientation', 'landscape' );
-end
-
-axis off
-if 	strcmpi(g.framesout, 'ppm')
-    r = 0.8465;
-    pos = get(gcf,'position');
-    if floor(pos(3)/r)> 1280
-        fact = 1280/(pos(3)/r);
-        set(gcf, 'position', [ 0 0 1280  floor(pos(4)/r*fact) ]);
-    else
-        set(gcf, 'position', [ 0 0 floor(pos(3)/r), floor(pos(4)/r) ]);
-    end;
-end;
-pos = get(gca,'position');
-q = [pos(1) pos(2) 0 0];
-s = [pos(3) pos(4) pos(3) pos(4)];
-
-% compute selected latency point
-% ------------------------------
-if ~isempty(g.latency)
-    alltimepoints = [];
-    for index = 1:length(g.latency)
-        [tmp tmptimepoint] = min(abs(g.latency(index)-times));
-        alltimepoints = [ alltimepoints tmptimepoint];
-    end;
-else
-    if isempty(g.frames)
-        alltimepoints = 1:nwin;
-    else
-        alltimepoints = g.frames;
-    end;
-end;
-
-% make black patch behind figure
-% ------------------------------
-hback = axes('position' , [0 0 1 1], 'xtick', [], 'ytick', [], 'box', 'off','tag','figureBackground');
-hpatch = patch([0 1 1 0], [0 0 1 1], g.backcolor); xlim([0 1]); ylim([0 1]);
-set(hpatch, 'facecolor' , g.backcolor, 'edgecolor', 'none');
-
-% compute flashes latency
-% -----------------------
-if ~isempty(g.flashes)
-    if iscell(g.flashes)
-        for index = 1:length(g.flashes)
-            flasheslat(index) = g.flashes{index}{1};
-            flashescol{index} = g.flashes{index}{2};
-        end;
-    else
-        flasheslat = g.flashes;
-        for index = 1:length(g.flashes)
-            flashescol{index} = [0.5 0.5 0.5];
+    
+    % create an axis
+    htmp=axes('parent',g.figurehandle);
+    axis(htmp,'off');
+    
+    if 	strcmpi(g.framesout, 'ppm')
+        r = 0.8465;
+        pos = get(g.figurehandle,'position');
+        if floor(pos(3)/r)> 1280
+            fact = 1280/(pos(3)/r);
+            set(g.figurehandle, 'position', [ 0 0 1280  floor(pos(4)/r*fact) ]);
+        else
+            set(g.figurehandle, 'position', [ 0 0 floor(pos(3)/r), floor(pos(4)/r) ]);
         end;
     end;
-    allflashes = [];
-    for index = 1:length(g.flashes)
-        [tmp tmptimepoint] = min(abs(flasheslat(index)-times));
-        allflashes = [ allflashes tmptimepoint];
+    
+    pos = get(htmp,'position');
+    %    left   bottom
+    q = [pos(1) pos(2) 0 0];
+    %    width  height width  height
+    s = [pos(3) pos(4) pos(3) pos(4)];
+    
+    % compute SELECTED latency point
+    % ------------------------------
+    if ~isempty(g.latency)
+        g.vars.alltimepoints = [];
+        for index = 1:length(g.latency)
+            [tmp tmptimepoint] = min(abs(g.latency(index)-TIMES));
+            g.vars.alltimepoints = [ g.vars.alltimepoints tmptimepoint];
+        end;
+    else
+        if isempty(g.frames)
+            g.vars.alltimepoints = 1:nwin;
+        else
+            g.vars.alltimepoints = g.frames;
+        end;
     end;
-    %hpatch = patch([ 0.02 .11 .11 0.02], [0.05 0.05 0.925 0.925], [0.5 0.5 0.5]); lateral
-    %hpatch = patch([ 0 1 1 0], [0 0 1 1], [0.5 0.5 0.5]); full
-    %hpatch = patch([ 0.13 0.84 0.84 0.13 ], [0.92 0.92 1 1], [0.5 0.5 0.5]); %up
-    hpatch = patch([ 0.13 0.84 0.84 0.13 ], [0.8 0.8 0.93 0.93], [0.5 0.5 0.5]);
-    set(hpatch, 'facecolor', 'w', 'edgecolor', 'none');
-    xlim([0 1]); ylim([0 1]);
-    posf = 0; % used as a counter to preserve color
-end;
-
-% draw axes and display images
-% ----------------------------
-ordinate = 0.2;
-max_ordinate = 1-1.4*ordinate;   % makes space at top for figure title
-maxcoordx    = 1.1-1/nbconditions/4;
-coords = g.coordinates;
-g.coordinates = cell(nbconditions);
-for tmpcond=1:nbconditions
     
-    % plot 3d head (*0.9 added for Nick - Arno).
-    % ------------
-    hh(tmpcond) = axes('position', [0+maxcoordx/nbconditions*(tmpcond-1), ordinate, maxcoordx/nbconditions*0.9, max_ordinate].*s+q );
-    gr = [ 0.3 0.3 0.3 ];
-    g.dipplotopt = [{ 'coordformat' g.coordformat 'gui', 'off', 'cornermri', 'on', 'color', { gr gr gr gr gr gr gr gr gr } } g.dipplotopt];
+    % initialize the rotation frame index for path3d
+    g.vars.path3d_frameindex = g.vars.alltimepoints(1);
     
-    if ~isempty(g.mri)
-        g.dipplotopt = [g.dipplotopt 'mri' g.mri];
+    % set up axis for figure background
+    % ---------------------------------
+    g.vars.hFigureBg = axes('position' , [0 0 1 1], 'color',g.backcolor,'xtick', [], 'ytick', [], 'box', 'off','tag','figureBackground','parent',g.figurehandle);
+    xlim(g.vars.hFigureBg,[0 1]);
+    ylim(g.vars.hFigureBg,[0 1]);
+    
+    % setup event flash objects
+    % -------------------------
+    if g.flashEvents
+        for index = 1:length(g.events)
+            g.vars.flashTimes(index) = g.events{index}{1};  % convert to ms
+            g.vars.flashColor{index} = g.events{index}{2};
+        end
+        g.vars.allFlashIndices = getindex(TIMES,g.vars.flashTimes);
+        
+        % create a rectangular border out of two patches
+        % outer patch (flash colored)
+        g.vars.hFlashPatch = patch([0.03 0.8 0.8 0.03], ...  %   [ 0.1 0.84 0.84 0.1 ]
+            [0.01 0.01 0.99 0.99], ...
+            g.backcolor,'parent',g.vars.hFigureBg,'visible','off');
+        % inner patch (background color)
+        patch([ 0.05 0.78 0.78 0.05 ], [0.03 0.03 0.9 0.9], ...  %   [ 0.13 0.8 0.8 0.13 ]
+            g.backcolor,'parent',g.vars.hFigureBg, ...
+            'facecolor' , g.backcolor, 'edgecolor', 'none');
+        
+        %         g.vars.hFlashPatch = patch([ 0.13 0.84 0.84 0.13 ], [0.8 0.8 0.93 0.93], [0.5 0.5 0.5],'parent',g.vars.hFigureBg);
+        
+        posf = 0; % used as a counter to preserve color
     end
     
-    if iscell(coords)
-        for index = 1:length(coords)
-            if size(coords{index},1) == 2 && all(coords{index}(2,:) == 0), coords{index}(2,:) = []; end;
-            dipstruct(index).posxyz = coords{index};
-            dipstruct(index).momxyz = [1 1 1];
-            if size(dipstruct(index).posxyz,1) == 2, dipstruct(index).momxyz(2,:) = [1 1 1]; end;
-            dipstruct(index).component = index;
-            dipstruct(index).rv = 0.1;
-        end;
-    else
-        for index = 1:size(coords, 1);
-            dipstruct(index).posxyz = coords(index,:);
-            dipstruct(index).momxyz = [0 0 0];
-            dipstruct(index).component = index;
-            dipstruct(index).rv = 0.1;
-        end;
-    end;
+    % draw axes and display images
+    % ----------------------------
+    ordinate = 0.2;
+    max_ordinate = 1-1.4*ordinate;   % makes space at top for figure title
+    maxcoordx    = 1.1-1/nbconditions/4;
+    coords = g.coordinates;
+    g.coordinates = cell(nbconditions);
     
-    dipplot( dipstruct, 'view', g.view, g.dipplotopt{:}); axis off;
-    
-    %     g.maxc = 100;
-    %     surface([-2 -2; -2 -2]*g.maxc, [-20 20; -20 20]*g.maxc,[-20 -20; 20 20]*g.maxc, repmat(reshape([0 0 0], 1, 1, 3), [2 2 1]), 'facelighting', 'none');
-    %     surface([-20 20; -20 20]*g.maxc,[2 2; 2 2]*g.maxc, [-20 -20; 20 20]*g.maxc,     repmat(reshape([0 0 0], 1, 1, 3), [2 2 1]), 'facelighting', 'none');
-    
-    %camproj('perspective');
-    brainaxis(tmpcond) = gca;
-    set(gca, 'cameraviewanglemode', 'manual'); % disable change size
-    set(gca,'tag',['brain' num2str(tmpcond)]);
-    axis vis3d % same as above (for security)
-    camlight left
-    camlight right
-    view(g.view)
-    %camzoom(1.2)
-    
-    for index = 1:length(dipstruct)
-        htmp = findobj(gca, 'tag', [ 'dipole' int2str(index) ]);
-        for dipindex = 1:length(htmp)
-            tmpstruct = get(htmp(dipindex), 'userdata');
-            if isstruct(tmpstruct) % look for dipole location % THIS DOES NOT WORK
-                if isfield(tmpstruct, 'pos3d') && ~all(tmpstruct.pos3d == 0)
-                    if length(g.coordinates{tmpcond}) >= index && ~isempty(g.coordinates{tmpcond}{index}) && ~isequal(g.coordinates{tmpcond}{index}, tmpstruct.pos3d)
-                        g.coordinates{tmpcond}{index}(2,:) = tmpstruct.pos3d;
-                    else
-                        g.coordinates{tmpcond}{index} = tmpstruct.pos3d;
-                    end;
-                elseif isfield(tmpstruct, 'eleccoord') && ~all(tmpstruct.eleccoord == 0)
-                    if length(g.coordinates{tmpcond}) >= index && ~isempty(g.coordinates{tmpcond}{index}) && ~isequal(g.coordinates{tmpcond}{index}, tmpstruct.eleccoord)
-                        g.coordinates{tmpcond}{index}(2,:) = tmpstruct.eleccoord;
-                    else
-                        g.coordinates{tmpcond}{index} = tmpstruct.eleccoord;
-                    end;
-                else
-                    tmpstruct
-                    error('Field not found in tmpstruct');
-                end;
+    for tmpcond=1:nbconditions
+        
+        % plot 3d head (*0.9 added for Nick - Arno).
+        % ------------
+        g.vars.hBrain(tmpcond) = axes('position', [0+maxcoordx/nbconditions*(tmpcond-1), ordinate, maxcoordx/nbconditions*0.9, max_ordinate].*s+q ,'parent',g.figurehandle);
+        gr = [ 0.3 0.3 0.3 ];
+        g.dipplotopt = [{ 'coordformat' g.coordformat 'gui', 'off', 'cornermri', 'on', 'color', { gr gr gr gr gr gr gr gr gr } } g.dipplotopt];
+        
+        if ~isempty(g.mri)
+            g.dipplotopt = [g.dipplotopt 'mri' g.mri];
+        end
+        
+        if iscell(coords)
+            for index = 1:length(coords)
+                if size(coords{index},1) == 2 && all(coords{index}(2,:) == 0), coords{index}(2,:) = []; end;
+                dipstruct(index).posxyz = coords{index};
+                dipstruct(index).momxyz = [1 1 1];
+                if size(dipstruct(index).posxyz,1) == 2, dipstruct(index).momxyz(2,:) = [1 1 1]; end;
+                dipstruct(index).component = index;
+                dipstruct(index).rv = 0.1;
             end;
-        end;
-        delete(htmp);
-    end;
-    
-    %h = plot3(g.coordinates{tmpcond}(:, 1),  g.coordinates{tmpcond}(:, 2),  g.coordinates{tmpcond}(:, 3), 'r.', 'markersize', 30);
-    %dsaf
-    xltmp = xlim;
-    yltmp = ylim;
-    g.dimratio = (xltmp(2) - xltmp(1)) / (yltmp(2) - yltmp(1));
-    
-    axis off;
-    if ~isempty(g.condtitle)
-        h = title(g.condtitle(tmpcond,:));
-        if ~isempty(g.condtitleformat)
-            set(h, g.condtitleformat{:} );
-        end;
-    end;
-    
-    % this axis is used for the enveloppe but
-    % also used to print current time (which is why it is always created
-    if ~isempty( g.envelope )
-        e(tmpcond) = axes('position', [0.1/nbconditions+maxcoordx/nbconditions*(tmpcond-1), 0, ...
-            maxcoordx/nbconditions-0.1/nbconditions, ordinate-0.1].*s+q,'visible', g.visible);
-    end;
-end;
-
-
-% adjust the colormap as needed
-if strcmpi(g.nodeColorPolarity, 'pos')
-    g.nodeColormap = g.nodeColormap(length(g.nodeColormap)/2:end,:); end
-if strcmpi(g.edgeColorPolarity, 'pos')
-    g.edgeColormap = g.edgeColormap(length(g.edgeColormap)/2:end,:); end
-
-
-% draw captions if necessary
-% --------------------------
-countl = 1;
-switch lower(g.caption)
-    case 'on' ,
-        xlimnorm = (1.1-maxcoordx)/(maxcoordx/nbconditions) * g.xlimaxes;
-        ylimnorm = 0.45/(1-ordinate) * g.ylimaxes;
-        switch g.power, case 'on',
-            % create 3 spheres to show node size variation
-            c(countl) = axes('position', [maxcoordx, -0.1,    (1.1-maxcoordx), 0.45].*s+q, 'xlim', xlimnorm, ...
-                'ylim', ylimnorm,'visible', g.visible, 'color', 'w' );
-            % draw 3 spheres
-            [xstmp ystmp zs] = sphere(15);
-            l=sqrt(xstmp.*xstmp+ystmp.*ystmp+zs.*zs);
-            normals = reshape([xstmp./l ystmp./l zs./l],[16 16 3]);
-            tmpsize = 0.5; xs1 = tmpsize*ystmp; ys1 = tmpsize*xstmp; zs1 = tmpsize*zs;
-            tmpsize = 0.9; xs2 = tmpsize*ystmp; ys2 = tmpsize*xstmp; zs2 = tmpsize*zs + 2;
-            tmpsize = 0.1; xs3 = tmpsize*ystmp; ys3 = tmpsize*xstmp; zs3 = tmpsize*zs - 1.5;
-            colorarray = repmat(reshape([1 1 1],  1,1,3), [size(zs,1) size(zs,2) 1]);
-            handles = surf(xs1, ys1, zs1, colorarray, 'tag', 'tmpmov', 'EdgeColor','none', 'VertexNormals', normals, ...
-                'backfacelighting', 'lit', 'facelighting', 'phong', 'facecolor', 'interp', 'ambientstrength', 0.3); hold on;
-            handles = surf(xs2, ys2, zs2, colorarray, 'tag', 'tmpmov', 'EdgeColor','none', 'VertexNormals', normals, ...
-                'backfacelighting', 'lit', 'facelighting', 'phong', 'facecolor', 'interp', 'ambientstrength', 0.3);
-            handles = surf(xs3, ys3, zs3, colorarray, 'tag', 'tmpmov', 'EdgeColor','none', 'VertexNormals', normals, ...
-                'backfacelighting', 'lit', 'facelighting', 'phong', 'facecolor', 'interp', 'ambientstrength', 0.3);
-            axis off;
-            camlight left
-            camlight right
-            view([1 0 0])
-            lightangle(45,0);
-            lighting phong;
-            material shiny;
-            axis equal;
-            set(gca, 'zlim', [-2 4]);
-            set(gca, 'ytick', [], 'yticklabel', [], 'xtick',[],'xticklabel', [], 'box', 'off');
-            text(0.1, 0.42, {'',g.nodeSizeMapping}, 'units','normalized','horizontalalignment','center','rotation',90,'fontsize', 11, 'fontweight', 'bold');
-            text(0, 1.3, 2, num2str(g.nodeSizeDataRange(2),'%0.2f'), 'fontweight', 'bold');    % upper limit
-            text(0, 1, 0, num2str((g.nodeSizeDataRange(2)+g.nodeSizeDataRange(1))/2,'%0.2f'), 'fontweight', 'bold');   % midrange
-            text(0, 0.5, -1.5, num2str(g.nodeSizeDataRange(1),'%0.2f'), 'fontweight', 'bold'); % lower limit
-            %       scalepower(mean(xlimnorm), min(ylimnorm)+0.2, g); % see function at the end
-            %       axis off;
-            countl = countl + 1;
-        end;
-        switch g.itc, case 'on',
-            % create ball colormap for nodecolor legend
-            c(countl) = axes('position', [maxcoordx+(1.1-maxcoordx)/2, 0.29 , (1.1-maxcoordx)/2, 0.14].*s+q, ...
-                'visible', g.visible, 'color', 'none' );
-            countl = countl + 1;
-            
-            if strcmpi(g.nodeColorPolarity, 'posneg') % negative ITCs (difference only) ?
-                cbar( [-1 1], [-1 1], g.nodeColormap, 'vert', 'circle', g);
-                %           ylabel(g.nodeColorMapping, 'fontweight', 'bold');
-                %           set(gca, 'ytick', [-1 0 1], 'yticklabel', [-1 0 1], 'xticklabel', [], 'box', 'off');
-            else
-                cbar( [0 1], [0 1], g.nodeColormap, 'vert', 'circle', g);
-                %           cbar( [0 1], [0 1], g.nodeColormap(length(g.nodeColormap)/2:end,:), 'vert', 'circle', g);
-                %           ylabel({'',g.nodeColorMapping},'rotation',90, 'fontweight', 'normal');
-                %           set(gca, 'ytick', [0 1], 'yticklabel', [0 1], 'xticklabel', [], 'box', 'off');
-                %           set(gca, 'ytick', [0], 'yticklabel', [0], 'xticklabel', [], 'box', 'off');
+        else
+            for index = 1:size(coords, 1);
+                dipstruct(index).posxyz = coords(index,:);
+                dipstruct(index).momxyz = [0 0 0];
+                dipstruct(index).component = index;
+                dipstruct(index).rv = 0.1;
             end;
-            axis off;
-            set(gca, 'ytick', [], 'yticklabel', [], 'xtick',[],'xticklabel', [], 'box', 'off');
-            % yticks
-            text(-0.2, 1, num2str(g.nodeColorDataRange(2),'%0.2f'), 'fontsize', 10,'units','normalized'); % upper limit
-            text(-0.2, 0.5, num2str((g.nodeColorDataRange(2)+g.nodeColorDataRange(1))/2, '%0.2f'), 'fontsize', 10,'units','normalized'); % midrange
-            text(-0.2, 0, num2str(g.nodeColorDataRange(1),'%0.2f'), 'fontsize', 10,'units','normalized'); % lower limit
-            text(-0.8, 0.55, {'',g.nodeColorMapping}, 'horizontalalignment','center','rotation',90,'fontsize', 11, 'fontweight', 'bold','units','normalized');
         end;
         
-        switch g.crossf, case 'on',
-            % create bars showing variability in edge size
-            c(countl) = axes('position', [maxcoordx+(1.1-maxcoordx)/2, 0.69,(1.1-maxcoordx)/2, 0.25 ].*s+q, ...
-                'visible', g.visible );
-            countl = countl + 1;
-            scalecoher([0.02 1], [0.04 0.96], 5, g); % see function at the end
-            text(-0.2, 1, num2str(g.edgeSizeDataRange(2),'%0.2f'), 'fontsize', 10,'units','normalized'); % upper limit
-            text(-0.2, 0.5, num2str((g.edgeSizeDataRange(2)+g.edgeSizeDataRange(1))/2, '%0.2f'), 'fontsize', 10,'units','normalized'); % midrange
-            text(-0.2, 0, num2str(g.edgeSizeDataRange(1),'%0.2f'), 'fontsize', 10,'units','normalized'); % lower limit
-            text(-0.8, 0.55, {'',g.edgeSizeMapping}, 'horizontalalignment','center','rotation',90,'fontsize', 11, 'fontweight', 'bold','units','normalized');
-            set(gca, 'ytick', [], 'yticklabel', [], 'xtick',[],'xticklabel', [], 'box', 'off');
-            
-            switch g.crossfphasecolor, case 'on',
-                % create colorbar for edgecolor legend
-                c(countl) = axes('position', [maxcoordx+(1.1-maxcoordx)/2, 0.47 , (1.1-maxcoordx)/4, 0.14].*s+q, ...
-                    'visible', g.visible, 'color', 'none' );
-                countl = countl + 1;
-                if strcmpi(g.edgeColorPolarity, 'posneg') % negative ITCs (difference only) ?
-                    cbar( [-1 1], [-1 1], g.edgeColormap, 'vert', '', g);
-                    %           ylabel({'', g.ConnMethod }, 'fontweight', 'bold');
-                    %           set(gca, 'ytick', [-1 0 1], 'yticklabel', [g.edgeSizeDataRange(1) 0 g.edgeSizeDataRange(2)], 'xticklabel', []);
-                    %         set(gca, 'ytick', [-1 0 1], 'yticklabel', [g.edgeSizeDataRange(1) 0 g.edgeSizeDataRange(2)], 'xticklabel', []);
-                else
-                    cbar( [0 1], [0 1], g.edgeColormap, 'vert', '', g);
-                    %               cbar( [0 1], [0 1], g.edgeColormap(length(g.edgeColormap)/2:end,:), 'vert', '', g);
-                    %           ylabel({'', g.ConnMethod }, 'fontweight', 'bold');
-                    %           set(gca, 'ytick', [0 1], 'yticklabel', [g.edgeSizeDataRange(1) g.edgeSizeDataRange(2)], 'xticklabel', []);
-                    %         set(gca, 'ytick', [0], 'yticklabel', [0], 'xticklabel', []);
+        % unfortunately, we have to temporarily change the current axis so
+        % dipplot will render into the correct axis
+        curax = get(gcf,'currentaxes');
+        axes(g.vars.hBrain(tmpcond));
+        dipplot( dipstruct, 'view', g.view, g.dipplotopt{:});
+        axis(g.vars.hBrain(tmpcond),'off');
+        if ~isempty(curax)
+            axes(curax);  % revert focus back to original axis
+        end
+        
+        if ~g.plotimgs
+            set(findobj('parent', g.vars.hBrain(tmpcond), 'tag', 'img'),'visible','off');
+            %             camzoom(g.vars.hBrain(tmpcond),1/(1.2));  % to offset camzoom in dipplot
+        end
+        
+        %camproj('perspective');
+        set(g.vars.hBrain(tmpcond), 'cameraviewanglemode', 'manual'); % disable change size
+        set(g.vars.hBrain(tmpcond),'tag',['brain' num2str(tmpcond)]);
+        axis(g.vars.hBrain(tmpcond),'vis3d') % same as above (for security)
+        %         camlight left
+        %         camlight right
+        view(g.vars.hBrain(tmpcond),g.view);
+        
+        %camzoom(1.2)
+        
+        g.vars.coordinates = g.coordinates;
+        
+        for index = 1:length(dipstruct)
+            htmp = findobj(g.vars.hBrain(tmpcond), 'tag', [ 'dipole' int2str(index) ]);
+            for dipindex = 1:length(htmp)
+                tmpstruct = get(htmp(dipindex), 'userdata');
+                if isstruct(tmpstruct) % look for dipole location % THIS DOES NOT WORK
+                    if isfield(tmpstruct, 'pos3d') && ~all(tmpstruct.pos3d == 0)
+                        if length(g.vars.coordinates{tmpcond}) >= index && ~isempty(g.vars.coordinates{tmpcond}{index}) && ~isequal(g.vars.coordinates{tmpcond}{index}, tmpstruct.pos3d)
+                            g.vars.coordinates{tmpcond}{index}(2,:) = tmpstruct.pos3d;
+                        else
+                            g.vars.coordinates{tmpcond}{index} = tmpstruct.pos3d;
+                        end;
+                    elseif isfield(tmpstruct, 'eleccoord') && ~all(tmpstruct.eleccoord == 0)
+                        if length(g.vars.coordinates{tmpcond}) >= index && ~isempty(g.vars.coordinates{tmpcond}{index}) && ~isequal(g.vars.coordinates{tmpcond}{index}, tmpstruct.eleccoord)
+                            g.vars.coordinates{tmpcond}{index}(2,:) = tmpstruct.eleccoord;
+                        else
+                            g.vars.coordinates{tmpcond}{index} = tmpstruct.eleccoord;
+                        end;
+                    else
+                        tmpstruct
+                        error('Field not found in tmpstruct');
+                    end;
                 end;
-                text(-0.5, 1, num2str(g.edgeColorDataRange(2),'%0.2f'), 'fontsize', 10,'units','normalized'); % upper limit
-                text(-0.5, 0.5, num2str((g.edgeColorDataRange(2)+g.edgeColorDataRange(1))/2, '%0.2f'), 'fontsize', 10,'units','normalized'); % midrange
-                text(-0.5, 0, num2str(g.edgeColorDataRange(1),'%0.2f'), 'fontsize', 10,'units','normalized'); % lower limit
-                text(-1.5, 0.55, {'',g.edgeColorMapping}, 'horizontalalignment','center','rotation',90,'fontsize', 11, 'fontweight', 'bold','units','normalized');
-                
-                set(gca, 'ytick', [], 'yticklabel', [], 'xtick',[],'xticklabel', [], 'box', 'off');
+            end;
+            delete(htmp);
+        end;
+        
+        %h = plot3(g.vars.coordinates{tmpcond}(:, 1),  g.vars.coordinates{tmpcond}(:, 2),  g.vars.coordinates{tmpcond}(:, 3), 'r.', 'markersize', 30);
+        xltmp = xlim;
+        yltmp = ylim;
+        g.vars.dimratio = (xltmp(2) - xltmp(1)) / (yltmp(2) - yltmp(1));
+        
+        axis(g.vars.hBrain(tmpcond),'off');
+        if ~isempty(g.condtitle)
+            h = title(g.vars.hBrain(tmpcond),g.condtitle(tmpcond,:));
+            if ~isempty(g.condtitleformat)
+                set(h, g.condtitleformat{:} );
             end;
         end;
-    case 'off', maxcoordx = 1;
-end;
+        
+        % this axis is used for the envelope but also used to print current time
+        % (which is why it is always created)
+        if ~isempty( g.footerPanelData )
+            g.vars.hFooterPanel(tmpcond) = axes('position', [0/nbconditions+maxcoordx/nbconditions*(tmpcond-1), 0, ...
+                maxcoordx/nbconditions-0.05/nbconditions, ordinate-0.1].*s+q,'visible', g.visible,'color','none','xcolor','w','ycolor','w','parent',g.figurehandle);
+            
+            minordinate = min(g.footerPanelData(:));
+            maxordinate = max(g.footerPanelData(:));
+            
+            axis(g.vars.hFooterPanel(tmpcond),'on'); % set (g.figurehandle, 'visible', g.visible);
+            
+            hold(g.vars.hFooterPanel(tmpcond),'on')
+            
+            if any(strcmpi(g.footerPanelPlotMode,'all'))
+                % plot individual footer panel data traces
+                %                 colors = distinguishable_colors(size(g.footerPanelData,1),[0 0 0; 1 1 1]);
+                colors = hsv(size(g.footerPanelData,1));
+                for k=1:size(g.footerPanelData,1)
+                    plot(g.vars.hFooterPanel(tmpcond),g.footerPanelTimes,g.footerPanelData(k,:),'linewidth',g.resmult,'color',colors(k,:));
+                end
+            end
+            if any(strcmpi(g.footerPanelPlotMode,'envelope'))
+                % plot envelope of footer panel data
+                plot(g.vars.hFooterPanel(tmpcond),g.footerPanelTimes, env(g.footerPanelData(:,:,tmpcond)), 'r', 'linewidth', 2*g.resmult);
+            end
+            
+            set(g.vars.hFooterPanel(tmpcond), 'ylim', [minordinate maxordinate]);
+            set(g.vars.hFooterPanel(tmpcond), 'xlim', [g.footerPanelTimes(1) g.footerPanelTimes(end)]);
+            set(g.vars.hFooterPanel(tmpcond),'xcolor','w','ycolor','w');
+            set(g.vars.hFooterPanel(tmpcond),'color','none');
+            
+            % draw event markers
+            if ~isempty(g.events)
+                for i=1:length(g.events)
+                    events = g.events{i};
+                    
+                    % set defaults
+                    if length(events) < 5
+                        events{5} = '';     end
+                    if length(events) < 4
+                        events{4} = 2;      end
+                    if length(events) < 3
+                        events{3} = ':';    end
+                    if length(events) < 2
+                        events{2} = 'r';    end
+                    
+                        
+                    lh = vline(events{1},events{2},events{5},0,g.vars.hFooterPanel(tmpcond));
+                    set(lh,'linestyle',events{3},'linewidth',events{4}*g.resmult);
+                end
+            end
+            
+            xlabel(g.vars.hFooterPanel(tmpcond),'Time (sec)', 'fontweight', 'bold', 'fontsize', 12*g.resmult,'color','w');
+            set(g.vars.hFooterPanel(tmpcond), 'box', 'off','fontsize', 10*g.resmult);
+            if tmpcond == 1
+                ylabel(g.vars.hFooterPanel(tmpcond),g.envylabel, 'fontweight', 'bold', 'fontsize', 12*g.resmult,'color','w');
+            end;
+            title(g.vars.hFooterPanel(tmpcond),g.footerPanelTitle,'color','w','fontsize',12*g.resmult);
+            
+            hold(g.vars.hFooterPanel(tmpcond),'off');
+            
+        end;
+        
+        % create a little title bar in right-top corner
+        text((maxcoordx+(1.1-maxcoordx)/2)*s(1)+q(1), 0.9459, [fastif(iscell(g.title),g.title,{g.title}) {g.ConnMethod}],'HorizontalAlignment','center','fontsize',12*g.resmult,'units','normalized','fontweight','bold','parent',findobj(g.figurehandle,'tag','figureBackground'),'color','w');
+    
+        % draw a 'compass' indicating the directions
+        if g.makeCompass
+            % %- IN PREP
+            g.vars.hCompass = axes('position', [0.0244/nbconditions+maxcoordx/nbconditions*(tmpcond-1), 0.8631, ...
+                    maxcoordx/nbconditions-0.05/nbconditions, ordinate-0.1].*s+q,'visible', g.visible,'color','none','xcolor','w','ycolor','w','parent',g.figurehandle);
 
-% specify the connectivity method used
-text(0.8927, 0.9459, g.ConnMethod,'fontsize',12,'units','normalized','fontweight','bold','parent',findobj(gcf,'tag','figureBackground'));
+            % draw a 3d arrow pointing the direction of the nose using arrow3d
+            
+            %         0.0231    0.9856
+            %         0.0244    0.8631
+            %         0.1944    0.8631
+            %         0.1919    0.9856
+        end
 
+    end
+    
+    % adjust the colormap as needed
+    if strcmpi(g.nodeColorPolarity, 'pos')
+        g.nodeColormap = g.nodeColormap(length(g.nodeColormap)/2:end,:); end
+    if strcmpi(g.edgeColorPolarity, 'pos')
+        g.edgeColormap = g.edgeColormap(length(g.edgeColormap)/2:end,:); end
+    
+    
+    % draw captions if necessary
+    % --------------------------
+    countl = 1;
+    switch lower(g.caption)
+        case 'on' ,
+            xlimnorm = (1.1-maxcoordx)/(maxcoordx/nbconditions) * g.xlimaxes;
+            ylimnorm = 0.45/(1-ordinate) * g.ylimaxes;
+            switch g.power, case 'on',
+                % create 3 spheres to show node size variation
+                g.vars.hlgnd(countl) = axes('position', [maxcoordx, -0.1,    (1.1-maxcoordx), 0.45].*s+q, 'xlim', xlimnorm, ...
+                    'ylim', ylimnorm,'visible', g.visible, 'color', 'w','parent',g.figurehandle);
+                % draw 3 spheres
+                [xstmp ystmp zs] = sphere(15);
+                l=sqrt(xstmp.*xstmp+ystmp.*ystmp+zs.*zs);
+                normals = reshape([xstmp./l ystmp./l zs./l],[16 16 3]);
+                tmpsize = 0.5; xs1 = tmpsize*ystmp; ys1 = tmpsize*xstmp; zs1 = tmpsize*zs;
+                tmpsize = 0.9; xs2 = tmpsize*ystmp; ys2 = tmpsize*xstmp; zs2 = tmpsize*zs + 2;
+                tmpsize = 0.1; xs3 = tmpsize*ystmp; ys3 = tmpsize*xstmp; zs3 = tmpsize*zs - 1.5;
+                colorarray = repmat(reshape([1 1 1],  1,1,3), [size(zs,1) size(zs,2) 1]);
+                handles = surf(g.vars.hlgnd(countl),xs1, ys1, zs1, colorarray, 'tag', 'tmpmov', 'EdgeColor','none', 'VertexNormals', normals, ...
+                    'backfacelighting', 'lit', 'facelighting', g.facelighting, 'facecolor', 'interp', 'ambientstrength', 0.3); hold on;
+                handles = surf(g.vars.hlgnd(countl),xs2, ys2, zs2, colorarray, 'tag', 'tmpmov', 'EdgeColor','none', 'VertexNormals', normals, ...
+                    'backfacelighting', 'lit', 'facelighting', g.facelighting, 'facecolor', 'interp', 'ambientstrength', 0.3);
+                handles = surf(g.vars.hlgnd(countl),xs3, ys3, zs3, colorarray, 'tag', 'tmpmov', 'EdgeColor','none', 'VertexNormals', normals, ...
+                    'backfacelighting', 'lit', 'facelighting', g.facelighting, 'facecolor', 'interp', 'ambientstrength', 0.3);
+                axis(g.vars.hlgnd(countl),'off');
+                camlight left
+                camlight right
+                view([1 0 0])
+                lightangle(45,0);
+                lighting(g.facelighting);
+                material shiny;
+                axis(g.vars.hlgnd(countl),'equal');
+                set(g.vars.hlgnd(countl), 'zlim', [-2 4]);
+                set(g.vars.hlgnd(countl), 'ytick', [], 'yticklabel', [], 'xtick',[],'xticklabel', [], 'box', 'off');
+                text(0.1, 0.42, {'',g.nodeSizeMapping}, 'units','normalized','horizontalalignment','center','rotation',90,'fontsize', 11, 'fontweight', 'bold','parent',g.vars.hlgnd(countl));
+                text(0, 1.3, 2, num2str(g.nodeSizeDataRange(2),'%0.2f'), 'fontweight', 'bold','parent',g.vars.hlgnd(countl));    % upper limit
+                text(0, 1, 0, num2str((g.nodeSizeDataRange(2)+g.nodeSizeDataRange(1))/2,'%0.2f'), 'fontweight', 'bold','parent',g.vars.hlgnd(countl));   % midrange
+                text(0, 0.5, -1.5, num2str(g.nodeSizeDataRange(1),'%0.2f'), 'fontweight', 'bold','parent',g.vars.hlgnd(countl)); % lower limit
+                %       scalepower(mean(xlimnorm), min(ylimnorm)+0.2, g); % see function at the end
+                %       axis off;
+                countl = countl + 1;
+            end;
+            switch g.itc, case 'on',
+                % create ball colormap for nodecolor legend
+                g.vars.hlgnd(countl) = axes('position', [maxcoordx+(1.1-maxcoordx)/2, 0.29 , (1.1-maxcoordx)/2, 0.14].*s+q, ...
+                    'visible', g.visible, 'color', 'none' );
+                
+                
+                if strcmpi(g.nodeColorPolarity, 'posneg') % negative ITCs (difference only) ?
+                    cbar([-1 1], [-1 1], g.nodeColormap, 'vert', 'circle', g, g.vars.hlgnd(countl));
+                    %           ylabel(g.nodeColorMapping, 'fontweight', 'bold');
+                    %           set(gca, 'ytick', [-1 0 1], 'yticklabel', [-1 0 1], 'xticklabel', [], 'box', 'off');
+                else
+                    cbar([0 1], [0 1], g.nodeColormap, 'vert', 'circle', g, g.vars.hlgnd(countl));
+                    %           cbar( [0 1], [0 1], g.nodeColormap(length(g.nodeColormap)/2:end,:), 'vert', 'circle', g);
+                    %           ylabel({'',g.nodeColorMapping},'rotation',90, 'fontweight', 'normal');
+                    %           set(gca, 'ytick', [0 1], 'yticklabel', [0 1], 'xticklabel', [], 'box', 'off');
+                    %           set(gca, 'ytick', [0], 'yticklabel', [0], 'xticklabel', [], 'box', 'off');
+                end;
+                axis(g.vars.hlgnd(countl),'off');
+                set(g.vars.hlgnd(countl), 'ytick', [], 'yticklabel', [], 'xtick',[],'xticklabel', [], 'box', 'off');
+                % yticks
+                text(-0.2, 1, num2str(g.nodeColorDataRange(2),'%0.2f'), 'fontsize', 10,'units','normalized','parent',g.vars.hlgnd(countl)); % upper limit
+                text(-0.2, 0.5, num2str((g.nodeColorDataRange(2)+g.nodeColorDataRange(1))/2, '%0.2f'), 'fontsize', 10,'units','normalized','parent',g.vars.hlgnd(countl)); % midrange
+                text(-0.2, 0, num2str(g.nodeColorDataRange(1),'%0.2f'), 'fontsize', 10,'units','normalized','parent',g.vars.hlgnd(countl)); % lower limit
+                text(-0.8, 0.55, {'',g.nodeColorMapping}, 'horizontalalignment','center','rotation',90,'fontsize', 11, 'fontweight', 'bold','units','normalized','parent',g.vars.hlgnd(countl));
+                
+                countl = countl + 1;
+            end;
+            
+            switch g.crossf, case 'on',
+                % create bars showing variability in edge size
+                g.vars.hlgnd(countl) = axes('position', [maxcoordx+(1.1-maxcoordx)/2, 0.69,(1.1-maxcoordx)/2, 0.25 ].*s+q, ...
+                    'visible', g.visible, 'parent', g.figurehandle );
+                
+                scalecoher([0.02 1], [0.04 0.96], 5, g, g.vars.hlgnd(countl)); % see function at the end
+                
+                text(-0.2, 1, num2str(g.edgeSizeDataRange(2),'%0.2f'), 'fontsize', 10,'units','normalized','parent',g.vars.hlgnd(countl)); % upper limit
+                text(-0.2, 0.5, num2str((g.edgeSizeDataRange(2)+g.edgeSizeDataRange(1))/2, '%0.2f'), 'fontsize', 10,'units','normalized','parent',g.vars.hlgnd(countl)); % midrange
+                text(-0.2, 0, num2str(g.edgeSizeDataRange(1),'%0.2f'), 'fontsize', 10,'units','normalized','parent',g.vars.hlgnd(countl)); % lower limit
+                text(-0.8, 0.55, {'',g.edgeSizeMapping}, 'horizontalalignment','center','rotation',90,'fontsize', 11, 'fontweight', 'bold','units','normalized','parent',g.vars.hlgnd(countl));
+                set(g.vars.hlgnd(countl), 'ytick', [], 'yticklabel', [], 'xtick',[],'xticklabel', [], 'box', 'off');
+                
+                countl = countl + 1;
+                
+                switch g.crossfphasecolor, case 'on',
+                    % create colorbar for edgecolor legend
+                    g.vars.hlgnd(countl) = axes('position', [maxcoordx+(1.1-maxcoordx)/2, 0.47 , (1.1-maxcoordx)/4, 0.14].*s+q, ...
+                        'visible', g.visible, 'color', 'none', 'parent',g.figurehandle);
+                    
+                    if strcmpi(g.edgeColorPolarity, 'posneg') % negative ITCs (difference only) ?
+                        cbar( [-1 1], [-1 1], g.edgeColormap, 'vert', '', g, g.vars.hlgnd(countl));
+                        %           ylabel({'', g.ConnMethod }, 'fontweight', 'bold');
+                        %           set(gca, 'ytick', [-1 0 1], 'yticklabel', [g.edgeSizeDataRange(1) 0 g.edgeSizeDataRange(2)], 'xticklabel', []);
+                        %         set(gca, 'ytick', [-1 0 1], 'yticklabel', [g.edgeSizeDataRange(1) 0 g.edgeSizeDataRange(2)], 'xticklabel', []);
+                    else
+                        cbar( [0 1], [0 1], g.edgeColormap, 'vert', '', g, g.vars.hlgnd(countl));
+                        %               cbar( [0 1], [0 1], g.edgeColormap(length(g.edgeColormap)/2:end,:), 'vert', '', g);
+                        %           ylabel({'', g.ConnMethod }, 'fontweight', 'bold');
+                        %           set(gca, 'ytick', [0 1], 'yticklabel', [g.edgeSizeDataRange(1) g.edgeSizeDataRange(2)], 'xticklabel', []);
+                        %         set(gca, 'ytick', [0], 'yticklabel', [0], 'xticklabel', []);
+                    end;
+                    text(-0.5, 1, num2str(g.edgeColorDataRange(2),'%0.2f'), 'fontsize', 10,'units','normalized','parent',g.vars.hlgnd(countl)); % upper limit
+                    text(-0.5, 0.5, num2str((g.edgeColorDataRange(2)+g.edgeColorDataRange(1))/2, '%0.2f'), 'fontsize', 10,'units','normalized','parent',g.vars.hlgnd(countl)); % midrange
+                    text(-0.5, 0, num2str(g.edgeColorDataRange(1),'%0.2f'), 'fontsize', 10,'units','normalized','parent',g.vars.hlgnd(countl)); % lower limit
+                    text(-1.5, 0.55, {'',g.edgeColorMapping}, 'horizontalalignment','center','rotation',90,'fontsize', 11, 'fontweight', 'bold','units','normalized','parent',g.vars.hlgnd(countl));
+                    
+                    set(g.vars.hlgnd(countl), 'ytick', [], 'yticklabel', [], 'xtick',[],'xticklabel', [], 'box', 'off');
+                    
+                end;
+            end;
+        case 'off', maxcoordx = 1;
+    end;
+    
+        
+    % draw white axis on envelop if flashes DOES NOT WORK WHEN PRINTING IN EPS
+    % -------------------------------------
+    %if ~isempty(g.events)
+    %	if ~isempty(g.) % draw axis for the envelope
+    %		eflash = axes('position', [0 0 maxcoordx-0.1 ordinate].*s+q, ...
+    %					  'xtick', [], 'ytick', [], 'box', 'off', 'visible', g.visible, 'color', 'none');
+    %		hbackpatch2 = patch([ 0 1 1 0], [0 0 1 1], [0.5 0.5 0.5]); set(hbackpatch2, 'facecolor', 'w', 'edgecolor', 'none');
+    %	end;
+    %end;
+    
+    % set the renderer
+    % -----------------
+    if strcmpi(g.opengl,'on') && ~strcmpi(get(g.figurehandle,'renderer'),'opengl')
+        set(g.figurehandle, 'renderer', 'opengl');
+    end
+    
+end % initialization block
 
-% draw white axis on envelop if flashes DOES NOT WORK WHEN PRINTING IN EPS
-% -------------------------------------
-%if ~isempty(g.flashes)
-%	if ~isempty(g.) % draw axis for the envelope
-%		eflash = axes('position', [0 0 maxcoordx-0.1 ordinate].*s+q, ...
-%					  'xtick', [], 'ytick', [], 'box', 'off', 'visible', g.visible, 'color', 'none');
-%		hpatch2 = patch([ 0 1 1 0], [0 0 1 1], [0.5 0.5 0.5]); set(hpatch2, 'facecolor', 'w', 'edgecolor', 'none');
-%	end;
-%end;
+alltimepoints = g.vars.alltimepoints;
 
-% scan time windows
-% -----------------
-if strcmpi(g.opengl,'on')
-    set(gcf, 'renderer', 'opengl');
+% return now if we are only initializing the brainmovie
+if strcmpi(g.mode,'init')
+    return;
 end
-
 
 
 % Main loop, draw frames
 % ----------------------------
-for indeximage = alltimepoints
+for indeximage = g.vars.alltimepoints
     
     switch g.verb
         case 1
             fprintf('Processing image %d\n', indeximage);
         case 2
-            waitbar(indeximage/length(alltimepoints),h,sprintf('Rendering timepoint (%d/%d)...',indeximage,length(alltimepoints)));
+            waitbar(indeximage/length(g.vars.alltimepoints),g.vars.hwaitbar,sprintf('Rendering timepoint (%d/%d)...',indeximage,length(g.vars.alltimepoints)));
     end
     
     
-    % invert background if necessary
+    % produce background event flash
     % ------------------------------
-    if ~isempty(g.flashes)
-        %axes(hback); set (gcf, 'visible', g.visible);
-        if ~isempty(find(indeximage == allflashes, 1))
-            posf = find(indeximage == allflashes);
-            set(hpatch, 'facecolor', flashescol{posf});
+    if ~isempty(g.vars.flashTimes)
+        %axes(g.vars.hFigureBg); set (g.figurehandle, 'visible', g.visible);
+        if ~isempty(find(indeximage == g.vars.allFlashIndices, 1))
+            posf = find(indeximage == g.vars.allFlashIndices);
+            set(g.vars.hFlashPatch, 'facecolor', g.vars.flashColor{posf}, 'visible','on');
         elseif posf == 0 % allow the color to stay 2 images
-            set(hpatch, 'facecolor', 'k');
+            set(g.vars.hFlashPatch, 'facecolor', g.backcolor,'visible','off');
         else
             posf = 0;
         end;
     end;
     
     for tmpcond=1:nbconditions
-        axes(hh(tmpcond)); set (gcf, 'visible', g.visible);
+        g.vars.hbrainax = g.vars.hBrain(tmpcond);
         
-        
-        % clean images and update view
-        % ----------------------------
-        if ~isempty(g.path3d)
-            angle = (indeximage-1)/length(alltimepoints)*360;
-            camorbit( cos(angle/180*pi)*g.path3d(1), sin(angle/180*pi)*g.path3d(2) );
-        end;
+        if ~g.speedy
+            set (g.figurehandle, 'visible', g.visible);
+        end
         
         % get handle to old objects (we'll delete them later)
-        oldobjs = findobj( hh(tmpcond), 'tag', 'tmpmov');
-        set (gcf, 'visible', g.visible);
+        oldobjs = findobj( g.vars.hBrain(tmpcond), 'tag', 'tmpmov');
+        oldobjs = [oldobjs; findobj( g.vars.hBrain(tmpcond), 'tag', 'brain_camlight')];
+        
+        %         set (g.figurehandle, 'visible', g.visible);
         
         % draw correlations
         % -----------------
         switch lower(g.crossf), case 'on',
-            for index1 = selected
-                for index2 = selected
+            for index1 = SELECTED
+                for index2 = SELECTED
                     
                     if index1==index2 || (~g.causality && index2 < index1)
-                        continue;     % need only do one arc for symmetric connectivity (e.g., cohere)
+                        continue;     % need only do one arc for symmetric connectivity (g.vars.hFooterPanel.g., cohere)
                     end
-                    
-                    %% DEBUG
-                    %                       if ismember(index2,[3 5 9]), continue; end
-                    
                     
                     tmpcrossfpow = ALLCROSSF     	 { index1, index2, tmpcond };
                     tmpcrossfang = ALLCROSSFANGLE    { index1, index2, tmpcond };
@@ -1033,9 +1139,9 @@ for indeximage = alltimepoints
                         
                     end
                     
-                    if strcmp(lower(g.crossfphaseunit), 'radian'), tmpangle = tmpangle/pi*180; end;
+                    if strcmpi(g.crossfphaseunit, 'radian'), tmpangle = tmpangle/pi*180; end;
                     %fprintf('%d-%d -> power %1.1f\n', index1, index2, tmppower);b
-                    drawconnections( g.coordinates{tmpcond}{ index1 }, g.coordinates{tmpcond}{ index2 }, ...
+                    drawconnections( g.vars.coordinates{tmpcond}{ index1 }, g.vars.coordinates{tmpcond}{ index2 }, ...
                         tmppower, tmpangle, g.circfactor(index1, index2), g);
                 end;
             end;
@@ -1055,9 +1161,9 @@ for indeximage = alltimepoints
             [tmpitc tmpitc_peakidx] = hlp_collapseFrequencies(tmptimef,g.collapsefun,FREQS,indeximage);
             
             %index1, tmpitc, tmppow,
-            drawcircle( g.coordinates{tmpcond}{ index1 }, tmppow, tmpitc, g);
+            drawcircle( g.vars.coordinates{tmpcond}{ index1 }, tmppow, tmpitc, g);
             if ~isempty(g.nodelabels)
-                tmpcoord = g.coordinates{tmpcond}{index1};
+                tmpcoord = g.vars.coordinates{tmpcond}{index1};
                 for i=1:size(tmpcoord,1)
                     text(tmpcoord(i,1), ...
                         tmpcoord(i,2), ...
@@ -1072,183 +1178,209 @@ for indeximage = alltimepoints
         
         % draw a bar for time probability
         % -------------------------------
-        if ~isempty(g.rt)
-            if ~isempty(g.rt{tmpcond})
-                ll = line([g.rthistloc(1)-g.rthistloc(3)/2 g.rthistloc(1)+g.rthistloc(3)/2], [g.rthistloc(2) g.rthistloc(2)]);
-                set(ll, 'linewidth', 2*g.resmult, 'color', 'k');
-                barheight = RTdist(tmpcond, indeximage)*g.rthistloc(4);
-                x1 = g.rthistloc(1)-0.65*g.rthistloc(3)/2;
-                x2 = g.rthistloc(1)+0.65*g.rthistloc(3)/2;
-                y1 = g.rthistloc(2);
-                y2 = g.rthistloc(2)-barheight;
-                ll = patch([x1 x1 x2 x2], [y1 y2 y2 y1], g.rthistcolor, 'linewidth', 2*g.resmult);
+        %         if ~isempty(g.rt)
+        %             if ~isempty(g.rt{tmpcond})
+        %                 ll = line([g.rthistloc(1)-g.rthistloc(3)/2 g.rthistloc(1)+g.rthistloc(3)/2], [g.rthistloc(2) g.rthistloc(2)]);
+        %                 set(ll, 'linewidth', 2*g.resmult, 'color', 'k');
+        %                 barheight = RTdist(tmpcond, indeximage)*g.rthistloc(4);
+        %                 x1 = g.rthistloc(1)-0.65*g.rthistloc(3)/2;
+        %                 x2 = g.rthistloc(1)+0.65*g.rthistloc(3)/2;
+        %                 y1 = g.rthistloc(2);
+        %                 y2 = g.rthistloc(2)-barheight;
+        %                 ll = patch([x1 x1 x2 x2], [y1 y2 y2 y1], g.rthistcolor, 'linewidth', 2*g.resmult);
+        %             end;
+        %         end;
+        
+        
+        % render each layer
+        layers = fieldnames(g.Layers);
+        
+        for layeridx = 1 : length(layers)
+            
+            curlayer = layers{layeridx};
+            
+            if ~isstruct(g.Layers.(curlayer)), continue; end
+            
+            % check if we haven't yet rendered the mesh for this layer...
+            if g.Layers.(curlayer).transparency < 1 ...
+                    && isempty(findobj(g.figurehandle,'tag',sprintf('%smesh',curlayer))) ...
+                    
+                % ... and if no mesh present, render it.
+                
+                children = get(g.figurehandle,'children');
+                
+                hax = findobj(g.figurehandle,'tag',['brain' num2str(tmpcond)]);
+                
+                campos = get(hax,'CameraPosition');
+                
+                %         set(g.figurehandle,'visible','off')
+                hold on;
+                if strcmpi(curlayer,'loni')
+                    Handle = hlp_plotAtlas(g.Layers.(curlayer).mesh,hax,g.Layers.(curlayer).coloratlas,g.Layers.(curlayer).color,hlp_struct2varargin(g.theme.(curlayer)));
+                else
+                    Handle = hlp_plotmesh(g.Layers.(curlayer).mesh.faces, g.Layers.(curlayer).mesh.vertices,[],false,hax,g.Layers.(curlayer).color,hlp_struct2varargin(g.theme.(curlayer)));
+                end
+                
+                set(Handle, 'facealpha',1-g.Layers.(curlayer).transparency,'tag',sprintf('%smesh',curlayer));
+                
+                if ~strcmpi(get(g.figurehandle,'Renderer'),'opengl')
+                    set(g.figurehandle,'Renderer' ,'opengl');
+                end
+                
+                %         set(g.figurehandle,'visible',g.visible)
+                
+                set(g.figurehandle,'children',children);
+                
+                set(hax,'CameraPosition',campos);
+                
             end;
-        end;
+            
+        end
         
-        % render cortex on image
-        if g.cortexTransparency < 1 && isempty(findobj(gcf,'tag','csfcortex'))
-            
-            children = get(gcf,'children');
-            
-            axes(findobj(gcf,'tag',['brain' num2str(tmpcond)]));
-            campos = get(gca,'CameraPosition');
-            
-%             csf = load(g.csf_volume); % located in visualization folder
-%             csfVertices = g.csf.vol.bnd(3).pnt;
-            
-            %         set(gcf,'visible','off')
-            hold on;
-            csfHandle = hlp_plotmesh(g.csf.vol.bnd(3).tri, g.csf.vol.bnd(3).pnt, [], false);
-            set(csfHandle, 'facealpha',1-g.cortexTransparency,'tag','csfcortex');
-            set(gcf,'Renderer' ,'opengl');
-            reducepatch(csfHandle, 1/8); % 1/6 crashed the computer
-            % each call to dipplot adds two new lights, so we need to remove them all,
-            % then add two lights
-            %         delete(findobj(gcf, 'type','light'));
-            
-            camlight left;
-            camlight right;
-            
-            %         set(gcf,'visible',g.visible)
-            
-            set(gcf,'children',children);
-            
-            set(gca,'CameraPosition',campos);
-            
-            % since each dipplot has a camzoom, we have to zoom out
-            %camzoom(1/(1.2^(2*(length(clusterNumbers)-1))));
-            
-            %         set(gca, 'CameraViewAngleMode', 'manual');
-            
-        end;
-        
-        if ~isempty(g.title) & tmpcond == 1
+        if ~isempty(g.title) && tmpcond == 1
             if iscell(g.title), g.title = g.title{1}; end
-            set(gcf,'Name',['BrainMovie3D ' g.title]);
+            set(g.figurehandle,'Name',['BrainMovie3D ' g.title]);
         end;
-
+        
+        %
+        % update view
+        % ----------------------------
+        if ~isempty(g.rotationpath3d)
+            
+            if isempty(g.rotationpath3d.FramesPerCycle)
+                g.rotationpath3d.FramesPerCycle = length(g.vars.alltimepoints);
+            end
+            
+            angle = (g.vars.path3d_frameindex-1)/g.rotationpath3d.FramesPerCycle*360;
+            camorbit(g.vars.hbrainax, cos(angle/180*pi)*g.rotationpath3d.AngleFactor, sin(angle/180*pi)*g.rotationpath3d.PhaseFactor );
+            
+            if length(g.vars.alltimepoints)==1
+                % there is just a single frame
+                g.vars.path3d_frameindex = g.vars.path3d_frameindex + 1;
+            else
+                g.vars.path3d_frameindex = indeximage;
+            end
+        end;
+        
+        % fix the camera zoom
+        camva(g.vars.hbrainax,(1/g.magnify)*6.7021);
+        
+        
+%                 if ~isempty(g.title) & tmpcond == 1
+%                     t = textsc(g.title{1},'title');
+%                     set(t,'VerticalAlignment','top', 'fontsize', 15);
+%                 end;
 %         
-%         if ~isempty(g.title) & tmpcond == 1
-%             t = textsc(g.title{1},'title');
-%             set(t,'VerticalAlignment','top', 'fontsize', 15);
-%         end;
-        
-%         % bring brain to front
-%         axes(brainaxis(tmpcond));
-%         axis off; set (gcf, 'visible', g.visible);
-        
     end;  % LOOP OVER CONDITIONS
     
-    % put the time in the left bottom corner
+    % put the time in the right bottom corner
     % --------------------------------------
     if g.showLatency
-%         ax = axes('units','normalized','position',[0.01 0.01 0.2 0.1]);
-%         axis off
-        try delete(tt); catch err; end
-        tt = text(0.92, 0.05, sprintf('%d ms', round(times(indeximage))), 'unit', 'normalized','parent',hback);
-        set(tt, 'fontsize', 12*g.resmult, 'horizontalalignment', 'right', 'tag', 'tmpmov', 'color', 'w');
-%         uistack(tt,'up',10);
-%         
-%         children = get(gcf,'children');
-%         children(children==tt)=[];
-%         children = [tt children];
-%         set(gcf,'children',children);
+        if ~isfield(g.vars,'hlatency'),
+            g.vars.hlatency = text(0.92, 0.05, sprintf('%0.3g sec', TIMES(indeximage)), 'unit', 'normalized','parent',g.vars.hFigureBg);
+            set(g.vars.hlatency, 'fontsize', 12*g.resmult, 'horizontalalignment', 'right', 'tag', 'tmpmov', 'color', 'w');
+        else
+            set(g.vars.hlatency,'String', sprintf('%0.3g sec', TIMES(indeximage)));
+        end
+        %         uistack(hlatency,'up',10);
     end
     
-%     % put the time in the left bottom corner
-%     % --------------------------------------
-%     if g.showLatency
-%         tt = text(-0.1, -0.25, sprintf('%d ms', round(times(indeximage))), 'unit', 'normalized');
-%         set(tt, 'fontsize', 12*g.resmult, 'horizontalalignment', 'right', 'tag', 'tmpmov', 'color', 'w');
-%     end
     
-    % draw the enveloppe of the signal if necessary
-    % ---------------------------------------------
-%     axes(e(tmpcond)); cla; axis off; set (gcf, 'visible', g.visible);
-    if ~isempty( g.envelope )
-        minordinate = min(min(min(g.envelope)));
-        maxordinate = max(max(max(g.envelope)));
+    % update the current time
+    %     axes(g.vars.hFooterPanel(tmpcond)); cla; axis off; set (g.figurehandle, 'visible', g.visible);
+    if ~isempty( g.footerPanelData )
+
         for tmpcond = 1:nbconditions
-            axes(e(tmpcond)); cla; axis on; set (gcf, 'visible', g.visible);
-            plot(g.times(:,1), g.envelope(:,:,tmpcond), 'k', 'linewidth', 2*g.resmult); hold on;
-            set(gca, 'ylim', [minordinate maxordinate]);
-            set(gca, 'xlim', [g.times(1,1) g.times(end,1)]);
-            plot([g.times(getindex(g.times(:,1),times(indeximage)),1) g.times(getindex(g.times(:,1),times(indeximage)),1)], [minordinate maxordinate], 'b', 'linewidth', 2*g.resmult);
-            line([0 0],[g.times(1,1) g.times(end,1)],'linestyle',':','color','b','linewidth',1);
-            line([g.times(1,1) g.times(end,1)],[0 0],'color','k');
-            xlabel('Time (ms)', 'fontweight', 'bold', 'fontsize', 12*g.resmult); set(gca, 'box', 'off');
-            set(gca, 'fontsize', 10*g.resmult);
-            if tmpcond == 1
-                ylabel(g.envylabel, 'fontweight', 'bold', 'fontsize', 12*g.resmult);
-            end;
+%             cla(g.vars.hFooterPanel(tmpcond)); axis(g.vars.hFooterPanel(tmpcond),'on'); % set (g.figurehandle, 'visible', g.visible);
+            hold(g.vars.hFooterPanel(tmpcond),'on');
             
-            % draw vertical lines if needed
-            % -----------------------------
-            if ~isempty(g.envvert)
-                drawvert(g.envvert, tmpcond,  [minordinate maxordinate]);
-            end;
-        end;
-        %
-        %           figure(gcf);
-        %           h=text(0.8492,0.1508,num2str(
-        
-        % put the time on the ERP axis
-        % ----------------------------
-        %coordx1 = (g.xlimaxes(2)-g.xlimaxes(1))*0.1 + g.xlimaxes(1);
-        %coordy1 = (g.ylimaxes(2)-g.ylimaxes(1))*0.87 + g.ylimaxes(1);
-    end;
-    
-    
-    % last 3-D settings
-    % -----------------
-    lighting phong;
-    material shiny;
-    if ~g.speedy
-        setfont(gcf, 'color', [0.99 0.99 0.99]); % warning, for some reasons white does not print
-        if exist('c','var')
-            for index = 1:length(c)
-                axes(c(index)); % bring back legend to front
-                set(gcf,'visible',g.visible);  % TM - restore visibility
-            end;
+            % draw line for current time point
+            [dummy curtime] = getindex(g.footerPanelTimes,TIMES(indeximage));
+            if isfield(g.vars,'hCurrentTime')
+                delete(g.vars.hCurrentTime);
+            end
+            g.vars.hCurrentTime = vline(curtime,'w','',0,g.vars.hFooterPanel(tmpcond));
+            set(g.vars.hCurrentTime,'linewidth', 2*g.resmult);
+            
+            % draw sliding window rectangle
+            if ~isempty(g.windowLength)
+                if isfield(g.vars,'hSlidingWindow')
+                    delete(g.vars.hSlidingWindow);
+                end
+                g.vars.hSlidingWindow = hlp_vrect([curtime-g.windowLength/2 curtime+g.windowLength/2], ...
+                    'axesHandle',g.vars.hFooterPanel(tmpcond), ...
+                    'patchProperties', ...
+                    {'FaceColor',[0.7 0.7 1],'FaceAlpha',0.2,'EdgeColor',[0.2 0.2 0.2],'EdgeAlpha',0.5});
+            end
+            
+            hold(g.vars.hFooterPanel(tmpcond),'off');
         end
     end
+    
+    
+    % Set the lighting options
+    % -----------------
+    lighting(g.vars.hbrainax,g.facelighting);
+    
+    % delete existing lights
+    hlights = findobj(g.vars.hbrainax,'type','light');
+    delete(hlights)
+    
+    if ~isempty(g.theme)
+        cl=feval(g.theme.lightingfcn,g.vars.hbrainax,g.theme.name);
+        set(cl,'tag','brain_camlight');
+    else
+        cl(1) = camlight(g.vars.hbrainax,'left');
+        cl(2) = camlight(g.vars.hbrainax,'right');
+        set(cl,'tag','brain_camlight');
+    end
+    
+    % reset text fontcolor to white
+    set(findobj(g.vars.hlgnd,'type','text'),'color',[0.99 0.99 0.99]);
+
+    drawnow;
     
     
     if ~isempty(g.moviename)
         % save the file for a movie
         % -------------------------
-        movframes = getframe(gcf);
+        movframes = getframe(g.figurehandle);
         mov = addframe(mov,movframes);
     end
     
-
-%     figure(findobj('tag','BrainMovieFigure'));
     
-
+    %     figure(findobj('tag','BrainMovieFigure'));
     
-    if ~isempty(g.framefolder) 
+    
+    
+    if ~isempty(g.framefolder)
         fname = sprintf('%simage%4.4d.%s', g.framefolder, indeximage,g.framesout);
-        saveas(gcf,fname,g.framesout);
+        switch(g.framesout)
+            case {'pdf', 'eps', 'png','tif','jpg','bmp'}
+                export_fig(fname,g.figurehandle,'-nocrop');
+            otherwise
+                saveas(g.figurehandle,fname);
+        end
         pause(0.2);
-%         
-%         if strcmpi(g.framesout, 'tiff')
-%             command2 = sprintf('print -dtiff %simage%4.4d.tiff', g.framefolder, indeximage);
-%             eval(command2);
-%         elseif strcmpi(g.framesout, 'eps')
-%             command2 = sprintf('print -depsc -loose %simage%4.4d.eps', g.framefolder, indeximage);
-%             eval(command2);
-%         elseif 	strcmpi(g.framesout, 'ppm')
-%             command2 = sprintf('print -dppm -loose %simage%4.4d.ppm', g.framefolder, indeximage);
-%             eval(command2);
-%         elseif 	strcmpi(g.framesout, 'jpg')
-%             command2 = sprintf('print -djpeg -loose %simage%4.4d.jpg', g.framefolder, indeximage);
-%             eval(command2);
-%         else % fig format
-%             hgsave(sprintf('%simage%4.4d.fig', g.framefolder, indeximage));
-%             if strcmp(g.visible, 'on')
-%                 drawnow;
-%             end;
-%         end;
+        %
+        %         if strcmpi(g.framesout, 'tiff')
+        %             command2 = sprintf('print -dtiff %simage%4.4d.tiff', g.framefolder, indeximage);
+        %             eval(command2);
+        %         elseif strcmpi(g.framesout, 'eps')
+        %             command2 = sprintf('print -depsc -loose %simage%4.4d.eps', g.framefolder, indeximage);
+        %             eval(command2);
+        %         elseif 	strcmpi(g.framesout, 'ppm')
+        %             command2 = sprintf('print -dppm -loose %simage%4.4d.ppm', g.framefolder, indeximage);
+        %             eval(command2);
+        %         elseif 	strcmpi(g.framesout, 'jpg')
+        %             command2 = sprintf('print -djpeg -loose %simage%4.4d.jpg', g.framefolder, indeximage);
+        %             eval(command2);
+        %         else % fig format
+        %             hgsave(sprintf('%simage%4.4d.fig', g.framefolder, indeximage));
+        %             if strcmp(g.visible, 'on')
+        %                 drawnow;
+        %             end;
+        %         end;
     end
 end;
 
@@ -1257,10 +1389,20 @@ if ~isempty(g.moviename)
 end
 
 if g.verb==2
-    close(h);
+    close(g.vars.hwaitbar);
 end
 
-return;
+% EOF
+
+
+
+
+
+
+
+
+
+
 
 
 % function to draw circles
@@ -1305,16 +1447,14 @@ if tmpsize > 0
         [xstmp ystmp zs] = sphere(15);
         l=sqrt(xstmp.*xstmp+ystmp.*ystmp+zs.*zs);
         normals = reshape([xstmp./l ystmp./l zs./l],[16 16 3]);
-        xs = tmpcoord(1) + tmpsize*ystmp*g.dimratio;
+        xs = tmpcoord(1) + tmpsize*ystmp*g.vars.dimratio;
         ys = tmpcoord(2) + tmpsize*xstmp;
         zs = tmpcoord(3) + tmpsize*zs;
         colorarray = repmat(reshape(tmpcolor, 1,1,3), [size(zs,1) size(zs,2) 1]);
-        %if tmpitc ~= 0
-        %else colorarray = repmat(reshape([1 1 1],  1,1,3), [size(zs,1) size(zs,2) 1]);
-        %end;
-        %figure;gca; hold on;
-        handles = surf(xs, ys, zs, colorarray, 'tag', 'tmpmov', 'EdgeColor','none', 'VertexNormals', normals, ...
-            'backfacelighting', 'lit', 'facelighting', 'phong', 'facecolor', 'interp', 'ambientstrength', 0.3);
+        
+        themeopts =  hlp_struct2varargin(g.theme.graph);
+        handles = surf(g.vars.hbrainax,xs, ys, zs, colorarray, 'tag', 'tmpmov', 'EdgeColor','none', 'VertexNormals', normals, ...
+            'backfacelighting', 'lit', 'facelighting', g.facelighting, 'facecolor', 'interp',themeopts{:});
         %axis off; axis equal; lighting phong; camlight left; rotate3d
         if strcmpi(g.project3d, 'on')
             if g.colorshadow
@@ -1322,15 +1462,15 @@ if tmpsize > 0
             else
                 colorarray = repmat(reshape(g.projcolor, 1,1,3), [size(zs,1) size(zs,2) 1]);
             end
-            surf(xs, ys, g.factproj(3)*ones(size(zs)), colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
-            surf(xs, g.factproj(2)*ones(size(ys)), zs, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
-            surf(g.factproj(1)*ones(size(xs)), ys, zs, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
+            surf(g.vars.hbrainax,xs, ys, g.factproj(3)*ones(size(zs)), colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
+            surf(g.vars.hbrainax,xs, g.factproj(2)*ones(size(ys)), zs, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
+            surf(g.vars.hbrainax,g.factproj(1)*ones(size(xs)), ys, zs, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
         end;
     else
-        circle( tmpcoord(1), tmpcoord(2), tmpsize, tmpcolor, 'k', 0, 360, dashed, fastif(dashed, 2, 1));
+        circle( tmpcoord(1), tmpcoord(2), tmpsize, tmpcolor, 'k', 0, 360, dashed, fastif(dashed, 2, 1), 50, g.vars.hbrainax);
     end;
 end;
-return;
+
 
 % function to draw the lines
 % --------------------------
@@ -1341,6 +1481,8 @@ function handles = drawconnections( pos1, pos2, crossfpower, crossfangle, circfa
 % cirfact           curvature of the line
 % g                 preference
 % arrow should point from pos2 to pos1
+
+themeopts =  hlp_struct2varargin(g.theme.graph);
 
 % deal with dual dipoles
 % ----------------------
@@ -1387,11 +1529,13 @@ if tmpthick > 0
     else
         cylwidth=g.resmult*tmpthick/300*100;
     end
-    [xc yc zc] = cylinder( cylwidth, 10);   % create unit-length cylinder
+    %[xc yc zc] = cylinder( cylwidth, 10 );   % create unit-length cylinder
+    [xc yc zc] = cylinder2P([cylwidth], 11, 2, [pos1(1) pos1(2) pos1(3)], [pos2(1) pos2(2) pos2(3)]);
     colorarray = repmat(reshape(tmpcolor, 1,1,3), [size(zc,1) size(zc,2) 1]);
-    handles = surf(xc, yc, zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', ...
-        'backfacelighting', 'lit', 'facecolor', 'interp', 'facelighting', 'phong', 'ambientstrength', 0.3,'buttondownfcn','msgbox(''foo!'');');
-    [xc yc zc] = adjustcylinder2( handles, [pos1(1) pos1(2) pos1(3)], [pos2(1) pos2(2) pos2(3)] );  % stretch and rotate cylinder to match start-end pnts
+    handles = surf(g.vars.hbrainax,xc, yc, zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', ...
+        'backfacelighting', 'lit', 'facecolor', 'interp', 'facelighting', g.facelighting,themeopts{:});
+    %[xc yc zc] = adjustcylinder2( handles, [pos1(1) pos1(2) pos1(3)], [pos2(1) pos2(2) pos2(3)] );  % stretch and rotate cylinder to match start-end pnts
+    
     
     % compute cylinder normals (have to bias normal closer to sphere
     % to get a specular point
@@ -1426,13 +1570,13 @@ if tmpthick > 0
         else
             colorarray = repmat(reshape(g.projcolor, 1,1,3), [size(zc,1) size(zc,2) 1]);
         end
-        surf(xc, yc, g.factproj(3)*ones(size(zc)), colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
-        surf(xc, g.factproj(2)*ones(size(yc)), zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
-        surf(g.factproj(1)*ones(size(xc)), yc, zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
+        surf(g.vars.hbrainax,xc, yc, g.factproj(3)*ones(size(zc)), colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
+        surf(g.vars.hbrainax,xc, g.factproj(2)*ones(size(yc)), zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
+        surf(g.vars.hbrainax,g.factproj(1)*ones(size(xc)), yc, zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
     end;
     %if round(tmpthick) == 7, asdf; end;
 end;
-return;
+
 
 % ***************************************************************************************
 %                              Caption and tests
@@ -1453,10 +1597,10 @@ for i=1:NBCIRCLE
     if i == 1, tmpsizeori = tmpsize; end;
     
     if i == NBCIRCLE
-        tt = text( 1.4*(xlim(2) - xlim(1))+xlim(1), coordy , sprintf('%2.1g dB', powerscale(i)));
-    else tt = text( 1.4*(xlim(2) - xlim(1))+xlim(1), coordy , sprintf('%2.1g', powerscale(i)));
+        hlatency = text( 1.4*(xlim(2) - xlim(1))+xlim(1), coordy , sprintf('%2.1g dB', powerscale(i)));
+    else hlatency = text( 1.4*(xlim(2) - xlim(1))+xlim(1), coordy , sprintf('%2.1g', powerscale(i)));
     end;
-    set(tt, 'fontsize', 10*g.resmult, 'horizontalalignment', 'left', 'fontweight', 'bold');
+    set(hlatency, 'fontsize', 10*g.resmult, 'horizontalalignment', 'left', 'fontweight', 'bold');
     coordy = coordy + tmpsize + 0.2*(ylim(2)-ylim(1));
     
     %command2 = sprintf('print -depsc -loose scale%d.eps', i);
@@ -1464,31 +1608,38 @@ for i=1:NBCIRCLE
     %cla;
 end;
 set(gca, 'xlim', xlim, 'ylim', ylim-tmpsizeori, 'clipping', 'off', 'fontsize', 10*g.resmult);
-return;
+
 
 % function to draw lines at all coherence
 % ---------------------------------------
-function scalecoher(posx, posy, thickness,g);
+function scalecoher(posx, posy, thickness,g,axhandle)
+
+if nargin<5
+    axhandle = gca;
+end
+
 compter = -5;
 for i=linspace( posy(1), posy(2), 11)
+    % TODO: replace this with rendering of 3D cylinders
+    
     superline( [ posx(1) posx(2) ], [ i i ], 'b', thickness*g.resmult, mod(compter/10, 1));
     compter = compter + 1;
 end;
-%ylabel('Phase-Coh', 'fontweight', 'bold', 'fontsize', 12*g.resmult);
-axis off;
-set(gca, 'ytick', [], 'yticklabel', [], 'xtick',[],'xticklabel', [], 'box', 'on');
-% 	set(gca, 'box', 'on', 'ylim', [0 1], 'ytick', [0 0.5 1], ...
-% 			 'yticklabel', strvcat('-180�','0�','180�'), 'xlim', [0 1], 'xtick', [], 'xticklabel', [], 'fontsize', 10*g.resmult);
-%hold on; ff = fill([0 0.02 0.02 0], [0 0 1 1], 'w'); set(ff, 'edgecolor', 'w');
-%hold on; ff = fill([0 0 1 1], [0 0.02 0.02 0], 'w'); set(ff, 'edgecolor', 'w');
-return;
+
+axis(axhandle,'off');
+set(axhandle, 'ytick', [], 'yticklabel', [], 'xtick',[],'xticklabel', [], 'box', 'on');
+
 
 % colorbar special
 % ----------------
-function cbar( X, Y, colors, orientation, style, g );
+function cbar( X, Y, colors, orientation, style, g, axhandle)
 % colors = colors to plot
 % orientation = 'vert' or 'horiz'
 % style = shape of the colorbar, 'circle' = circle, bar otherwise
+
+if nargin<7
+    axhandle = gca;
+end
 
 NSEGMENTS = size(colors,1)-1;
 compter = 0;
@@ -1498,7 +1649,7 @@ switch lower(orientation)
         for i=linspace(X(1),X(2)-inc,NSEGMENTS);
             compter = compter + 1;
             hold on;
-            h = fill( [i i i+inc i+inc], [Y(1) Y(2) Y(2) Y(1)], colors(size(colors,1)+1-compter, :));
+            h = fill( [i i i+inc i+inc], [Y(1) Y(2) Y(2) Y(1)], colors(size(colors,1)+1-compter, :), 'parent',axhandle);
             set(h, 'edgecolor', 'none');
         end;
     case 'vert'
@@ -1518,21 +1669,25 @@ switch lower(orientation)
                 otherwise,	coordx = [X(1) X(2) X(2) X(1)];
             end;
             compter = compter + 1;
-            h = fill( coordx, [i i i+inc i+inc], colors(compter, :));
+            h = fill( coordx, [i i i+inc i+inc], colors(compter, :), 'parent',axhandle);
             set(h, 'edgecolor', 'none');
         end;
     otherwise
         disp('Orientation has to be ''vert'' or ''horiz''');
 end;
-set(gca, 'fontsize', 10*g.resmult);
-if strcmp(style, 'circle'), axis square; end;
-return;
+set(axhandle, 'fontsize', 10*g.resmult);
+if strcmp(style, 'circle'), axis(axhandle,'square'); end;
+
 
 % draw vertical lines
 % -------------------
-function drawvert(tmpev, tmpcond, coords);
+function drawvert(tmpev, tmpcond, coords,h)
 
-if isstruct(tmpev) | isstruct(tmpev{1})
+if nargin<4
+    h = gca;
+end
+
+if isstruct(tmpev) || isstruct(tmpev{1})
     
     % cooper envert
     %--------------
@@ -1546,7 +1701,7 @@ if isstruct(tmpev) | isstruct(tmpev{1})
         else,           ev.time = v;  ev.color = 'k'; ev.style = '-';
         end
         
-        phandle = plot([ev.time ev.time], coords, ev.style, 'linewidth', 1);
+        phandle = plot(h,[ev.time ev.time], coords, ev.style, 'linewidth', 1);
         set(phandle,'color',ev.color);
     end;
 else
@@ -1554,39 +1709,138 @@ else
     % ----------------
     for index = 1:length(tmpev)
         if ~iscell(tmpev{index}),
-            plot([tmpev{index} tmpev{index}], coords, 'k');
+            plot(h,[tmpev{index} tmpev{index}], coords, 'k');
         else
-            phandle = plot([tmpev{index}{1} tmpev{index}{1}], coords, 'k');
+            phandle = plot(h,[tmpev{index}{1} tmpev{index}{1}], coords, 'k');
             if length(tmpev{index}) > 2
                 set(phandle,tmpev{index}{2:end});
             end;
         end;
     end;
 end;
-return;
 
-% check the flux
-% --------------
-for indeximage = 1:nwin-7
-    index1 = 1;
-    index2 = 2;
-    % determine color = coherence phase
-    tmpcrossf = ALLCROSSFANGLE     { index1, index2, 1 };
-    tmpvalue  = mean(tmpcrossf( 1:2, indeximage));
-    tmpcolor  = colormaphsv( ceil((tmpvalue+180)/360*63) + 1, : );    % index for color
-    
-    % absolute value to 90 degree determine speed
-    speed = 1 - abs(90 - abs(tmpvalue))/90; % speed from 1 to 0
-    currentphase(index1, index2) = currentphase(index1, index2) + sign(tmpvalue)*speed/3; % 1 cycle in 5 images at max speed
-    
-    superline( [ 2 1] , [ 1+indeximage 0.8+indeximage], 5, tmpcolor, mod(currentphase(index1, index2),1));
-end;
-return;
+% % check the flux
+% % --------------
+% for indeximage = 1:nwin-7
+%     index1 = 1;
+%     index2 = 2;
+%     % determine color = coherence phase
+%     tmpcrossf = ALLCROSSFANGLE     { index1, index2, 1 };
+%     tmpvalue  = mean(tmpcrossf( 1:2, indeximage));
+%     tmpcolor  = colormaphsv( ceil((tmpvalue+180)/360*63) + 1, : );    % index for color
+%
+%     % absolute value to 90 degree determine speed
+%     speed = 1 - abs(90 - abs(tmpvalue))/90; % speed from 1 to 0
+%     currentphase(index1, index2) = currentphase(index1, index2) + sign(tmpvalue)*speed/3; % 1 cycle in 5 images at max speed
+%
+%     superline( [ 2 1] , [ 1+indeximage 0.8+indeximage], 5, tmpcolor, mod(currentphase(index1, index2),1));
+% end;
+% return;
 
 % scale values for node, connector and color
 % ------------------------------------------
-function value = scalevalue( value, datarange, limits);
+function value = scalevalue( value, datarange, limits)
 
 value = (value-datarange(1))/(datarange(2)-datarange(1));
 value = max(min(value,1),0);
 value = value * (limits(2)-limits(1)) + limits(1);
+
+
+
+
+
+
+
+
+
+
+% circle() - draw a circle in the current Matlab axes
+%
+% Usage:
+%   >> [linehandles fillhandle] = circle(X,Y,radius,colorfill,coloredge,oriangle,...
+%                                         endangle,dashed,thickness,segments);
+% Inputs:
+%   X, Y       - circle center coordinates
+%   radius     - circle radius. Can be a vector of 2 values, one
+%                for the x dimension and one the y dimension.
+%   colorfill  - circle fill color (default:0=none)
+%   coloredge  - circle edge color (default:black; 0:no edge)
+%   oriangle   - starting angle (default:0 degrees)
+%   endangle   - ending angle (default:360 degrees)
+%   dashed     - 0=no, 1=yes (default: no)
+%   thickness  - thickness of boarder (default: line default)
+%   segments   - number of line segments (default:50)
+%
+% Outputs:
+%   linehandles - handle to the lines of the circle object
+%   fillhandle  - handle to the interior of the circle object
+
+% Author: Arnaud Delorme, CNL / Salk Institute, 2001
+
+% This program is free software; you can redistribute it and/or modify it.
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+function [h, h2] = circle( X, Y, radius, colorfill, coloredge, oriangle, endangle, dashed, thickness, segments, h);
+
+if nargin < 3
+    error('Not enough arguments. Type help circle');
+    return;
+end;
+if nargin < 4
+    colorfill = 0;
+end;
+if nargin < 5
+    coloredge = 'k';
+end;
+if nargin < 6
+    oriangle = 0;
+end;
+if nargin < 7
+    endangle = 360;
+end;
+if nargin < 8
+    dashed = 0;
+end;
+if nargin < 9
+    thickness = 0;
+end;
+if nargin < 10
+    segments = 50;
+end;
+if nargin < 11
+    h = gca;
+end
+if any(radius <= 0)
+    return;
+end;
+
+A = linspace(oriangle/180*pi, endangle/180*pi, segments);
+
+% draw surface
+% ------------
+if any(colorfill)
+    A = linspace(oriangle/180*pi, endangle/180*pi, segments);
+    h2 = patch( X + cos(A)*radius(1), Y + sin(A)*radius(end), zeros(1,segments), colorfill, 'parent', h);
+    set(h2, 'FaceColor', colorfill);
+    set(h2, 'EdgeColor', 'none');
+end;
+
+% draw lines
+% ----------
+if dashed
+    compt=0;
+    for i=1:3:segments-2
+        compt = compt+1;
+        h(compt) = line( X + cos(A(i:i+1))*radius(1), Y + sin(A(i:i+1))*radius(end));
+    end;
+else
+    h = line( X + cos(A)*radius(1), Y + sin(A)*radius(end), 'parent', h);
+end;
+set(h, 'Color', coloredge);
+
+if thickness ~= 0
+    set(h, 'Linewidth', thickness);
+end;
+return;
