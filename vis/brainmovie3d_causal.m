@@ -233,7 +233,7 @@
 % Initial revision
 %
 
-function [alltimepoints mov g] = brainmovie3d_causal(ALLERSP,ALLITC,ALLCROSSF,ALLCROSSFANGLE,TIMES,FREQS,SELECTED,varargin)
+function [alltimepoints mov g] = brainmovie3d_causal(ALLNODESIZE,ALLNODECOLOR,ALLEDGESIZE,ALLEDGECOLOR,TIMES,FREQS,SELECTED,varargin)
 
 if nargin < 6
     help brainmovie3d_causal;
@@ -254,11 +254,11 @@ else
 end;
 
 if nargin < 7
-    SELECTED = 1:size(ALLERSP, 1);
+    SELECTED = 1:size(ALLNODESIZE, 1);
 end;
 
-nbconditions = size(ALLERSP,2);
-nbcomponents = size(ALLERSP,1);
+nbconditions = size(ALLNODESIZE,2);
+nbcomponents = size(ALLNODESIZE,1);
 
 
 try, g.dipplotopt;          catch, g.dipplotopt = {}; end
@@ -312,6 +312,7 @@ try, g.backcolor;           catch, g.backcolor = [0 0 0]; end;
 try, g.rotationpath3d;      catch, g.rotationpath3d = struct('AngleFactor',1,'PhaseFactor',0.75,'FramesPerCycle',max(1,length(g.latency))); end;
 try, g.project3d;           catch, g.project3d = 'off'; end;
 try, g.view;                catch, g.view = [43.6650 30.4420]; end;
+try, g.drawmode;            catch, g.drawmode = 'normal'; end                       %% DrawMode for brainmovie ('fast' renders brain more quickly (but poorer) than 'normal'). See Axes Properties for additional details
 try, g.footerPanelPlotMode; catch, g.footerPanelPlotMode = {'all','envelope'}; end; %% Plot mode for footer panel display (plot all traces and/or envelope)
 try, g.makeCompass;         catch, g.makeCompass = false; end                       %% TM: label cardinal directions (posterior,anterior, left, right)
 try, g.windowLength;        catch; g.windowLength = []; end;                        %% length of sliding window (for footer panel display)
@@ -397,9 +398,9 @@ if isempty(g.circfactor), g.circfactor = ones( nbcomponents, nbcomponents )*0.01
 %--------------------
 if isempty(g.nodeSizeDataRange)
     g.nodeSizeDataRange = [Inf -Inf];
-    for i=1:length(ALLERSP)
-        g.nodeSizeDataRange(1) = min(g.nodeSizeDataRange(1), min(ALLERSP{i}(:)));
-        g.nodeSizeDataRange(2) = max(g.nodeSizeDataRange(2), max(ALLERSP{i}(:)));
+    for i=1:length(ALLNODESIZE)
+        g.nodeSizeDataRange(1) = min(g.nodeSizeDataRange(1), min(ALLNODESIZE{i}(:)));
+        g.nodeSizeDataRange(2) = max(g.nodeSizeDataRange(2), max(ALLNODESIZE{i}(:)));
     end;
     
     % make 0 in the center of colormap
@@ -411,9 +412,9 @@ if isempty(g.nodeSizeDataRange)
 end
 if isempty(g.nodeColorDataRange)
     g.nodeColorDataRange = [Inf -Inf];
-    for i=1:length(ALLITC)
-        g.nodeColorDataRange(1) = min(g.nodeColorDataRange(1), min(ALLITC{i}(:)));
-        g.nodeColorDataRange(2) = max(g.nodeColorDataRange(2), max(ALLITC{i}(:)));
+    for i=1:length(ALLNODECOLOR)
+        g.nodeColorDataRange(1) = min(g.nodeColorDataRange(1), min(ALLNODECOLOR{i}(:)));
+        g.nodeColorDataRange(2) = max(g.nodeColorDataRange(2), max(ALLNODECOLOR{i}(:)));
     end;
     
     % make 0 in the center of colormap
@@ -426,10 +427,10 @@ if isempty(g.nodeColorDataRange)
 end;
 if isempty(g.edgeSizeDataRange)
     g.edgeSizeDataRange = [Inf -Inf];
-    for i=1:length(ALLCROSSF(:))
-        if ~isempty(ALLCROSSF{i})
-            g.edgeSizeDataRange(1) = min(g.edgeSizeDataRange(1), min(ALLCROSSF{i}(:)));
-            g.edgeSizeDataRange(2) = max(g.edgeSizeDataRange(2), max(ALLCROSSF{i}(:)));
+    for i=1:length(ALLEDGESIZE(:))
+        if ~isempty(ALLEDGESIZE{i})
+            g.edgeSizeDataRange(1) = min(g.edgeSizeDataRange(1), min(ALLEDGESIZE{i}(:)));
+            g.edgeSizeDataRange(2) = max(g.edgeSizeDataRange(2), max(ALLEDGESIZE{i}(:)));
         end;
     end;
     
@@ -442,10 +443,10 @@ if isempty(g.edgeSizeDataRange)
 end;
 if isempty(g.edgeColorDataRange)
     g.edgeColorDataRange = [Inf -Inf];
-    for i=1:length(ALLCROSSFANGLE(:))
-        if ~isempty(ALLCROSSFANGLE{i})
-            g.edgeColorDataRange(1) = min(g.edgeColorDataRange(1), min(ALLCROSSFANGLE{i}(:)));
-            g.edgeColorDataRange(2) = max(g.edgeColorDataRange(2), max(ALLCROSSFANGLE{i}(:)));
+    for i=1:length(ALLEDGECOLOR(:))
+        if ~isempty(ALLEDGECOLOR{i})
+            g.edgeColorDataRange(1) = min(g.edgeColorDataRange(1), min(ALLEDGECOLOR{i}(:)));
+            g.edgeColorDataRange(2) = max(g.edgeColorDataRange(2), max(ALLEDGECOLOR{i}(:)));
         end;
     end;
     
@@ -461,31 +462,31 @@ end;
 % check size of inputs
 % --------------------
 try
-    if ~all(size(ALLERSP) == size(ALLITC))
+    if ~all(size(ALLNODESIZE) == size(ALLNODECOLOR))
         disp('Error: ERSP and ITC cells array must be the same size'); return;
     end;
-    if ~isempty(ALLCROSSF)
-        if ~all(size(ALLCROSSF) == size(ALLCROSSFANGLE))
+    if ~isempty(ALLEDGESIZE)
+        if ~all(size(ALLEDGESIZE) == size(ALLEDGECOLOR))
             disp('Error: Crossf amplitude and Crossf angle cells array must be the same size'); return;
         end;
-        if ~(size(ALLCROSSF,2) == size(ALLERSP,1))
+        if ~(size(ALLEDGESIZE,2) == size(ALLNODESIZE,1))
             disp('Error: number of components different in ERSP and Crossf arrays'); return;
         end;
-        if ~(size(ALLCROSSF,3) == size(ALLERSP,2))
+        if ~(size(ALLEDGESIZE,3) == size(ALLNODESIZE,2))
             disp('Error: number of conditions different in ERSP and Crossf arrays'); return;
         end;
-        if ~(size(ALLCROSSF{1,2,1},1) == size(ALLERSP{1,1},1))
+        if ~(size(ALLEDGESIZE{1,2,1},1) == size(ALLNODESIZE{1,1},1))
             disp('Error: number of frequencies (rows) different in ERSP and Crossf arrays'); return;
         end;
-        if ~(size(ALLCROSSFANGLE{1,2,1},2) == size(ALLITC{1,1},2))
+        if ~(size(ALLEDGECOLOR{1,2,1},2) == size(ALLNODECOLOR{1,1},2))
             disp('Error: number of time points (columns) different in ERSP and Crossf arrays'); return;
         end;
-        if ~(size(ALLCROSSF{1,2,1},2) == length(TIMES))
+        if ~(size(ALLEDGESIZE{1,2,1},2) == length(TIMES))
             disp('Error: number of time points (columns) different in TIMES and Crossf arrays'); return;
         end;
     end;
-    try tmp = ALLERSP{1,1}; tmp(FREQS,:); catch, disp('Error: unable to access the defined frequencies in ERSPs (out of bounds) '); return; end;
-    try ALLERSP{SELECTED,1}; catch, disp('Error: unable to access the defined components in ERSPs (out of bounds)'); return; end;
+    try tmp = ALLNODESIZE{1,1}; tmp(FREQS,:); catch, disp('Error: unable to access the defined frequencies in ERSPs (out of bounds) '); return; end;
+    try ALLNODESIZE{SELECTED,1}; catch, disp('Error: unable to access the defined components in ERSPs (out of bounds)'); return; end;
 catch
     disp('Error accessing one of the variable. Remember: Except for SELECTED, freqs, TIMES and circfactor, all vars are cell arrays. Check also: dimensions and content.'); return;
 end;
@@ -638,7 +639,7 @@ if ismember(lower(g.mode),{'init','init_and_render'})
     
     
     currentphase   = zeros( length(SELECTED), length(SELECTED), nbconditions);
-    tmp = ALLERSP{1,1};
+    tmp = ALLNODESIZE{1,1};
     nwin = size(tmp,2);
     
     %     % optional resquare of all coordinates
@@ -753,9 +754,12 @@ if ismember(lower(g.mode),{'init','init_and_render'})
         
         % plot 3d head (*0.9 added for Nick - Arno).
         % ------------
-        g.vars.hBrain(tmpcond) = axes('position', [0+maxcoordx/nbconditions*(tmpcond-1), ordinate, maxcoordx/nbconditions*0.9, max_ordinate].*s+q ,'parent',g.figurehandle);
+        g.vars.hBrain(tmpcond) = axes('position', [0+maxcoordx/nbconditions*(tmpcond-1), ordinate, ...
+            maxcoordx/nbconditions*0.9, max_ordinate].*s+q ,...
+            'parent',g.figurehandle,'DrawMode',g.drawmode);
         gr = [ 0.3 0.3 0.3 ];
-        g.dipplotopt = [{ 'coordformat' g.coordformat 'gui', 'off', 'cornermri', 'on', 'color', { gr gr gr gr gr gr gr gr gr } } g.dipplotopt];
+        g.dipplotopt = [{ 'coordformat' g.coordformat 'gui', 'off', 'cornermri', 'on', ...
+            'color', { gr gr gr gr gr gr gr gr gr } } g.dipplotopt];
         
         if ~isempty(g.mri)
             g.dipplotopt = [g.dipplotopt 'mri' g.mri];
@@ -832,7 +836,6 @@ if ismember(lower(g.mode),{'init','init_and_render'})
             delete(htmp);
         end;
         
-        %h = plot3(g.vars.coordinates{tmpcond}(:, 1),  g.vars.coordinates{tmpcond}(:, 2),  g.vars.coordinates{tmpcond}(:, 3), 'r.', 'markersize', 30);
         xltmp = xlim;
         yltmp = ylim;
         g.vars.dimratio = (xltmp(2) - xltmp(1)) / (yltmp(2) - yltmp(1));
@@ -845,8 +848,7 @@ if ismember(lower(g.mode),{'init','init_and_render'})
             end;
         end;
         
-        % this axis is used for the envelope but also used to print current time
-        % (which is why it is always created)
+        % Create Footer Panel axis
         if ~isempty( g.footerPanelData )
             g.vars.hFooterPanel(tmpcond) = axes('position', [0/nbconditions+maxcoordx/nbconditions*(tmpcond-1), 0, ...
                 maxcoordx/nbconditions-0.05/nbconditions, ordinate-0.1].*s+q,'visible', g.visible,'color','none','xcolor','w','ycolor','w','parent',g.figurehandle);
@@ -860,7 +862,8 @@ if ismember(lower(g.mode),{'init','init_and_render'})
             
             if any(strcmpi(g.footerPanelPlotMode,'all'))
                 % plot individual footer panel data traces
-                %                 colors = distinguishable_colors(size(g.footerPanelData,1),[0 0 0; 1 1 1]);
+                
+                % colors = distinguishable_colors(size(g.footerPanelData,1),[0 0 0; 1 1 1]);
                 colors = hsv(size(g.footerPanelData,1));
                 for k=1:size(g.footerPanelData,1)
                     plot(g.vars.hFooterPanel(tmpcond),g.footerPanelTimes,g.footerPanelData(k,:),'linewidth',g.resmult,'color',colors(k,:));
@@ -909,20 +912,56 @@ if ismember(lower(g.mode),{'init','init_and_render'})
         end;
         
         % create a little title bar in right-top corner
-        text((maxcoordx+(1.1-maxcoordx)/2)*s(1)+q(1), 0.9459, [fastif(iscell(g.title),g.title,{g.title}) {g.ConnMethod}],'HorizontalAlignment','center','fontsize',12*g.resmult,'units','normalized','fontweight','bold','parent',findobj(g.figurehandle,'tag','figureBackground'),'color','w');
+        text((maxcoordx+(1.1-maxcoordx)/2)*s(1)+q(1), 0.9459, ...
+            [fastif(iscell(g.title),g.title,{g.title}) {g.ConnMethod}], ...
+            'HorizontalAlignment','center','fontsize',12*g.resmult, ...
+            'units','normalized','fontweight','bold', ...
+            'parent',findobj(g.figurehandle,'tag','figureBackground'), ...
+            'color','w');
         
         % draw a 'compass' indicating the directions
         if g.makeCompass
             % %- IN PREP
-            g.vars.hCompass = axes('position', [0.0244/nbconditions+maxcoordx/nbconditions*(tmpcond-1), 0.8631, ...
-                maxcoordx/nbconditions-0.05/nbconditions, ordinate-0.1].*s+q,'visible', g.visible,'color','none','xcolor','w','ycolor','w','parent',g.figurehandle);
+            g.vars.hCompass(tmpcond) = axes(...
+                'position', [-0.05/nbconditions+maxcoordx/nbconditions*(tmpcond-1), 0.8631, ...
+                0.2/nbconditions-0.05/nbconditions, 0.15].*s+q, ...
+                'visible', g.visible,'color','none','xcolor','w', ...
+                'ycolor','w','parent',g.figurehandle);
             
-            % draw a 3d arrow pointing the direction of the nose using arrow3d
+            % z-directon (superior)
+            [hCompass(1).line,hCompass(1).head]=arrow3d([0 0 0],[0 0 0.1],30,'cylinder',[0.4,0.2],[20,10],g.vars.hCompass(tmpcond));
+            set(hCompass(1).head,'FaceColor','r','EdgeColor','r');
+            % y-direction (nose)
+            [hCompass(2).line,hCompass(2).head]=arrow3d([0 0 0],[0 0.1 0],30,'cylinder',[0.4,0.2],[20,10],g.vars.hCompass(tmpcond));
+            set(hCompass(2).head,'FaceColor','g','EdgeColor','g');
+            % x-direction (right ear)
+            [hCompass(3).line,hCompass(3).head]=arrow3d([0 0 0],[0.1 0 0],30,'cylinder',[0.4,0.2],[20,10],g.vars.hCompass(tmpcond));
+            set(hCompass(3).head,'FaceColor',[11 131 222]/255,'EdgeColor',[11 131 222]/255); % blue
             
-            %         0.0231    0.9856
-            %         0.0244    0.8631
-            %         0.1944    0.8631
-            %         0.1919    0.9856
+            % draw labels
+            text(0,0,.15,'Dorsal','color','r','parent',g.vars.hCompass(tmpcond), ...
+                'fontsize',12*g.resmult,'horizontalalignment','center');
+            text(0,.15,0,'Anterior','color','g','parent',g.vars.hCompass(tmpcond),...
+                'fontsize',12*g.resmult,'horizontalalignment','center');      
+            text(.15,0,0,'Right Lat','color',[11 131 222]/255,'parent',g.vars.hCompass(tmpcond),...
+                'fontsize',12*g.resmult,'horizontalalignment','center');
+            
+            axis(g.vars.hCompass(tmpcond),'equal','off');
+            patches = [hCompass.head];
+            set(patches(2,:),'edgecolor','k');
+            
+%             lh=legend(g.vars.hCompass(tmpcond),patches(1,:),{'Sup','Ant','Rlat'},...
+%                 'textcolor','w','color','none', ...
+%                 'orientation','vertical','location','WestOutside');
+%             pos=get(lh,'position');
+%             set(lh,'position',[-0.02 pos(2:end)]);
+%             legend(g.vars.hCompass(tmpcond),'boxoff');
+            
+            % link rotation properties of the brain and compass axes
+            hlink=linkprop([g.vars.hCompass(tmpcond) g.vars.hBrain(tmpcond)] ,{'CameraPosition','CameraUpVector'});
+            key = 'graphics_linkprop';
+            setappdata(g.vars.hBrain(tmpcond),key,hlink);
+            
         end
         
     end
@@ -960,12 +999,13 @@ if ismember(lower(g.mode),{'init','init_and_render'})
                 handles = surf(g.vars.hlgnd(countl),xs3, ys3, zs3, colorarray, 'tag', 'tmpmov', 'EdgeColor','none', 'VertexNormals', normals, ...
                     'backfacelighting', 'lit', 'facelighting', g.facelighting, 'facecolor', 'interp', 'ambientstrength', 0.3);
                 axis(g.vars.hlgnd(countl),'off');
-                camlight left
-                camlight right
-                view([1 0 0])
-                lightangle(45,0);
-                lighting(g.facelighting);
-                material shiny;
+                lh(1)=camlight('left');
+                lh(2)=camlight('right');
+                view(g.vars.hlgnd(countl),[1 0 0]);
+                lh(3)=lightangle(45,0);
+                set(lh,'parent',g.vars.hlgnd(countl));
+                %                 lighting(g.facelighting);
+                %                 material shiny;
                 axis(g.vars.hlgnd(countl),'equal');
                 set(g.vars.hlgnd(countl), 'zlim', [-2 4]);
                 set(g.vars.hlgnd(countl), 'ytick', [], 'yticklabel', [], 'xtick',[],'xticklabel', [], 'box', 'off');
@@ -973,7 +1013,7 @@ if ismember(lower(g.mode),{'init','init_and_render'})
                 text(0, 1.3, 2, num2str(g.nodeSizeDataRange(2),'%0.2f'), 'fontweight', 'bold','parent',g.vars.hlgnd(countl));    % upper limit
                 text(0, 1, 0, num2str((g.nodeSizeDataRange(2)+g.nodeSizeDataRange(1))/2,'%0.2f'), 'fontweight', 'bold','parent',g.vars.hlgnd(countl));   % midrange
                 text(0, 0.5, -1.5, num2str(g.nodeSizeDataRange(1),'%0.2f'), 'fontweight', 'bold','parent',g.vars.hlgnd(countl)); % lower limit
-                %       scalepower(mean(xlimnorm), min(ylimnorm)+0.2, g); % see function at the end
+                %       renderNodeSizeLegend(mean(xlimnorm), min(ylimnorm)+0.2, g); % see function at the end
                 %       axis off;
                 countl = countl + 1;
             end;
@@ -1010,7 +1050,20 @@ if ismember(lower(g.mode),{'init','init_and_render'})
                 g.vars.hlgnd(countl) = axes('position', [maxcoordx+(1.1-maxcoordx)/2, 0.69,(1.1-maxcoordx)/2, 0.25 ].*s+q, ...
                     'visible', g.visible, 'parent', g.figurehandle );
                 
-                scalecoher([0.02 1], [0.04 0.96], 5, g, g.vars.hlgnd(countl)); % see function at the end
+%                 
+%                 edgesizeLimits = [ ceil( g.edgeSizeDataRange(1) ) 0 floor( g.edgeSizeDataRange(2) ) ];
+%                     
+%                     cylwidth=g.resmult*g.edgeSizeDataRange(1)/300*100;
+%                     
+%                     %[xc yc zc] = cylinder( cylwidth, 10 );   % create unit-length cylinder
+%                     [xc yc zc] = cylinder2P([cylwidth], 11, 2, [0.02 1 pos1(3)], [pos2(1) pos2(2) pos2(3)]);
+%                     colorarray = repmat(reshape(tmpcolor, 1,1,3), [size(zc,1) size(zc,2) 1]);
+%                     handles = surf(g.vars.hbrainax,xc, yc, zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', ...
+%                         'backfacelighting', 'lit', 'facecolor', 'interp', 'facelighting', g.facelighting,themeopts{:});
+%                 %     
+
+                
+                renderEdgeSizeLegend([0.02 1], [0.04 0.96], 5, g, g.vars.hlgnd(countl)); % see function at the end
                 
                 text(-0.2, 1, num2str(g.edgeSizeDataRange(2),'%0.2f'), 'fontsize', 10,'units','normalized','parent',g.vars.hlgnd(countl)); % upper limit
                 text(-0.2, 0.5, num2str((g.edgeSizeDataRange(2)+g.edgeSizeDataRange(1))/2, '%0.2f'), 'fontsize', 10,'units','normalized','parent',g.vars.hlgnd(countl)); % midrange
@@ -1117,62 +1170,89 @@ for indeximage = g.vars.alltimepoints
         
         % draw correlations
         % -----------------
-        switch lower(g.crossf), case 'on',
+        if strcmpi(g.crossf,'on')
+            
+            themeopts =  hlp_struct2varargin(g.theme.graph);
+            
+            % Build the cylinders (connections/edges)
+            q = 1;
+            NumPointsCircum = 11; % num points around circumference of cylinder
+            [xc yc zc] = deal(NaN(3*length(SELECTED)^2,NumPointsCircum));
+            colorarray = NaN(size(xc,1), NumPointsCircum, 3);
+            
             for index1 = SELECTED
                 for index2 = SELECTED
                     
-                    if index1==index2 || (~g.causality && index2 < index1)
-                        continue;     % need only do one arc for symmetric connectivity (g.vars.hFooterPanel.g., cohere)
+                    if index1==index2 ...
+                            || (~g.causality && index2 < index1) ... % if connectivity is symm 
+                            || isnan(ALLEDGESIZE{ index1, index2, tmpcond}) % or if connection is zero
+                        continue;
                     end
-                    
-                    tmpcrossfpow = ALLCROSSF     	 { index1, index2, tmpcond };
-                    tmpcrossfang = ALLCROSSFANGLE    { index1, index2, tmpcond };
-                    
+                                       
                     % collapse data across frequency
-                    [tmppower tmppower_peakidx] = hlp_collapseFrequencies(tmpcrossfpow,g.collapsefun,FREQS,indeximage);
+                    [tmpEdgeSize tmpEdgeSize_peakidx] = hlp_collapseFrequencies( ...
+                                                        ALLEDGESIZE{ index1, index2, tmpcond}, ...
+                                                        g.collapsefun,FREQS,indeximage);
                     
                     if g.EdgeColorMappedToDirectionality
-                        tmpangle = sign(index1-index2);
-                        if ~tmpangle, tmpangle=1; end
+                        tmpEdgeColor = sign(index1-index2);
+                        if ~tmpEdgeColor, tmpEdgeColor=1; end
                     else
                         % collapse data across frequency
-                        [tmpangle tmpangle_peakidx] = hlp_collapseFrequencies(tmpcrossfang,g.collapsefun,FREQS,indeximage);
-                        
-                    end
+                        [tmpEdgeColor tmpEdgeColor_peakidx] = hlp_collapseFrequencies( ...
+                                                        ALLEDGECOLOR{index1, index2, tmpcond}, ...
+                                                        g.collapsefun,FREQS,indeximage);
+                    end                  
                     
-                    if strcmpi(g.crossfphaseunit, 'radian'), tmpangle = tmpangle/pi*180; end;
-                    %fprintf('%d-%d -> power %1.1f\n', index1, index2, tmppower);b
-                    drawconnections( g.vars.coordinates{tmpcond}{ index1 }, g.vars.coordinates{tmpcond}{ index2 }, ...
-                        tmppower, tmpangle, g.circfactor(index1, index2), g);
-                end;
-            end;
-        end;
+                    pos1 = g.vars.coordinates{tmpcond}{ index1 };
+                    pos2 = g.vars.coordinates{tmpcond}{ index2 };
+                    curvature = g.circfactor(index1, index2);
+                    
+                    [xc(q:q+1,:) yc(q:q+1,:) zc(q:q+1,:) colorarray(q:q+1,:,:) cylwidth normals] ...
+                        = makeEdge( pos1, pos2, ...
+                            tmpEdgeSize, tmpEdgeColor, curvature, NumPointsCircum,g);
+                        
+                    q=q+3;
+
+                end
+            end
+            
+            % Render all edges at once
+            if ~isfield(g.vars,'hConnections') || isempty(g.vars.hConnections)
+                g.vars.hConnections = surf(g.vars.hbrainax, xc, yc, zc, colorarray, 'tag', 'tmpmov_connections', 'edgecolor', 'none', ...
+                    'backfacelighting', 'lit', 'facecolor', 'interp', ...
+                    'facelighting', g.facelighting, themeopts{:});
+            else
+                set(g.vars.hConnections,'Xdata',xc,'Ydata',yc,'Zdata',zc,'Cdata',colorarray);
+            end
+            
+        end
         
         % draw circles
         % ------------
         for index1 = g.plotorder(:)'
-            tmptimef = ALLERSP{ index1, tmpcond};
             
-            % node size is power
-            [tmppow tmppow_peakidx] = hlp_collapseFrequencies(tmptimef,g.collapsefun,FREQS,indeximage);
+            % node size
+            [tmpNodeSize tmppow_peakidx] = hlp_collapseFrequencies(ALLNODESIZE{ index1, tmpcond}, ...
+                                            g.collapsefun,FREQS,indeximage);
+     
+            % node color
+            [tmpNodeColor tmpitc_peakidx] = hlp_collapseFrequencies(ALLNODECOLOR{ index1, tmpcond}, ...
+                                            g.collapsefun,FREQS,indeximage);
             
-            tmptimef = ALLITC{ index1, tmpcond};
+            % render node
+            [tmpsize, tmpcolor, handles] = drawcircle( g.vars.coordinates{tmpcond}{ index1 }, tmpNodeSize, tmpNodeColor, g);
             
-            % node color is ITC
-            [tmpitc tmpitc_peakidx] = hlp_collapseFrequencies(tmptimef,g.collapsefun,FREQS,indeximage);
-            
-            %index1, tmpitc, tmppow,
-            drawcircle( g.vars.coordinates{tmpcond}{ index1 }, tmppow, tmpitc, g);
             if ~isempty(g.nodelabels)
                 tmpcoord = g.vars.coordinates{tmpcond}{index1};
                 for i=1:size(tmpcoord,1)
                     text(tmpcoord(i,1), ...
                         tmpcoord(i,2), ...
-                        tmpcoord(i,3)+5, ...
-                        g.nodelabels{index1},'color','k');
+                        double(tmpcoord(i,3)+1.2*tmpsize), ...
+                        g.nodelabels{index1},'color','w','parent',g.vars.hbrainax,'fontsize',12*g.resmult);
                 end
             end
-        end;
+        end
         
         % delete old objects
         delete( oldobjs );
@@ -1271,28 +1351,11 @@ for indeximage = g.vars.alltimepoints
         %                     t = textsc(g.title{1},'title');
         %                     set(t,'VerticalAlignment','top', 'fontsize', 15);
         %                 end;
-        %
-    end;  % LOOP OVER CONDITIONS
-    
-    % put the time in the right bottom corner
-    % --------------------------------------
-    if g.showLatency
-        if ~isfield(g.vars,'hlatency'),
-            g.vars.hlatency = text(0.92, 0.05, sprintf('%0.3g sec', TIMES(indeximage)), 'unit', 'normalized','parent',g.vars.hFigureBg);
-            set(g.vars.hlatency, 'fontsize', 12*g.resmult, 'horizontalalignment', 'right', 'tag', 'tmpmov', 'color', 'w');
-        else
-            set(g.vars.hlatency,'String', sprintf('%0.3g sec', TIMES(indeximage)));
-        end
-        %         uistack(hlatency,'up',10);
-    end
-    
-    
-    % update the current time
-    %     axes(g.vars.hFooterPanel(tmpcond)); cla; axis off; set (g.figurehandle, 'visible', g.visible);
-    if ~isempty( g.footerPanelData )
         
-        for tmpcond = 1:nbconditions
-            %             cla(g.vars.hFooterPanel(tmpcond)); axis(g.vars.hFooterPanel(tmpcond),'on'); % set (g.figurehandle, 'visible', g.visible);
+        % update the Footer Panel
+        % -----------------------
+        if ~isempty( g.footerPanelData )
+            
             hold(g.vars.hFooterPanel(tmpcond),'on');
             
             % draw line for current time point
@@ -1316,28 +1379,44 @@ for indeximage = g.vars.alltimepoints
             
             hold(g.vars.hFooterPanel(tmpcond),'off');
         end
+        
+        
+        % Set the lighting options
+        % -----------------
+        lighting(g.vars.hbrainax,g.facelighting);
+        
+        % delete existing lights
+        hlights = findobj(g.vars.hbrainax,'type','light');
+        delete(hlights)
+        
+        if ~isempty(g.theme)
+            cl=feval(g.theme.lightingfcn,g.vars.hbrainax,g.theme.name);
+            set(cl,'tag','brain_camlight','parent',g.vars.hbrainax);
+        else
+            cl(1) = camlight(g.vars.hbrainax,'left');
+            cl(2) = camlight(g.vars.hbrainax,'right');
+            set(cl,'tag','brain_camlight','parent',g.vars.hbrainax);
+        end
+        
+        % reset text fontcolor to white
+        set(findobj(g.vars.hlgnd,'type','text'),'color',[0.99 0.99 0.99]);
+        
+        
+    end;  % LOOP OVER CONDITIONS
+    
+    
+    % put the time in the right bottom corner
+    % --------------------------------------
+    if g.showLatency
+        if ~isfield(g.vars,'hlatency'),
+            g.vars.hlatency = text(0.92, 0.05, sprintf('%0.3g sec', TIMES(indeximage)), 'unit', 'normalized','parent',g.vars.hFigureBg);
+            set(g.vars.hlatency, 'fontsize', 12*g.resmult, 'horizontalalignment', 'right', 'tag', 'tmpmov', 'color', 'w');
+        else
+            set(g.vars.hlatency,'String', sprintf('%0.3g sec', TIMES(indeximage)));
+        end
+        %         uistack(hlatency,'up',10);
     end
     
-    
-    % Set the lighting options
-    % -----------------
-    lighting(g.vars.hbrainax,g.facelighting);
-    
-    % delete existing lights
-    hlights = findobj(g.vars.hbrainax,'type','light');
-    delete(hlights)
-    
-    if ~isempty(g.theme)
-        cl=feval(g.theme.lightingfcn,g.vars.hbrainax,g.theme.name);
-        set(cl,'tag','brain_camlight');
-    else
-        cl(1) = camlight(g.vars.hbrainax,'left');
-        cl(2) = camlight(g.vars.hbrainax,'right');
-        set(cl,'tag','brain_camlight');
-    end
-    
-    % reset text fontcolor to white
-    set(findobj(g.vars.hlgnd,'type','text'),'color',[0.99 0.99 0.99]);
     
     drawnow;
     
@@ -1348,11 +1427,6 @@ for indeximage = g.vars.alltimepoints
         movframes = getframe(g.figurehandle);
         mov = addframe(mov,movframes);
     end
-    
-    
-    %     figure(findobj('tag','BrainMovieFigure'));
-    
-    
     
     if ~isempty(g.framefolder)
         fname = sprintf('%simage%4.4d.%s', g.framefolder, indeximage,g.framesout);
@@ -1473,70 +1547,190 @@ if tmpsize > 0
 end;
 
 
+% % % % function to draw the lines
+% % % % --------------------------
+% % % function handles = drawconnections( pos1, pos2, crossfpower, crossfangle, edgeCurvature, g)
+% % % % pos1, pos2		position of the points
+% % % % crossfpower       coherence power for width of the line
+% % % % crossfangle       coherence angle for color and speed of the line
+% % % % cirfact           curvature of the line
+% % % % g                 preference
+% % % % arrow should point from pos2 to pos1
+% % % 
+% % % themeopts =  hlp_struct2varargin(g.theme.graph);
+% % % 
+% % % % deal with dual dipoles
+% % % % ----------------------
+% % % handles = [];
+% % % if crossfpower == 0, return; end;
+% % % if size(pos1,1) > 1
+% % %     handles1 = drawconnections( pos1(1,:), pos2, crossfpower, crossfangle, edgeCurvature, g);
+% % %     handles2 = drawconnections( pos1(2,:), pos2, crossfpower, crossfangle, edgeCurvature, g);
+% % %     handles = [ handles1 handles2];
+% % %     return;
+% % % end
+% % % 
+% % % if size(pos2,1) > 1
+% % %     handles1 = drawconnections( pos1, pos2(1,:), crossfpower, crossfangle, edgeCurvature, g);
+% % %     handles2 = drawconnections( pos1, pos2(2,:), crossfpower, crossfangle, edgeCurvature, g);
+% % %     handles = [ handles1 handles2];
+% % %     return;
+% % % end
+% % % 
+% % % % if the two circle are too close then do not draw the line
+% % % % --------------------------------------------------------
+% % % distance = sqrt(sum((pos1-pos2).^2));
+% % % if distance < 0.05*(g.ylimaxes(2) - g.ylimaxes(1))
+% % %     return;
+% % % end
+% % % 
+% % % % Edge size
+% % % % ---------
+% % % tmpthick = scalevalue( crossfpower, g.edgeSizeDataRange, g.edgeSizeLimits );
+% % % if strcmpi(g.crossfcoh, 'off') || isnan(crossfpower), tmpthick  = 0; end;
+% % % tmpthick = 30*tmpthick;
+% % % if crossfpower == 0, tmpthick = 0; end;
+% % % 
+% % % % Edge color
+% % % % ----------
+% % % tmpcolor = scalevalue( crossfangle, g.edgeColorDataRange, g.edgeColorLimits );
+% % % if strcmpi(g.crossfphasecolor, 'off'), tmpcolor  = 0; end;
+% % % indexcolor = floor(max(tmpcolor-0.001,0)*length(g.edgeColormap))+1;
+% % % tmpcolor   = g.edgeColormap( indexcolor,: );
+% % % if isnan(crossfangle), tmpcolor = [1 1 1]; end;
+% % % 
+% % % if tmpthick > 0
+% % %     if g.causality
+% % %         %             cylwidth=linspace(g.resmult*tmpthick/300*100,0.1,50);
+% % %         cylwidth = [0.1 g.resmult*tmpthick/300*100];    % tapered cylinder pointing from pos2->pos1
+% % %     else
+% % %         cylwidth=g.resmult*tmpthick/300*100;
+% % %     end
+% % %     %[xc yc zc] = cylinder( cylwidth, 10 );   % create unit-length cylinder
+% % %     [xc yc zc] = cylinder2P(cylwidth, 11, 2, [pos1(1) pos1(2) pos1(3)], [pos2(1) pos2(2) pos2(3)]);
+% % %     colorarray = repmat(reshape(tmpcolor, 1,1,3), [size(zc,1) size(zc,2) 1]);
+% % %     handles = surf(g.vars.hbrainax,xc, yc, zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', ...
+% % %         'backfacelighting', 'lit', 'facecolor', 'interp', 'facelighting', g.facelighting,themeopts{:});
+% % %     %[xc yc zc] = adjustcylinder2( handles, [pos1(1) pos1(2) pos1(3)], [pos2(1) pos2(2) pos2(3)] );  % stretch and rotate cylinder to match start-end pnts
+% % %     
+% % %     
+% % %     % compute cylinder normals (have to bias normal closer to sphere
+% % %     % to get a specular point
+% % %     % TM: this is the part that creates the "spotlight" effect on each
+% % %     % arc
+% % %     cx = mean(xc,2); cx = [(3*cx(1)+cx(2))/4; (cx(1)+3*cx(2))/4];
+% % %     cy = mean(yc,2); cy = [(3*cy(1)+cy(2))/4; (cy(1)+3*cy(2))/4];
+% % %     cz = mean(zc,2); cz = [(3*cz(1)+cz(2))/4; (cz(1)+3*cz(2))/4];
+% % %     tmpx = xc - repmat(cx, [1 11]);
+% % %     tmpy = yc - repmat(cy, [1 11]);
+% % %     tmpz = zc - repmat(cz, [1 11]);
+% % %     l=sqrt(tmpx.^2+tmpy.^2+tmpz.^2);
+% % %     normals = reshape([tmpx./l tmpy./l tmpz./l],[2 11 3]);
+% % %     set( handles, 'vertexnormals', normals);
+% % %     
+% % %     %         if crossfangle>0,k=2; else k=1; end
+% % %     %         cx = mean(xc,2); cx = cx(k)-3; %[(cx(1)+cx(2))/4; (cx(1)+cx(2))/4];
+% % %     %         cy = mean(yc,2); cy = cy(k); %[(cy(1)+cy(2))/4; (cy(1)+cy(2))/4];
+% % %     %         cz = mean(zc,2); cz = cz(k); %[(cz(1)+cz(2))/4; (cz(1)+cz(2))/4];
+% % %     %         tmpx = xc - repmat(cx, [2 11]);
+% % %     %         tmpy = yc - repmat(cy, [2 11]);
+% % %     %         tmpz = zc - repmat(cz, [2 11]);
+% % %     %         l=sqrt(tmpx.^2+tmpy.^2+tmpz.^2);
+% % %     %         normals = reshape([tmpx./l tmpy./l tmpz./l],[2 11 3]);
+% % %     %         set( handles, 'vertexnormals', normals);
+% % %     
+% % %     %figure
+% % %     %axis off; axis equal; lighting phong; camlight left; rotate3d
+% % %     if strcmpi(g.project3d, 'on')
+% % %         if g.colorshadow
+% % %             colorarray=colorarray.*repmat(reshape(g.projcolor, 1,1,3), [size(zc,1) size(zc,2) 1]);
+% % %         else
+% % %             colorarray = repmat(reshape(g.projcolor, 1,1,3), [size(zc,1) size(zc,2) 1]);
+% % %         end
+% % %         surf(g.vars.hbrainax,xc, yc, g.factproj(3)*ones(size(zc)), colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
+% % %         surf(g.vars.hbrainax,xc, g.factproj(2)*ones(size(yc)), zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
+% % %         surf(g.vars.hbrainax,g.factproj(1)*ones(size(xc)), yc, zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
+% % %     end;
+% % %     %if round(tmpthick) == 7, asdf; end;
+% % % end;
+
+
+
+
+
 % function to draw the lines
 % --------------------------
-function handles = drawconnections( pos1, pos2, crossfpower, crossfangle, circfact, g);
+function [xc yc zc colorarray cylwidth normals] = makeEdge( pos1, pos2, edgeSize, edgeColor, edgeCurvature, numPointsCircum,g)
 % pos1, pos2		position of the points
-% crossfpower       coherence power for width of the line
-% crossfangle       coherence angle for color and speed of the line
+% edgeSize       coherence power for width of the line
+% edgeColor       coherence angle for color and speed of the line
 % cirfact           curvature of the line
 % g                 preference
 % arrow should point from pos2 to pos1
 
-themeopts =  hlp_struct2varargin(g.theme.graph);
-
-% deal with dual dipoles
-% ----------------------
 handles = [];
-if crossfpower == 0, return; end;
-if size(pos1,1) > 1
-    handles1 = drawconnections( pos1(1,:), pos2, crossfpower, crossfangle, circfact, g);
-    handles2 = drawconnections( pos1(2,:), pos2, crossfpower, crossfangle, circfact, g);
-    handles = [ handles1 handles2];
-    return;
-end;
-if size(pos2,1) > 1
-    handles1 = drawconnections( pos1, pos2(1,:), crossfpower, crossfangle, circfact, g);
-    handles2 = drawconnections( pos1, pos2(2,:), crossfpower, crossfangle, circfact, g);
-    handles = [ handles1 handles2];
-    return;
-end;
+if edgeSize == 0, return; end;
 
-% if the two circle are too close and do not draw the line
+% % deal with dual dipoles
+% % ----------------------
+% if size(pos1,1) > 1
+%     % draw first cylinder
+%     [xc yc zc colorarray cylwidth normals] = ...
+%         drawconnections( pos1(1,:), pos2, edgeSize, edgeColor, edgeCurvature, g);
+%     
+%     % insert NaNs
+%     [xc(end+1,:) yc(end+1,:) zc(end+1,:)] = deal(nan(1,size(xc,2)));
+%     
+%     % draw second cylinder
+%     [xc(end+1:end+3,:) yc(end+1:end+3,:) zc(end+1:end+3,:) colorarray cylwidth normals] = ...
+%         drawconnections( pos1(2,:), pos2, edgeSize, edgeColor, edgeCurvature, g);
+%     
+%     handles = [ handles1 handles2];
+%     return;
+% end
+% 
+% if size(pos2,1) > 1
+%     handles1 = drawconnections( pos1, pos2(1,:), edgeSize, edgeColor, edgeCurvature, g);
+%     handles2 = drawconnections( pos1, pos2(2,:), edgeSize, edgeColor, edgeCurvature, g);
+%     handles = [ handles1 handles2];
+%     return;
+% end
+
+% if the two nodes are too close then do not draw the line
 % --------------------------------------------------------
 distance = sqrt(sum((pos1-pos2).^2));
-if distance < 0.05*(g.ylimaxes(2) - g.ylimaxes(1)), return;
-end;
+if distance < 0.05*(g.ylimaxes(2) - g.ylimaxes(1))
+    return;
+end
 
 % Edge size
 % ---------
-tmpthick = scalevalue( crossfpower, g.edgeSizeDataRange, g.edgeSizeLimits );
-if strcmpi(lower(g.crossfcoh), 'off') || isnan(crossfpower), tmpthick  = 0; end;
-tmpthick = 30*tmpthick; % adjusted for Nick
-if crossfpower == 0, tmpthick = 0; end;
+tmpthick = scalevalue( edgeSize, g.edgeSizeDataRange, g.edgeSizeLimits );
+if strcmpi(g.crossfcoh, 'off') || isnan(edgeSize), tmpthick  = 0; end;
+tmpthick = 30*tmpthick;
+if edgeSize == 0, tmpthick = 0; end;
 
 % Edge color
 % ----------
-tmpcolor = scalevalue( crossfangle, g.edgeColorDataRange, g.edgeColorLimits );
-if strcmpi(lower(g.crossfphasecolor), 'off'), tmpcolor  = 0; end;
+tmpcolor = scalevalue( edgeColor, g.edgeColorDataRange, g.edgeColorLimits );
+if strcmpi(g.crossfphasecolor, 'off'), tmpcolor  = 0; end;
 indexcolor = floor(max(tmpcolor-0.001,0)*length(g.edgeColormap))+1;
 tmpcolor   = g.edgeColormap( indexcolor,: );
-if isnan(crossfangle), tmpcolor = [1 1 1]; end;
+if isnan(edgeColor), tmpcolor = [1 1 1]; end;
 
 if tmpthick > 0
     if g.causality
-        %             cylwidth=linspace(g.resmult*tmpthick/300*100,0.1,50);
         cylwidth = [0.1 g.resmult*tmpthick/300*100];    % tapered cylinder pointing from pos2->pos1
     else
         cylwidth=g.resmult*tmpthick/300*100;
     end
     %[xc yc zc] = cylinder( cylwidth, 10 );   % create unit-length cylinder
-    [xc yc zc] = cylinder2P([cylwidth], 11, 2, [pos1(1) pos1(2) pos1(3)], [pos2(1) pos2(2) pos2(3)]);
+    [xc yc zc] = cylinder2P(cylwidth, numPointsCircum, 2, [pos1(1) pos1(2) pos1(3)], [pos2(1) pos2(2) pos2(3)]);
     colorarray = repmat(reshape(tmpcolor, 1,1,3), [size(zc,1) size(zc,2) 1]);
-    handles = surf(g.vars.hbrainax,xc, yc, zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', ...
-        'backfacelighting', 'lit', 'facecolor', 'interp', 'facelighting', g.facelighting,themeopts{:});
-    %[xc yc zc] = adjustcylinder2( handles, [pos1(1) pos1(2) pos1(3)], [pos2(1) pos2(2) pos2(3)] );  % stretch and rotate cylinder to match start-end pnts
-    
+%     handles = surf(g.vars.hbrainax,xc, yc, zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', ...
+%         'backfacelighting', 'lit', 'facecolor', 'interp', 'facelighting', g.facelighting,themeopts{:});
+%     %[xc yc zc] = adjustcylinder2( handles, [pos1(1) pos1(2) pos1(3)], [pos2(1) pos2(2) pos2(3)] );  % stretch and rotate cylinder to match start-end pnts
+%     
     
     % compute cylinder normals (have to bias normal closer to sphere
     % to get a specular point
@@ -1550,9 +1744,9 @@ if tmpthick > 0
     tmpz = zc - repmat(cz, [1 11]);
     l=sqrt(tmpx.^2+tmpy.^2+tmpz.^2);
     normals = reshape([tmpx./l tmpy./l tmpz./l],[2 11 3]);
-    set( handles, 'vertexnormals', normals);
+%     set( handles, 'vertexnormals', normals);
     
-    %         if crossfangle>0,k=2; else k=1; end
+    %         if edgeColor>0,k=2; else k=1; end
     %         cx = mean(xc,2); cx = cx(k)-3; %[(cx(1)+cx(2))/4; (cx(1)+cx(2))/4];
     %         cy = mean(yc,2); cy = cy(k); %[(cy(1)+cy(2))/4; (cy(1)+cy(2))/4];
     %         cz = mean(zc,2); cz = cz(k); %[(cz(1)+cz(2))/4; (cz(1)+cz(2))/4];
@@ -1564,19 +1758,22 @@ if tmpthick > 0
     %         set( handles, 'vertexnormals', normals);
     
     %figure
-    %axis off; axis equal; lighting phong; camlight left; rotate3d
-    if strcmpi(g.project3d, 'on')
-        if g.colorshadow
-            colorarray=colorarray.*repmat(reshape(g.projcolor, 1,1,3), [size(zc,1) size(zc,2) 1]);
-        else
-            colorarray = repmat(reshape(g.projcolor, 1,1,3), [size(zc,1) size(zc,2) 1]);
-        end
-        surf(g.vars.hbrainax,xc, yc, g.factproj(3)*ones(size(zc)), colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
-        surf(g.vars.hbrainax,xc, g.factproj(2)*ones(size(yc)), zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
-        surf(g.vars.hbrainax,g.factproj(1)*ones(size(xc)), yc, zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
-    end;
+%     %axis off; axis equal; lighting phong; camlight left; rotate3d
+%     if strcmpi(g.project3d, 'on')
+%         if g.colorshadow
+%             colorarray=colorarray.*repmat(reshape(g.projcolor, 1,1,3), [size(zc,1) size(zc,2) 1]);
+%         else
+%             colorarray = repmat(reshape(g.projcolor, 1,1,3), [size(zc,1) size(zc,2) 1]);
+%         end
+%         surf(g.vars.hbrainax,xc, yc, g.factproj(3)*ones(size(zc)), colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
+%         surf(g.vars.hbrainax,xc, g.factproj(2)*ones(size(yc)), zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
+%         surf(g.vars.hbrainax,g.factproj(1)*ones(size(xc)), yc, zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
+%     end;
     %if round(tmpthick) == 7, asdf; end;
 end;
+
+
+
 
 
 % ***************************************************************************************
@@ -1585,21 +1782,21 @@ end;
 
 % function to draw circles at all power
 % -------------------------------------
-function scalepower(posx, posy, g);
+function renderNodeSizeLegend(posx, posy, g)
 
 NBCIRCLE = 3;
 coordy = posy;
-powerscale = [ ceil( g.nodeSizeDataRange(1) ) 0 floor( g.nodeSizeDataRange(2) ) ];
+nodesizeLimits = [ ceil( g.nodeSizeDataRange(1) ) 0 floor( g.nodeSizeDataRange(2) ) ];
 xlim = get(gca, 'xlim');
 ylim = get(gca, 'ylim');
 
 for i=1:NBCIRCLE
-    [tmpsize] = drawcircle( [posx coordy], powerscale(i), 0, g);
+    [tmpsize] = drawcircle( [posx coordy], nodesizeLimits(i), 0, g);
     if i == 1, tmpsizeori = tmpsize; end;
     
     if i == NBCIRCLE
-        hlatency = text( 1.4*(xlim(2) - xlim(1))+xlim(1), coordy , sprintf('%2.1g dB', powerscale(i)));
-    else hlatency = text( 1.4*(xlim(2) - xlim(1))+xlim(1), coordy , sprintf('%2.1g', powerscale(i)));
+        hlatency = text( 1.4*(xlim(2) - xlim(1))+xlim(1), coordy , sprintf('%2.1g dB', nodesizeLimits(i)));
+    else hlatency = text( 1.4*(xlim(2) - xlim(1))+xlim(1), coordy , sprintf('%2.1g', nodesizeLimits(i)));
     end;
     set(hlatency, 'fontsize', 10*g.resmult, 'horizontalalignment', 'left', 'fontweight', 'bold');
     coordy = coordy + tmpsize + 0.2*(ylim(2)-ylim(1));
@@ -1613,7 +1810,7 @@ set(gca, 'xlim', xlim, 'ylim', ylim-tmpsizeori, 'clipping', 'off', 'fontsize', 1
 
 % function to draw lines at all coherence
 % ---------------------------------------
-function scalecoher(posx, posy, thickness,g,axhandle)
+function renderEdgeSizeLegend(posx, posy, thickness,g,axhandle)
 
 if nargin<5
     axhandle = gca;
@@ -1726,7 +1923,7 @@ end;
 %     index1 = 1;
 %     index2 = 2;
 %     % determine color = coherence phase
-%     tmpcrossf = ALLCROSSFANGLE     { index1, index2, 1 };
+%     tmpcrossf = ALLEDGECOLOR     { index1, index2, 1 };
 %     tmpvalue  = mean(tmpcrossf( 1:2, indeximage));
 %     tmpcolor  = colormaphsv( ceil((tmpvalue+180)/360*63) + 1, : );    % index for color
 %

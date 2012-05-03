@@ -400,7 +400,7 @@ if ~isempty(Conn)
 end
 
 ALLEEG = arg_extract(varargin,'ALLEEG',1);
-[MyComponentNames MyChannelNames] = deal([]);
+[MyComponentNames MyChannelNames] = deal({});
 if ~isempty(ALLEEG)
     ALLEEG = ALLEEG(1);
     if isfield(ALLEEG.CAT,'curComponentNames') && ~isempty(ALLEEG.CAT.curComponentNames)
@@ -415,7 +415,7 @@ if ~isempty(ALLEEG)
     else
         MyChannelNames = strtrim(cellstr(num2str((1:ALLEEG.nbchan)'))');
     end
-    clear ALLEEG
+    clear ALLEEG;
 end
 
 usestatsdef = [];  % false

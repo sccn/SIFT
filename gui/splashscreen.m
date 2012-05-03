@@ -23,7 +23,7 @@ function varargout = splashscreen(varargin)
 
 % Edit the above text to modify the response to help splashscreen
 
-% Last Modified by GUIDE v2.5 20-Nov-2010 04:31:42
+% Last Modified by GUIDE v2.5 02-May-2012 21:57:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -63,6 +63,25 @@ image(im);
 axis image
 axis off
 
+SLASH = fastif(isunix,'/','\');
+
+fid = fopen([fileparts(which('StartSIFT.m')) SLASH 'resources' SLASH 'version.txt']);
+version = fscanf(fid,'%s');
+
+set(handles.txtSplashText,'String',...
+    {sprintf('Welcome to the Source Information Flow Toolbox version %s',version), ...
+     'Author: Tim Mullen (tim@sccn.ucsd.edu)' ...
+     'With important contributions from Arnaud Delorme and Christian Kothe' ...
+     '    ' ...
+     'DISCLAIMER:  THIS IS AN EXPERIMENTAL *ALPHA* VERSION OF SIFT. THIS VERSION IS NOT A SUPPORTED RELEASE AND IS INTENDED FOR EDUCATIONAL PURPOSES. USE AT YOUR OWN RISK! CHECK http://sccn.ucsd.edu/wiki/SIFT FOR UPDATES ON THE OFFICIAL BETA RELEASE.' ...
+     '    ' ...
+     'If you find this toolbox useful for your research, PLEASE include the following citations with any publications and/or presentations which make use of SIFT:' ...
+     '    ' ...
+     '(1) Mullen, T, Delorme, A. Kothe, C, Makeig, S (2010) "An Electrophysiological Information Flow Toolbox for EEGLAB" Society for Neuroscience 2010, San Diego, CA' ...
+     '    ' ...
+     '(2) Delorme, A., Mullen, T., Kothe C., Akalin Acar, Z., Bigdely Shamlo, N., Vankov, A., Makeig, S. (2011) "EEGLAB, SIFT, NFT, BCILAB, and ERICA: New tools for advanced EEG/MEG processing." Computational Intelligence and Neuroscience vol. 2011, Article ID 130714, 12 pages.' ...
+     });
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -93,3 +112,32 @@ function cmdOK_Callback(hObject, eventdata, handles)
 
 uiresume(handles.gui_splash);
 
+
+% --- Executes during object creation, after setting all properties.
+function txtSplashText_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to txtSplashText (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+
+
+function txtSplashText_Callback(hObject, eventdata, handles)
+% hObject    handle to txtSplashText (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of txtSplashText as text
+%        str2double(get(hObject,'String')) returns contents of txtSplashText as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function txtSplashScreen_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to txtSplashText (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
