@@ -247,7 +247,7 @@ for m=1:length(g.connmethods)
             % A(i,j)=B(i,j), for a two-sided test
             % A p-value for rejection of the null hypothesis can be
             % obtained by taking the difference of the distributions
-            % computing the probability
+            % and computing the probability
             % that a sample from the difference distribution is non-zero
             % This is a paired nonparametric test
             if length(g.PConn)~=2
@@ -304,7 +304,7 @@ for m=1:length(g.connmethods)
             Pdiff = g.PConn.(g.connmethods{m}) - stat_getBaselineDistrib(g.PConn.(g.connmethods{m}),g.statTest.baseline,g.PConn.erWinCenterTimes);
             sz = size(Pdiff);
             
-            [statval, df, Stats.(g.connmethods{m}).pval] = statcond( { }, 'mode','perm', 'surrog', Pdiff, 'stats', zeros(sz(1:end-1)), g.statcondargs{:},'tail','both');
+            [statval, df, Stats.(g.connmethods{m}).pval] = statcond( { }, 'mode','perm', 'surrog', Pdiff, 'stats', zeros(sz(1:end-1)),'tail','both', g.statcondargs{:});
             
             
             % compute two-sided confidence intervals
