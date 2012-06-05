@@ -52,17 +52,17 @@ function p1 = hlp_plotmesh(faces, vertex, normal, newfig,hax,FaceColor,colorthem
         FaceColor  = [.8 .55 .35]*1.1; % ~= ruddy Caucasian - pick your complexion!
     end
     if nargin < 7
-        colortheme = [];
+        colortheme = {};
     end
     
     if any(any(faces == 0)), faces = faces+1; end;
  
     if isempty(normal)
         p1 = patch('vertices', vertex, 'faces', faces, ...
-                   'facecolor', [1,.75,.65],'parent',hax);
+                   'facecolor', FaceColor,'parent',hax);
     else
         p1 = patch('vertices', vertex, 'faces', faces, ...
-                   'facecolor', [1,.75,.65], 'vertexnormals', normal,'parent','hax');
+                   'facecolor', FaceColor, 'vertexnormals', normal,'parent',hax);
     end;
     
     set(p1,'EdgeColor','none')

@@ -7,7 +7,7 @@ function Conn2 = hlp_rmbaseline(Conn,baseline,varargin)
 %               or a Connectivity object (structure) with fields
 %               winCenterTimes and connectivity methods
 %   baseline:   The baseline to remove. This should be [min max] in seconds 
-%               relative to winCenterTimes (e.g., [-0.5 0] for first 500ms)
+%               relative to winCenterTimes (e.g., [0 0.5] for first 500ms)
 %   varargin:   - If Conn is a structure, then this is an (optional) cell
 %               array of connectivity measures to remove baseline from
 %               (subset of Conn)

@@ -1,4 +1,4 @@
-function lineHandles = hline(y, lineType, label, textPosition, axesHandle)
+function [lineHandles textHandles] = hline(y, lineType, label, textPosition, axesHandle)
 
 % Draws horizontal lines (specified by a vector of y)
 %
