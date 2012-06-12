@@ -56,6 +56,7 @@ function varargout = pop_est_validateMVAR(ALLEEG,typeproc,varargin)
 %                             each window.
 %
 %     stability:              Vector of stability estimates for each window
+%     cfg:                    parameter configuration object
 %
 % See Also: est_checkMVARWhiteness(), est_checkMVARStability(),
 %           est_checkMVARConsistency, pop_est_fitMVAR()
@@ -94,158 +95,52 @@ function varargout = pop_est_validateMVAR(ALLEEG,typeproc,varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
-
-% input new model structure
-for i=1:nargout
-    varargout{i} = [];
+if nargin<2
+    typeproc = 0;
 end
 
-% display help if not enough arguments
-% ------------------------------------
-if nargin < 2
-    help pop_est_validateMVAR;
-    return;
-end;
-
-lastcom = [];
-whitestats = [];
-PCstats = [];
-stabilitystats = [];
-
-if nargin < 3 %4
-    popup = 1;
-else
-    popup = 0;
-end
-
-for i=1:length(ALLEEG)
-    if ~isfield(ALLEEG(i).CAT,'MODEL')
-        error('ALLEEG.CAT.MODEL must be present in all datasets');
-    else
-        MODEL(i) = ALLEEG(i).CAT.MODEL;
-    end
-end
-
-whitenessCriteria = {'Ljung-Box','ACF','Box-Pierce','Li-McLeod'};
-
-% parse inputs
-var = hlp_mergeVarargin(varargin{:});
-myargs = {'whitenessCriteria'   'cell'  whitenessCriteria   whitenessCriteria; ...
-    'checkWhiteness',     'boolean'   []          true; ...
-    'checkConsistency'    'boolean'   []          true; ...
-    'checkStability'      'boolean'   []          true; ...
-    'alpha'               'real'      [0 1]       0.05; ...
-    'prctWinToSample',    'real'      [0 100]     100; ...
-    'alpha'               'real'      [0 1]       0.05; ...
-    'verb'                'real'      [0 2]       2; ...
-    'winStartIdx'         'real'      []          []; ...
-    'plot'                'boolean'   []          true; ...
-    };
-g = finputcheck(var, [myargs ; hlp_getDefaultArglist('est')], 'est_checkWhiteness','ignore','quiet');
-if ischar(g), error(g); end
-
-
-numWins = length(MODEL(1).AR);
-
-% pop up window
-% -------------
-if popup
-    % 	[txt vars] = gethelpvar('pop_est_selModelOrder.m');
-    
-    geomhoriz = {1 1 [3 1] 1 1 [3 1] };
-    uilist = { ...
-        { 'Style', 'checkbox', 'string', 'Check Whiteness of Residuals' ,'tag', 'chkWhiteness' ,'Value',1}...
-        { 'Style', 'listbox', 'string', g.whitenessCriteria, 'tag', 'lstWhitenessCriteria','Value',1,'Min',1,'Max',20} ...
-        { 'Style', 'text', 'string', 'significance level: '} ...
-        { 'Style', 'edit', 'string',g.alpha, 'tag','txtAlpha' } ...
-        { 'Style', 'checkbox', 'string', 'check percent consistency ' ,'tag', 'chkConsistency'}...
-        { 'Style', 'checkbox', 'string', 'check model stability ' ,'tag', 'chkStability' , 'enable','on'}...
-        { 'Style', 'text', 'string', '% windows to sample'} ...
-        { 'Style', 'edit', 'string', g.prctWinToSample, 'tag','prctWinToSample' } ...
-        };
-    
-    [ tmp1 tmp2 strhalt result ] = inputgui( 'geometry', geomhoriz, 'geomvert',[1 3.5 1 1 1 1], 'uilist',uilist, 'helpcom','pophelp(''pop_est_validateMVAR'');', ...
-        'title','Select Model Validation Methods');
-    if isempty( tmp1 ), return; end;
-    
-    if ~isempty(result.prctWinToSample)
-        g.prctWinToSample = str2num(result.prctWinToSample);
-    else
-        g.prctWinToSample = 100;
-    end
-    
-    g.checkConsistency = result.chkConsistency;
-    g.checkWhiteness = result.chkWhiteness;
-    g.checkStability = result.chkStability;
-    g.whitenessCriteria = whitenessCriteria(result.lstWhitenessCriteria);
-    %     if ischar(g.whitenessCriteria), g.whitenessCriteria={g.whitenessCriteria}; end
-    g.verb = 2;
-    g.winStartIdx = [];
-    g.alpha = str2num(result.txtAlpha);
-else
-    %     var = hlp_mergeVarargin(varargin{:});
-    %     myargs = {'whitenessCriteria'   'cell'  whitenessCriteria   whitenessCriteria; ...
-    %               'checkWhiteness',     'boolean'   []      true; ...
-    %               'checkConsistency'    'boolean'   []      true; ...
-    %               'checkStability'      'boolean'   []      true; ...
-    %               'alpha'               'real'      [0 1]   0.05; ...
-    %               };
-    %     g = finputcheck(var, [myargs ; hlp_getDefaultArglist('est')], 'est_checkWhiteness','ignore','quiet');
-    %     if ischar(g), error(g); end
-    %     g.alpha = 0.06;
-end
-
-g.whitenessCriteria = lower(hlp_variableize(g.whitenessCriteria));
-if ischar(g.whitenessCriteria), g.whitenessCriteria={g.whitenessCriteria}; end
-
-
-% determine which windows to use
-if isempty(g.winStartIdx)
-    % starting point of each window (points)
-    g.winStartIdx  = round(MODEL(1).winStartTimes*ALLEEG(1).srate)+1;
-end
-if g.prctWinToSample<100
-    % randomly select percentage of windows to work with
-    randwin = randperm(length(g.winStartIdx));
-    randwin = sort(randwin(1:ceil(length(g.winStartIdx)*g.prctWinToSample/100)));
-    g.winStartIdx = g.winStartIdx(randwin);
-    for cnd = 1:length(MODEL);
-        ALLEEG(cnd).CAT.MODEL.AR = ALLEEG(cnd).CAT.MODEL.AR(randwin);
-        ALLEEG(cnd).CAT.MODEL.PE = ALLEEG(cnd).CAT.MODEL.PE(randwin);
-        ALLEEG(cnd).CAT.MODEL.winStartTimes = ALLEEG(cnd).CAT.MODEL.winStartTimes(randwin);
-    end
-    
-    g.prctWinToSample = 100;
-end
-
-g.winlen = ALLEEG(1).CAT.MODEL.winlen;
-g.winstep = ALLEEG(1).CAT.MODEL.winstep;
-g.morder = ALLEEG(1).CAT.MODEL.morder;
-
+% initialize default outputs
 for cond=1:length(ALLEEG)
-    if g.verb
-        fprintf('checking condition %s...\n',ALLEEG(cond).condition);
+    for q=1:nargout, 
+        varargout{q}{cond} = []; 
     end
+end
+
+% check the dataset
+res = hlp_checkeegset(ALLEEG,{'model'});
+if ~isempty(res)
+    error('SIFT:est_validateMVAR',res{1});
+end
+
+if isfield(ALLEEG(1).CAT.configs,'validateMVAR')
+    % get default configuration (from prior use) and merge with varargin
+    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.validateMVAR) varargin];
+end
+
+if strcmpi(typeproc,'nogui')
+    % get the config from function
+    cfg = arg_tovals(arg_report('rich',@est_validateMVAR,[{'EEG',ALLEEG(1)},varargin]));
+else
+    % render the GUI
+    [PGh figh] = gui_est_validateMVAR(ALLEEG,varargin{:});
+
+    if isempty(PGh)
+        % user chose to cancel
+        return;
+    end
+
+    % get the specification of the PropertyGrid
+    ps = PGh.GetPropertySpecification;
+    cfg = arg_tovals(ps,false);
+end
+
+% Apply model validation routines
+for cond=1:length(ALLEEG)
     
-    if g.checkWhiteness
-        whitestats = est_checkMVARWhiteness(ALLEEG(cond),MODEL(cond),typeproc,g);
-    end
-    
-    if g.checkConsistency
-        PCstats = est_checkMVARConsistency(ALLEEG(cond),MODEL(cond),typeproc,g);
-    end
-    
-    if g.checkStability
-        stabilitystats = est_checkMVARStability(ALLEEG(cond),MODEL(cond),typeproc,g);
-    end
-    
-    if g.plot
-        vis_plotModelValidation({whitestats},{PCstats},{stabilitystats},'whitenessCriteria',g.whitenessCriteria,'checkWhiteness',g.checkWhiteness,'checkConsistency',g.checkConsistency,'checkStability',g.checkStability,'conditions',{ALLEEG.condition});
-    end
+    [whitestats PCstats stabilitystats] = est_validateMVAR('EEG',ALLEEG(cond),cfg);
     
     varargout{1}{cond} = whitestats;
     varargout{2}{cond} = PCstats;
     varargout{3}{cond} = stabilitystats;
+    varargout{4}{cond} = cfg;
 end
-

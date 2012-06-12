@@ -65,12 +65,13 @@ res = {@invoke_argsub_cached,varargin};
 function spec = invoke_argsub_cached(varargin)
 spec = hlp_microcache('arg',@invoke_argsub,varargin{:});
 
-
 % the function that does the actual work of building the argument specifier
 function spec = invoke_argsub(reptype,names,defaults,source,help,varargin)
 
 % start with a base specification
 spec = arg_specifier('head',@arg_sub,'fmt',[], 'value','', 'type','char', 'shape','row');
+
+suppressNames = {};
 
 % override properties
 if exist('names','var')
@@ -80,6 +81,8 @@ if exist('help','var')
 for k=1:2:length(varargin)
     if isfield(spec,varargin{k})
         spec.(varargin{k}) = varargin{k+1}; 
+    elseif strcmpi(varargin{k},'suppress')
+        suppressNames = varargin{k+1};
     else
         error('BCILAB:arg:no_new_fields','It is not allowed to introduce fields into a specifier that are not declared in arg_specifier.');
     end
@@ -122,19 +125,29 @@ end
 spec = rmfield(spec,'fmt');
 
 % assignment to this object does not touch the value, but instead creates a new children structure
-spec.assigner = @(spec,value) assign_argsub(spec,value,reptype,source,defaults);
+spec.assigner = @(spec,value) assign_argsub(spec,value,reptype,source,defaults,suppressNames);
 
 % assign the default
-spec = assign_argsub(spec,defaults,reptype,source,[]);
+spec = assign_argsub(spec,defaults,reptype,source,[],suppressNames);
 
 
 
 % function to do the value assignment
-function spec = assign_argsub(spec,value,reptype,source,default)
+function spec = assign_argsub(spec,value,reptype,source,default,suppressNames)
 if ~isempty(source)
     if spec.merge
         spec.children = arg_report(reptype,source,[default,value]);
     else
         spec.children = arg_report(reptype,source,value);
+    end
+end
+
+% toggle the displayable option for children which should be suppressed
+if ~isempty(suppressNames)
+    % identify which children we want to suppress display
+    hidden = find(cellfun(@any,cellfun(@(x,y) ismember(x,suppressNames),{spec.children.names},'UniformOutput',false)));
+    % set display flag to false
+    for k=hidden(:)'
+        spec.children(k).displayable = false;
     end
 end

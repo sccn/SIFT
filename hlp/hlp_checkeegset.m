@@ -49,22 +49,24 @@ function res = hlp_checkeegset(EEG,checks)
         for i=1:length(checks)
             switch lower(checks{i})
                 case 'cat'
-                    try
-                        EEG(cnd).CAT;
-                    catch
-                        res = [res, 'error:hlp_checkEEGset. EEG must contain CAT structure'];
+                    if ~isfield(EEG(cnd),'CAT') || isempty(EEG(cnd).CAT)
+                        res = [res, sprintf(['SIFT:hlp_checkEEGset. EEG must contain CAT structure\n' ...
+                                             'You probably need to complete the pre-processing step first'])];
                     end
                 case 'conn'
-                    try
-                        EEG(cnd).CAT.Conn;
-                    catch
-                        res = [res, 'error:hlp_checkEEGset. EEG.CAT must contain Conn structure'];
+                    if ~isfield(EEG(cnd),'CAT') ...
+                        || ~isfield(EEG(cnd).CAT,'Conn') ...
+                        || isempty(EEG(cnd).CAT.Conn)
+                    
+                        res = [res, sprintf(['SIFT:hlp_checkEEGset. EEG.CAT must contain Conn structure\n' ...
+                                             'You need to estimate connectivity first'])];
                     end
                 case 'model'
-                    try
-                        EEG(cnd).CAT.MODEL;
-                    catch
-                        res = [res, 'error:hlp_checkEEGset. EEG.CAT must contain MODEL structure'];
+                    if ~isfield(EEG(cnd),'CAT') ...
+                        || ~isfield(EEG(cnd).CAT,'MODEL') ...
+                        || isempty(EEG(cnd).CAT.MODEL)
+                        res = [res, sprintf(['SIFT:hlp_checkEEGset. EEG.CAT must contain MODEL structure\n' ...
+                                            'You need to fit a model first'])];
                     end
             end
         end

@@ -11,8 +11,8 @@ function [res]=est_mvarResiduals(X,AR,mu,downsampleFactor,instant)
 %       X:      [M x npoints x ntrials] matrix of sensor data
 %       AR:     VAR[p] model coefficients in format AR=[A1 ... Ap]
 %       mu:     [1 x nchannels] vector of model intercepts (if no intercepts
-%               estimated, set mu = zeros(1,nchannels) and process mean is assumed to 
-%               be zero
+%               estimated, set mu = [] or mu = zeros(1,nchannels) and process mean 
+%               is assumed to be zero
 %       downsampleFactor:   This is the downsample factor used in
 %                           est_fitMVARKalman() or, equivalently, 
 %                           ceil(srate*winstep). Note that, since we are
@@ -75,8 +75,8 @@ end
         nres  = length(AR);
   end
   
-  if nargin<3
-    mu = zeros(M,1);
+  if nargin<3 || isempty(mu)
+    mu = zeros(nchs,1);
   else
     mu     = mu(:);                       % force mu to be column vector
   end

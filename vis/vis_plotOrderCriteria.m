@@ -1,4 +1,4 @@
-function handles = vis_plotOrderCriteria(IC,conditions,icselector,minimizer,prclim)
+function handles = vis_plotOrderCriteria(varargin)
 % Visualize the results of model order selection as computed by
 % est_selModelOrder()
 % 
@@ -54,37 +54,60 @@ function handles = vis_plotOrderCriteria(IC,conditions,icselector,minimizer,prcl
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-if nargin<2
-    conditions = [];
+g = arg_define([0 1],varargin, ...
+    arg_norep({'IC','InformationCriterion'},mandatory,[],'Informaton criteria object. This can also be a cell array of objects.'), ...
+    arg({'conditions','TitleString'},[],[],'Figure title strings. If g.IC is a cell array, then this must be a cell array of strings.'), ...
+    arg({'icselector','InformationCriteriaToPlot'},[],[],'Information criteria to plot. This is a cell array of strings of the information criteria to plot'), ...
+    arg({'minimizer','OptimalModelSelectionMethod','optimalModelSelection'},{'min'},{'elbow','min'},'Method for determining optimal model order. If "min", then the optimal model order is the one that minimizes the information criterion. If "elbow" then the optimal order is the elbow of the function of informaton criterion versus model order.','type','logical'), ...
+    arg({'prclim','PercentileLimits'},90,[1 100],'Upper percentile limit for order selection. If PercentileLimits = L, This places a marker at the model order, p, for which L% of all sampled windows indicate an optimal model order of p or lower.') ...
+    );
+
+% commit IC variable to workspace
+[data g] = hlp_splitstruct(g,{'IC'});
+arg_toworkspace(data);
+clear data;
+
+% do some input checking
+if ~iscell(IC)
+    IC = {IC};
+end
+if ~iscell(g.conditions)
+    g.conditions = {g.conditions};
+end
+if length(g.conditions)<length(IC)
+    error('You must specify title strings for all conditions');
+end
+if isempty(g.icselector)
+    g.icselector = IC{1}.selector;
+end
+if ~iscell(g.minimizer)
+    g.minimizer = {g.minimizer};
 end
 
-if nargin<3 || isempty(icselector)
-    icselector = IC{1}.selector;
-end
-
-if nargin<4
-    minimizer = 'min';
-end
-
-if nargin<5
-    prclim = 90;
+% recursively plot a separate figure for each minimizer
+if length(g.minimizer)>1
+    for k=1:length(g.minimizer)
+        try, g = rmfield(g,'report_args'); catch, end;
+        handles{k} = vis_plotOrderCriteria(IC,g,'minimizer',g.minimizer{k});
+    end
+    return;
 end
 
 for cond = 1:length(IC)
     
-    if isempty(conditions)
-        conditions{cond} = sprintf('Condition %d',cond);
+    if isempty(g.conditions{cond})
+        g.conditions{cond} = sprintf('Condition %d',cond);
     end
     
-    numinfocriteria = length(icselector);
-    numWins = size(IC{cond}.(icselector{1}).ic,2);
+    numinfocriteria = length(g.icselector);
+    numWins = size(IC{cond}.(g.icselector{1}).ic,2);
 
 
     % plot the results
     % ----------------------
-    handles(cond) = figure('name',sprintf('%s - Model Order Selection Results (%s)',conditions{cond},fastif(strcmpi(minimizer,'min'),'min ic','elbow ic')));
+    handles(cond) = figure('name',sprintf('%s - Model Order Selection Results (%s)',g.conditions{cond},fastif(strcmpi(g.minimizer{1},'min'),'min ic','elbow ic')));
     for i=1:numinfocriteria
-        allinfocrit(i,:) = mean(IC{cond}.(lower(icselector{i})).ic,2);
+        allinfocrit(i,:) = mean(IC{cond}.(lower(g.icselector{i})).ic,2);
     end
 
     if numWins>1
@@ -99,13 +122,13 @@ for cond = 1:length(IC)
 
     % plot information criteria
     subplot(numrows,numcols,1:numcols); 
-    plot(IC{cond}.pmin:IC{cond}.pmax,allinfocrit,'linewidth',2);
+    plot(IC{cond}.pmin:IC{cond}.pmax,fastif(diff(size(allinfocrit))==0,allinfocrit',allinfocrit),'linewidth',2);
     set(gca,'xtick',IC{cond}.pmin:IC{cond}.pmax);
     axis auto
     xlabel('model order    ','fontsize',12);
     ylabel('Information criteria (bits)    ','fontsize',12);
     set(gca,'xgrid','on');
-    title('Mean IC across sampled windows   ','fontsize',12);
+    title({'Mean Info. Criteria across sampled windows   ',['Optimal order determined by ' g.minimizer{1} ' of mean curve   ']},'fontsize',12);
     axcopy(gca);
 
     hold on
@@ -114,9 +137,9 @@ for cond = 1:length(IC)
     
     % make markers at minima
     for i=1:numinfocriteria
-        sel = icselector{i};
+        sel = g.icselector{i};
         
-        switch minimizer
+        switch g.minimizer{1}
             case 'min'
                 [minic popt] = min(allinfocrit(i,:)); %ceil(mean(IC{cond}.(lower(sel)).popt));
             case 'elbow'
@@ -127,17 +150,17 @@ for cond = 1:length(IC)
         plot(popt+IC{cond}.pmin-1,minic,'rs','markersize',10,'MarkerEdgeColor','k','markerfacecolor',defcolororder(i,:));
         lmin = vline(popt+IC{cond}.pmin-1);
         set(lmin,'color',defcolororder(i,:),'linestyle','--','linewidth',2);
-        legendstr{i} = sprintf('%s (%d)',icselector{i},popt+IC{cond}.pmin-1);
+        legendstr{i} = sprintf('%s (%d)',g.icselector{i},popt+IC{cond}.pmin-1);
     end
     
 %     for i=1:numinfocriteria
-%         sel = icselector{i};
+%         sel = g.icselector{i};
 %         popt = ceil(mean(IC{cond}.(lower(sel)).popt));
 %         minic = allinfocrit(i,popt-IC{cond}.pmin+1);
 %         plot(popt,minic,'rs','markersize',10,'MarkerEdgeColor','k','markerfacecolor',defcolororder(i,:));
 %         lmin = vline(popt);
 %         set(lmin,'color',defcolororder(i,:),'linestyle','--','linewidth',2);
-%         legendstr{i} = sprintf('%s (%d)',icselector{i},popt);
+%         legendstr{i} = sprintf('%s (%d)',g.icselector{i},popt);
 %     end
 
     xlim([IC{cond}.pmin IC{cond}.pmax]);
@@ -164,17 +187,17 @@ for cond = 1:length(IC)
             ax=subplot(numrows,numcols,i+numcols);
             xScale = IC{cond}.pmin:IC{cond}.pmax;
             
-            switch minimizer
+            switch g.minimizer{1}
                 case 'min'
-                    bar(xScale,histc(IC{cond}.(lower(icselector{i})).popt,xScale),'k');         %  plot histogram
-                    popt = ceil(mean(IC{cond}.(lower(icselector{i})).popt));                    %  mean
-                    poptstd = ceil(std(IC{cond}.(lower(icselector{i})).popt));                  %  stdev
-                    poptprctile = ceil(prctile(IC{cond}.(lower(icselector{i})).popt,prclim));   %  upper 95th prctile
+                    bar(xScale,histc(IC{cond}.(lower(g.icselector{i})).popt,xScale),'k');         %  plot histogram
+                    popt = ceil(mean(IC{cond}.(lower(g.icselector{i})).popt));                    %  mean
+                    poptstd = ceil(std(IC{cond}.(lower(g.icselector{i})).popt));                  %  stdev
+                    poptprctile = ceil(prctile(IC{cond}.(lower(g.icselector{i})).popt,g.prclim));   %  upper 95th prctile
                 case 'elbow'
-                    bar(xScale,histc(IC{cond}.(lower(icselector{i})).pelbow,xScale),'k');
-                    popt = ceil(mean(IC{cond}.(lower(icselector{i})).pelbow));
-                    poptstd = ceil(std(IC{cond}.(lower(icselector{i})).pelbow));
-                    poptprctile = ceil(prctile(IC{cond}.(lower(icselector{i})).pelbow,prclim));
+                    bar(xScale,histc(IC{cond}.(lower(g.icselector{i})).pelbow,xScale),'k');
+                    popt = ceil(mean(IC{cond}.(lower(g.icselector{i})).pelbow));
+                    poptstd = ceil(std(IC{cond}.(lower(g.icselector{i})).pelbow));
+                    poptprctile = ceil(prctile(IC{cond}.(lower(g.icselector{i})).pelbow,g.prclim));
             end
             axes(ax);
             
@@ -192,10 +215,10 @@ for cond = 1:length(IC)
             set(lmin,'color',defcolororder(i,:),'linestyle','-','linewidth',2);
             
             % mark upper prctile
-            lprctile = vline(poptprctile,':',sprintf('%g%%',prclim),[-0.01 0.05],gca,defcolororder(i,:));
+            lprctile = vline(poptprctile,':',sprintf('%g%%',g.prclim),[-0.01 0.05],gca,defcolororder(i,:));
             set(lprctile,'color',defcolororder(i,:),'linewidth',2);
             
-            title([icselector{i} '  '],'fontsize',12,'fontweight','bold','color',defcolororder(i,:));
+            title([g.icselector{i} '  '],'fontsize',12,'fontweight','bold','color',defcolororder(i,:));
             axcopy(gca);
             xlabel('opt. model order   ','fontsize',12);
             ylabel('histogram count   ','fontsize',12);

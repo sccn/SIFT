@@ -1,5 +1,5 @@
 
-function v = hlp_struct2varargin(g)
+function v = hlp_struct2varargin_sift(g)
 % Converts a structure to a cell array of ('name',value) pairs.
 %
 % INPUT:

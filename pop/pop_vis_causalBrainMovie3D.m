@@ -83,9 +83,13 @@ end
 % check the dataset
 res = hlp_checkeegset(ALLEEG,{'conn'});
 if ~isempty(res)
-    error('SIFT:causalBrainMovie',res{1});
+    error('SIFT:vis_causalBrainMovie3D',res{1});
 end
 
+if any(cellfun(@isempty,{ALLEEG.dipfit}))
+    error('SIFT:vis_causalBrainMovie3D','In order to use BrainMovie3D, source locations must be stored in EEG.dipfit');
+end
+    
 % extract the Connectivity structures
 for cnd=1:length(ALLEEG);
     Conn(cnd) = ALLEEG(cnd).CAT.Conn;

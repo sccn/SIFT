@@ -165,7 +165,7 @@ guidata(hObject,handles);
 uiresume(handles.gui_PrepData);
 
 function cmdHelp_Callback(hObject, eventdata, handles)
-warndlg2('Coming soon!');
+doc('pre_prepData');
 
 
 function gui_PrepData_ResizeFcn(hObject, eventdata, handles)

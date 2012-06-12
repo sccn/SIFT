@@ -1,4 +1,4 @@
-function Conn = est_mvtransfer(AR,C,freqs,srate,connmethods)
+function Conn = est_mvtransfer(varargin)
 %
 % Calculate spectral, coherence, and connectivity measures from a fitted
 % VAR model. See [1] for additional details on VAR model fitting and
@@ -79,48 +79,29 @@ function Conn = est_mvtransfer(AR,C,freqs,srate,connmethods)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+%hlp_getValidConnMethods({'Directed Transfer Function'})
 
+
+g = arg_define([0 Inf],varargin, ...
+        arg_nogui({'AR'},mandatory,[],'AR coefficient matrix. This is an [M x M*p] Matrix of autoregressive coefficients for M-variate process of order p.'), ...
+        arg_nogui({'C','NoiseCov'},mandatory,[],'Noise covariance matrix. This is an [M x M] process noise covariance matrix'), ...
+        arg({'freqs','Frequencies'},[],[],'Frequencies to estimate'), ...
+        arg_nogui({'srate','SamplingRate'},mandatory,[],'Process sampling rate'), ...
+        arg({'connmethods','ConnectivityMeasures'},false,hlp_getValidConnMethods,'Select a connectivity measure','cat','Connectivity','type','logical') ...
+        );
+        
+arg_toworkspace(g);
+
+if isempty(g.freqs)
+    freqs = 1:srate;
+end
 
 if ischar(connmethods)
     connmethods = {connmethods};
 end
 
-% depedency graph -- each of the measures on the right depend on the
-% measure on the left (dependency arrow goes from left to right
-% e.g., 'Coh',{'iCoh'} means iCoh depends on Coh (Coh-->iCoh)
-% On the RHS, only include measures which are *directly* dependent on
-% the LHS measure. e.g., if A->B->C, then you should have three entries
-%  'A', {'B'};
-%  'B', {'C'};
-%  'C', {}
-% If a new measure is added, you MUST update this depedency table
-% (add the method descriptor to the LHS, add any children of this method
-% to the RHS and update the RHS of any other entries which this method
-% depends on)
-dependencies = {...
-    'dDTF',     {};
-    'dDTF08',   {};
-    'ffDTF',    {'dDTF'};
-    'nDTF',     {};
-    'GGC',      {};
-    'GGC2',     {};
-    'iCoh',     {};
-    'Coh',      {'iCoh'};
-    'S',        {'Coh','GGC','GGC2','mCoh'};
-    'pCoh',     {'dDTF','dDTF08'};
-    'pCoh2',    {};
-    'mCoh',     {};
-    'RPDC',     {};
-    'GPDC',     {};
-    'nPDC',     {};
-    'PDCF',     {};
-    'dtf_denom' {'ffDTF','nDTF'};
-    'pdc_denom' {};
-    'DTF',      {'nDTF','ffDTF','dDTF08','dtf_denom','S'};
-    'Sinv',     {'mCoh','pCoh','PDCF'};
-    'PDC',      {'DTF','G','nPDC','GPDC','RPDC','PDCF','pCoh2','pdc_denom'};
-    'Rinv',     {'RPDC','Vpdc'};
-    'Vpdc',     {}};
+% get the depedency graph
+dependencies = hlp_microcache('depgraph',@hlp_makeConnMeasureDepGraph);
 
 % list of all possible intermediate (and final) estimators we might want to
 % calculate.

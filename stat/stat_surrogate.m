@@ -259,7 +259,7 @@ for perm=1:nperms
     
     
     % fit model
-    EEG = pop_est_fitMVAR(EEG,0,configs.fitMVAR,'verb',0);
+    EEG = pop_est_fitMVAR(EEG,'nogui',configs.fitMVAR,'verb',0);
     
     % calculate connectivity
     EEG = pop_est_mvarConnectivity(EEG,configs.mvarConnectivity,'verb',0);
