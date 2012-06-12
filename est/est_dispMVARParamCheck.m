@@ -1,10 +1,10 @@
-function checkcode = est_dispMVARParamCheck(ALLEEG,g)
+function [checkcode checkstr] = est_dispMVARParamCheck(ALLEEG,params,display)
 % display results of sanity checks on MVAR parameters
 %
 % Input:
 %
 %   ALLEEG             EEG data structure.
-%   g                  struct of MVAR parameters as returned from
+%   params             struct of MVAR parameters as returned from
 %                      est_fitMVAR()
 %
 %
@@ -41,34 +41,41 @@ function checkcode = est_dispMVARParamCheck(ALLEEG,g)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+if nargin<3
+    display = true;
+end
 
 checkcode = 'ok';
+checkstr = '';
 
 % check that parameters are OK
 try
-    [infostring warnstring errstring] = est_checkMVARParams(ALLEEG,g);
+    [infostring warnstring errstring] = est_checkMVARParams(ALLEEG,params);
 catch err
     %         errordlg2(err.message,'Error in MVAR configuration!');
     checkcode = err;
     return;
 end
 
-
-if g.verb>0
+if params.verb>0
     % display summary on command line
     for str=1:length(infostring)
         if ~isempty(errstring{str})
-            fprintf('ERROR\t');
+            checkstr = [checkstr sprintf('ERROR\t')];
         elseif ~isempty(warnstring{str})
-            fprintf('WARNING\t');
+            checkstr = [checkstr sprintf('WARNING\t')];
         else
-            fprintf('OK\t');
+            checkstr = [checkstr sprintf('OK\t')];
         end
-        fprintf(infostring{str});
-        fprintf(warnstring{str});
-        fprintf(errstring{str});
-        fprintf('\n');
+        checkstr = [checkstr sprintf(infostring{str})];
+        checkstr = [checkstr sprintf(warnstring{str})];
+        checkstr = [checkstr sprintf(errstring{str})];
+        checkstr = [checkstr sprintf('\n')];
     end
+end
+
+if display
+    fprintf(checkstr);
 end
 
 if ~all(ismember(errstring,''))

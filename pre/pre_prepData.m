@@ -107,7 +107,7 @@ function [EEGprep args] = pre_prepData(varargin)
 % Output:
 %
 %   EEGprep:        Prepocessed EEG structure(s)
-%   g:              Argument specification structure.
+%   args:           Argument specification structure(s).
 %
 %
 % See Also: pop_pre_prepData()
@@ -190,8 +190,8 @@ verb = arg_extract(varargin,{'verb','VerbosityLevel'},[],0);
 
 g = arg_define([0 Inf], varargin, ...
     arg_norep('ALLEEG',mandatory), ...
-    arg({'verb','VerbosityLevel'},0,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical'), ...
-    arg_nogui({'backupOriginalData'},false,[],'Keep a nonnormalized copy of the data'), ...
+    arg({'verb','VerbosityLevel'},2,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical'), ...
+    arg_nogui({'backupOriginalData','BackupOriginalData'},false,[],'Keep a nonnormalized copy of the data'), ...
     arg_sub({'selectComponents','SelectComponents'},{'MyComponentNames',MyComponentNames,'verb',verb},@pre_selectcomps,'Select components to analyze','cat','Data Selection'), ...
     arg({'newtlims','EpochTimeRange'},[],[],'[Min Max] Epoch time range (sec). If blank, use all original epoch length','cat','Data Selection'), ...
     arg({'resample','NewSamplingRate'},[],[],'New sampling rate. Data will be down/upsampled using a zero-phase filter (see ''help resample'')','cat','Filtering'), ...
@@ -214,6 +214,11 @@ pop_editoptions( 'option_computeica', 1,'option_storedisk',0);
 [data g] = hlp_splitstruct(g,{'ALLEEG'});
 arg_toworkspace(data);
 clear data;
+
+% check the inputs
+if isempty(g.selectComponents.ComponentsToKeep)
+    error('SIFT:pre_prepData','You did not select any channels/components.');
+end
 
 % check the dataset(s)
 ALLEEG = eeg_checkset(ALLEEG);

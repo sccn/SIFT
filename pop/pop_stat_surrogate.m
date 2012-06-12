@@ -16,12 +16,14 @@ function [ALLEEG cfg] = pop_stat_surrogate(ALLEEG,typeproc,varargin)
 %   
 % Output:
 %
-%   ALLEEG:         EEG structure(s) with Stats object stored in
-%                   ALLEEG.CAT.Stats
+%   ALLEEG:         EEG structure(s) with surrogate distribution object stored in
+%                   ALLEEG.CAT.PConn. To obtain statistics, supply this
+%                   ALLEEG structure as input to pop_stat_surrogateStats()
 %   cfg:            Argument specification structure.
 %
 %
-% See Also: stat_surrogate()
+% See Also: stat_surrogate(), pop_stat_surrogateStats(),
+%           stat_surrogateStats()
 %
 % References:
 %

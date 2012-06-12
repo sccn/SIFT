@@ -116,8 +116,15 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     FitModel_callback       = [finalcmd catchstrs.store_and_hist];
     
-    ValidateModel_callback  = 'pop_est_validateMVAR(EEG,0);';
+    cmd  = 'pop_est_validateMVAR(EEG,0);';
+    finalcmd = [ trystrs.no_check cmd ];
+    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
+    ValidateModel_callback   = [finalcmd catchstrs.store_and_hist];
     
+    cmd  = 'pop_est_selModelOrder(EEG,0);';
+    finalcmd = [ trystrs.no_check cmd ];
+    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
+    SelectModelOrder_callback   = [finalcmd catchstrs.store_and_hist];
     
     % create menus
     % ------------
@@ -136,6 +143,7 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     uimenu( statmenu, 'label', 'Analytic Statistics', 'callback', AnalyticStat_callback,'separator', 'on', 'enable','on' );
     uimenu( statmenu, 'label', 'Simple Statistics', 'callback', SimpleStat_callback, 'separator', 'on' ,'enable','off');
     
+    uimenu( modelmenu, 'label', 'Model Order Selection', 'callback', SelectModelOrder_callback );
     uimenu( modelmenu, 'label', 'Fit AMVAR Model', 'callback',FitModel_callback);
     uimenu( modelmenu, 'label', 'Validate model', 'callback', ValidateModel_callback );
 

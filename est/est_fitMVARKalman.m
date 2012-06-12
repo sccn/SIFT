@@ -1,4 +1,3 @@
-
 function [MODEL params] = est_fitMVARKalman(EEG,typeproc,varargin)
 %
 % Fit multivariate autoregressive model to EEG data using a

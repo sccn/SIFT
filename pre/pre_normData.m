@@ -12,7 +12,7 @@ function [normdata g] = pre_normData(varargin)
 %
 % Inputs:
 %
-%   data:        data structure [channels x 
+%   data:        data structure [channels x time x trials]
 %
 % Optional:     <'Name',Value> pairs
 %

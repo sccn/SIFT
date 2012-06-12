@@ -1,4 +1,4 @@
-function [stats] = est_checkMVARStability(EEG,MODEL,typeproc,varargin)
+function [stats] = est_checkMVARStability(varargin)
 %
 % Test the stability of a fitted VAR model. See [1-2] for mathematical
 % details on testing VAR stability. A stable VAR process is also a
@@ -51,43 +51,56 @@ function [stats] = est_checkMVARStability(EEG,MODEL,typeproc,varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-var = hlp_mergeVarargin(varargin{:});
-g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_checkMVARStability','ignore','quiet');
-if ischar(g), error(g); end
+g = arg_define([0 2],varargin, ...
+        arg_norep({'EEG','ALLEEG'},mandatory,[],'EEGLAB dataset'), ...
+        arg_norep({'MODEL','Model'},mandatory,[],'MVAR MODEL object'), ...
+        arg_nogui({'winStartIdx','WindowStartIndices'},[],[],'Starting indices for windows. This is a vector of sample points (start of windows) at which to estimate windowed VAR model. Default is empty (use all windows)','cat','Options'), ...
+        arg({'prctWinToSample','WindowSamplePercent'},100,[1 100],'Percent of windows to sample','cat','Options'), ...
+        arg({'verb','VerbosityLevel'},2,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical') ...
+        );
+    
+% commit EEG and MODEL variables to workspace
+[data g] = hlp_splitstruct(g,{'EEG','MODEL'});
+arg_toworkspace(data);
+clear data;
 
+morder = MODEL.morder;
 
 % window size in points
-winLenPnts = floor(MODEL.winlen*EEG.srate);
+% winLenPnts = floor(MODEL.winlen*EEG.srate);
 
 if isempty(g.winStartIdx)
     % starting point of each window (points)
     g.winStartIdx  = round(MODEL.winStartTimes*EEG.srate)+1;
 end
 
-if g.prctWinToSample<100
+if g.prctWinToSample<100 
     % randomly select percentage of windows to work with
     randwin = randperm(length(g.winStartIdx));
     randwin = sort(randwin(1:ceil(length(g.winStartIdx)*g.prctWinToSample/100)));
     g.winStartIdx = g.winStartIdx(randwin);
-    MODEL.AR = MODEL.AR(randwin);
-    MODEL.PE = MODEL.PE(randwin);
-    MODEL.winStartTimes = MODEL.winStartTimes(randwin);
+    g.winArrayIndex = randwin;
 end
 
-g.morder = EEG.CAT.MODEL.morder;
+% get the array indices of the windows we are working with
+g.winArrayIndex = getindex(MODEL.winStartTimes,(g.winStartIdx-1)/EEG.srate);
 
 if g.verb, h=waitbar(0,sprintf('checking stability...\nCondition: %s',EEG.condition)); end
 
 numWins = length(g.winStartIdx);
+
 stats.stability = zeros(1,numWins);
 [nchs Mp] = size(MODEL.AR{1});
 stats.lambda = zeros(numWins,Mp);
 %lambda = [];
-I = eye(nchs*g.morder-nchs,nchs*g.morder-nchs);
-O = zeros(nchs*g.morder-nchs,nchs);
+I = eye(nchs*morder-nchs,nchs*morder-nchs);
+O = zeros(nchs*morder-nchs,nchs);
 for t=1:numWins
+    % get the array index of the window we are working with
+    winArrIdx = g.winArrayIndex(t);
+        
     % rewrite VAR[p] process as VAR[1]
-    A = [MODEL.AR{t} ; [I O]];
+    A = [MODEL.AR{winArrIdx} ; [I O]];
     stats.lambda(t,:) = log(abs(eig(A)));
     stats.stability(t) = all(stats.lambda(t,:)<0);
     if g.verb,
@@ -96,6 +109,8 @@ for t=1:numWins
 end
 
 stats.winStartIdx = g.winStartIdx;
+stats.winStartTimes = MODEL.winStartTimes(g.winArrayIndex);
+stats.winArrayIndex = g.winArrayIndex;
 
 if g.verb, close(h); end
 

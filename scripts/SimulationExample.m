@@ -229,6 +229,7 @@ EEG.nbchan = M;
 EEG.setname = 'VAR Simulation';
 EEG.condition = 'VAR Simulation';
 
+%%
 EEG = eeg_checkset(EEG);
 pop_eegplot(EEG);
 
