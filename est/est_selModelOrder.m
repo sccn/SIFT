@@ -173,13 +173,24 @@ if ~g.downdate
     end
     
     cnt = 0; tot = (pmax-pmin)+1;
-    for p=pmin:pmax
-        
-        % initialize random number generator with same seed
-        % so that we get the same random sequence of windows for 
+    
+    
+    if g.prctWinToSample<100
+        % initialize random number generator with a known state
+        % so that we get the same random sequence of windows for
         % each model order
+        RandStream.setDefaultStream ...
+            (RandStream('mt19937ar','seed',sum(100*clock)));
+        
+        defaultStream = RandStream.getDefaultStream;
+        savedState = defaultStream.State;
+    end
+    
+    for p=pmin:pmax
+       
         if g.prctWinToSample<100
-            rng(1);  
+            % reset the state of the random number generator
+            defaultStream.State = savedState;
         end
         
         cnt = cnt + 1;
