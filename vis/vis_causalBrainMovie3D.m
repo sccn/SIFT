@@ -1274,7 +1274,7 @@ for cnd = 1:length(g.Conn)
                 % form the footer panel title string
                 tmpstr = '[IC ';
                 for k=1:min(3,length(erpvars))
-                    tmpstr = [tmpstr MyComponentNames{erpvars(k)} ','];
+                    tmpstr = [tmpstr MyComponentNames{g.ALLEEG(cnd).CAT.curComps==erpvars(k)} ','];
                 end
                 tmpstr(end) = [];
                 if k<length(erpvars)
