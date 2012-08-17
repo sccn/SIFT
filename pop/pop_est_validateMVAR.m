@@ -1,4 +1,4 @@
-function varargout = pop_est_validateMVAR(ALLEEG,typeproc,varargin)
+function [ALLEEG cfg] = pop_est_validateMVAR(ALLEEG,typeproc,varargin)
 %
 % Validate a fitted VAR model. With two inputs, this function generates a
 % GUI where the validation scheme can be specified. Validation consists of
@@ -99,48 +99,50 @@ if nargin<2
     typeproc = 0;
 end
 
-% initialize default outputs
-for cond=1:length(ALLEEG)
-    for q=1:nargout, 
-        varargout{q}{cond} = []; 
-    end
-end
+fcnName     = strrep(mfilename,'pop_','');
+fcnHandle   = str2func(fcnName);
 
 % check the dataset
 res = hlp_checkeegset(ALLEEG,{'model'});
 if ~isempty(res)
-    error('SIFT:est_validateMVAR',res{1});
+    error(['SIFT:' fcnName],res{1});
 end
 
-if isfield(ALLEEG(1).CAT.configs,'validateMVAR')
+if isfield(ALLEEG(1).CAT.configs,fcnName)
     % get default configuration (from prior use) and merge with varargin
-    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.validateMVAR) varargin];
+    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
 end
 
 if strcmpi(typeproc,'nogui')
     % get the config from function
-    cfg = arg_tovals(arg_report('rich',@est_validateMVAR,[{'EEG',ALLEEG(1)},varargin]));
+    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG(1)},varargin]));
 else
     % render the GUI
-    [PGh figh] = gui_est_validateMVAR(ALLEEG,varargin{:});
-
+    [PGh figh] = feval(['gui_' fcnName],ALLEEG(1),varargin{:});
+    
     if isempty(PGh)
         % user chose to cancel
+        cfg = [];
         return;
     end
-
+    
     % get the specification of the PropertyGrid
     ps = PGh.GetPropertySpecification;
     cfg = arg_tovals(ps,false);
 end
 
+drawnow;
+
 % Apply model validation routines
-for cond=1:length(ALLEEG)
+for cnd=1:length(ALLEEG)
     
-    [whitestats PCstats stabilitystats] = est_validateMVAR('EEG',ALLEEG(cond),cfg);
+    [ALLEEG(cnd).CAT.VALIDATION.whitestats ...
+     ALLEEG(cnd).CAT.VALIDATION.PCstats    ...
+     ALLEEG(cnd).CAT.VALIDATION.stabilitystats] ...
+        = est_validateMVAR('EEG',ALLEEG(cnd),cfg);
     
-    varargout{1}{cond} = whitestats;
-    varargout{2}{cond} = PCstats;
-    varargout{3}{cond} = stabilitystats;
-    varargout{4}{cond} = cfg;
+    if ~isempty(cfg)
+        % store the configuration structure
+        ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
+    end
 end

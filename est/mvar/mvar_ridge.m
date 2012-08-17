@@ -1,18 +1,44 @@
 function [AR PE] = mvar_ridge(varargin)
-
-% Solve for VAR[p] coefficients using ridge regression (L2 norm)
-% If Y = D(y,p) is a p-lag delay embedding of multivariate data vector
-% y(t), and X is a block toeplitz matrix of lagged copies of the delay
-% embedded data, then we may adopt the structural model:
+% Algorithm: Ridge Regression
+%
+% Description:
+%
+% This method infers a fully connected multivariate
+% autoregressive (VAR) model using L2 regularization.
+%
+% VAR[p] coefficients inferred using ridge regression
+% (L2 regularization). We assume most VAR coefficients
+% (interactions) are small, and apply an L2 penalty
+% for large coefficients. A consequence is that VAR
+% coefficients are never exactly zero; thus statistical
+% thresholding is an important follow-up step.
+% This constraint allows us to solve under-determined
+% systems (e.g. more parameters than observations).
+%
+% If Y = D(y,p) is a p-lag delay embedding of multi-
+% variate data vector y(t), X is a block toeplitz 
+% matrix of lagged copies of the delay embedded data,
+% and A is an augmented matrix of VAR coefficients,
+% then we may adopt the structural model:
 %
 % Y = XA + e,  for gaussian noise e
 %
 % We then seek to solve the optimization problem
 %
-% A_hat = argmin_A 0.5||XA-Y||^2 + lambda*||A(:)||_2 
+% A_hat = argmin_A{0.5||Y-XA||_2^2 + L*||A||_2}
 %
-% where A contains the VAR parameters
+% where L is the regularization parameter.
 %
+% This algorithm is a good choice if you have few 
+% data samples and a fairly large number of sources
+% and/or a high model order. Note that, unlike sparse
+% methods, ridge regression yields a fully connected
+% graph (all VAR coefficients are non-zero). Follow up
+% with statistical thresholding.
+%
+% Dependencies: ridge()
+%
+% ------------------------------------------------------------------------
 % INPUTS:
 %   data:       the data (nchs x npnts)
 %   p:          the model order

@@ -183,6 +183,10 @@ else
                 end
                 % We can't continue after clearing the entry, so jump out
                 break;
+            case {'RESETCANCEL'}
+                % Set the cancel flag so that the user is told on next update
+                entries(idx).Cancel = false;
+                setappdata( figh, 'ProgressEntries', entries );
                 
             otherwise
                 error( 'multiWaitbar:BadArg', 'Unrecognised command: ''%s''', params{ii} );

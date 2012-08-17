@@ -1,20 +1,67 @@
-function [AR PE ww] = mvar_glADMM(varargin)
+function [AR PE] = mvar_glADMM(varargin)
 
-% Solve for VAR[p] coefficients using Group Lasso (L1,2 norm)
-% If Y = D(y,p) is a p-lag delay embedding of multivariate data vector
-% y(t), and X is a sparse block-diagonal matrix of lagged copies of the 
-% delay embedded data, then we may adopt the structural model:
+% Algorithm: Group Lasso (ADMM)
+%
+% Description:
+%
+% This method infers a sparsely connected multi-
+% variate autoregressive (VAR) model under a 
+% gaussian noise assumption.
+%
+% VAR[p] coefficients inferred using Group Lasso 
+% (L1,2 regularization) via the Alternating 
+% Direction Method of Multipliers [1]. 
+% The p VAR coefficients describing interactions 
+% between two processes at time lags [t-1...t-p]
+% are grouped together using an L2 norm which 
+% penalizes large coefficients. An L1 penalty is
+% then applied to the coefficient groups. This
+% jointly prunes entire groups of coefficients
+% by setting the entire group to zero. The result
+% is a connectivity graph with sparse structure
+% (most processes are strictly non-interacting)
+% while regularizing (smoothing) the coefficient
+% sequences describing surviving non-zero 
+% interactions.
+% These constraints allow us to uniquely solve 
+% highly under-determined systems (e.g. many 
+% more parameters than observations).
+%
+% If Y = D(y,p) is a p-lag delay embedding of multi-
+% variate data vector y(t), X is a sparse block-
+% diagonal matrix of lagged copies of the delay 
+% embedded data, and A is an augmented matrix of
+% VAR coefficients, then we may adopt the structural 
+% model:
 %
 % Y = XA + e,  for gaussian noise e
 %
 % We then seek to solve the optimization problem
 %
-% A_hat = argmin_A 0.5||XA-Y||_2^2 + lambda*sum(||A_i||_2)
+% A_hat = argmin_A{0.5||Y-XA||_2^2 + L*sum(||A_i||_2)}
 %
-% where A_i contains the i^th group of VAR parameters (e.g. the set of
-% filter weights {A(i,j)} describing auto-regression (conditional linear dependence) 
-% of X_i onto X_j)
+% where A_i contains the i^th group of AR parameters 
+% e.g. the set of VAR weights {A(i,j)} describing auto-
+% regression (conditional linear dependence) of X_i 
+% onto X_j. L is the regularization parameter.
 %
+% This algorithm is a good choice if you have few 
+% data samples and many channels/sources and/or a 
+% high model order.
+%
+% Author Credits:
+%
+% This implementation is based on Matlab ADMM
+% examples from Stephen Boyd's website [2]
+%
+% References and Code:
+%
+% [1] Boyd, Parikh, Chu, Pelato and Eckstein et al. Foundations and Trends in Machine Learning 3(1):1-122,2011
+% [2] http://www.stanford.edu/~boyd/papers/distr_opt_stat_learning_admm.html
+%
+% Dependencies: admm_gl()
+%
+% ------------------------------------------------------------------------
 % INPUTS:
 %   data:       the data (nchs x npnts)
 %   p:          the model order
@@ -166,9 +213,9 @@ if nargout>1
     PE = cov(res');
 end
 
-if nargout>2
-    ww = initAR;
-end
+% if nargout>2
+%     argsout.initAR = initAR;
+% end
 
 function v = vec(x)
 v = x(:);

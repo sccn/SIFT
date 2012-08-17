@@ -109,7 +109,7 @@ function [Stats ConnMean] = stat_surrogateStats(varargin)
 
 
 % extract some stuff from inputs for arg defaults
-PConn = arg_extract(varargin,'PConn',2);
+PConn = arg_extract(varargin,{'PConn','BootstrapConnectivity'},2);
 if ~isempty(PConn(1))
     ConnNames   = hlp_getConnMethodNames(PConn(1));
     conndef     = ConnNames;
@@ -211,7 +211,7 @@ for m=1:length(g.connmethods)
                     g.PConn.(g.connmethods{m}) = stat_getDistribMean(g.PConn.(g.connmethods{m}));
                 end
                 
-                [statval, df, Stats.(g.connmethods{m}).pval] = statcond( { }, 'mode','perm', 'surrog', g.null.(g.connmethods{m}), 'stats', g.PConn.(g.connmethods{m}), g.statcondargs{:},'tail','one');
+                [statval, df, Stats.(g.connmethods{m}).pval] = statcond( { }, 'mode','perm', 'surrog', g.null.(g.connmethods{m}), 'stats', g.PConn.(g.connmethods{m}),'tail','one',g.statcondargs{:});
                 
                 
                 % compute the threshold based on 1-alpha percentile of null
@@ -234,14 +234,10 @@ for m=1:length(g.connmethods)
                 end
                 
                 sz = size(g.PConn.(g.connmethods{m}));
-                [statval, df, Stats.(g.connmethods{m}).pval] = statcond( { }, 'mode','perm', 'surrog', g.PConn.(g.connmethods{m}), 'stats', zeros(sz(1:end-1)), g.statcondargs{:},'tail','one');
+                [statval, df, Stats.(g.connmethods{m}).pval] = statcond( { }, 'mode','perm', 'surrog', g.PConn.(g.connmethods{m}), 'stats', zeros(sz(1:end-1)),'tail','one',g.statcondargs{:});
                 Stats.(g.connmethods{m}).pval = 1-Stats.(g.connmethods{m}).pval;
                 
                 % compute two-sided confidence intervals
-                % NOTE: need to check whether it's 2*g.alpha or just
-                % g.alpha (should be twice that used for one-sided p-value
-                % test above to ensure appropriate overlap of lower CI with
-                % zero when non-signficant)
                 Stats.(g.connmethods{m}).ci = stat_computeCI(g.PConn.(g.connmethods{m}),g.alpha,'both');
             end
             
@@ -269,14 +265,10 @@ for m=1:length(g.connmethods)
             
             sz = size(g.PConn(1).(g.connmethods{m}));
             Pdiff = g.PConn(1).(g.connmethods{m})-g.PConn(2).(g.connmethods{m});
-            [statval, df, Stats.(g.connmethods{m}).pval] = statcond( { }, 'mode','perm', 'surrog', Pdiff, 'stats', zeros(sz(1:end-1)), g.statcondargs{:},'tail','both');
+            [statval, df, Stats.(g.connmethods{m}).pval] = statcond( { }, 'mode','perm', 'surrog', Pdiff, 'stats', zeros(sz(1:end-1)), 'tail','both',g.statcondargs{:});
             Stats.(g.connmethods{m}).pval = Stats.(g.connmethods{m}).pval;
             
             % compute two-sided confidence intervals
-            % NOTE: need to check whether it's 2*g.alpha or just
-            % g.alpha (should be twice that used for one-sided p-value
-            % test above to ensure appropriate overlap of lower CI with
-            % zero when non-signficant)
             Stats.(g.connmethods{m}).ci = stat_computeCI(Pdiff,g.alpha,'both');
             
         case 'Hbase'
@@ -383,9 +375,6 @@ if nargout>1
     else
         ConnMean = stat_getDistribMean(g.PConn);
     end
-end
-
-
 end
 
 

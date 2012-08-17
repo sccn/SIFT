@@ -4,5 +4,9 @@ function C = blkdiageye(X,k)
 %
 % Author: Tim Mullen, 2011 (C) SCCN/INC/UCSD
 
-ss = repmat('X,',1,k); ss(end)=[];
-eval(sprintf('C = blkdiag(%s);',ss));
+ss = repmat({X},1,k);
+C = blkdiag(ss{:});
+
+% alternate form
+% ss = repmat('X,',1,k); ss(end)=[];
+% eval(sprintf('C = blkdiag(%s);',ss));

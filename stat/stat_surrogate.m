@@ -32,7 +32,7 @@ function [PConn g] = stat_surrogate(varargin)
 % Mode:                    Resampling modes                                                                                      
 %                          Bootstrap (Efron Bootstrap resampling with replacement), Jacknife (leave-one-out cross-validation),   
 %                          Crossval (k-fold cross-validation), PhaseRand (Theiler phase randomization)                                                                    
-%                          Possible values: 'Bootstrap','Jacknife','InverseJacknife','Crossval','PhaseRand'                      
+%                          Possible values: 'Bootstrap','Jacknife','SingleTrials','Crossval','PhaseRand'                      
 %                          Default value  : 'Bootstrap'                                                                          
 %                          Input Data Type: string                                                                               
 %                                                                                                                                
@@ -123,82 +123,133 @@ function [PConn g] = stat_surrogate(varargin)
 ALLEEG = arg_extract(varargin,'ALLEEG',1);
 
 if length(ALLEEG)>1
-    error('surrogate stats currently available only for individual datasets');
+    error('Surrogate distributions must be computed for each dataset individually');
 end
 
+% defaults
+mvarConnectivityDef = {};
+modelingDef         = hlp_getModelingApproaches('defNameOnly');
+
 if ~isempty(ALLEEG)
-    if isfield(ALLEEG,'CAT') && isfield(ALLEEG.CAT,'Conn') && ~isempty(ALLEEG.CAT.Conn)
-        Conn = ALLEEG.CAT.Conn(1);
-        ConnNames   = hlp_getConnMethodNames(Conn);
-        conndef     = ConnNames;
-    else
-        ConnNames = {''};
-        conndef = '';
+    
+    % if model was previously fit, set default modeling
+    % approach from the model
+    if isempty(hlp_checkeegset(ALLEEG,{'model'}))
+        modelingDef = ALLEEG.CAT.MODEL.modelapproach;
     end
-else
-    ConnNames = {''};
-    conndef = '';
+    
+    % get the name of of the modeling approach function
+    modFcnName  = hlp_getModelingApproaches('mfileNameOnly',modelingDef);
+
+    % get the last-used configuration structures...
+    configs = ALLEEG.CAT.configs;
+    
+    % ... and update defaults (if possible)
+    if ~isempty(configs.est_mvarConnectivity)
+        mvarConnectivityDef = configs.est_mvarConnectivity;
+    end
+    
+    if ~isempty(configs.(modFcnName))
+        modelingDef = {modelingDef configs.(modFcnName)};
+    end
+    
 end
 
 clear ALLEEG Conn;
 
 g = arg_define([0 Inf],varargin, ...
-    arg_norep('ALLEEG',mandatory,[],'EEG structure.'), ...
-    arg_norep('configs',mandatory,[],'Config superstructure. Contains configuration structures as fields: prepcfg,modfitcfg,conncfg. These are returned from the respective pre_prepData(), est_fitMVAR(), and est_mvarConnectivity() functions'), ...
+    arg_norep({'ALLEEG','EEG'},mandatory,[],'EEG structure.'), ...
+    arg_subswitch({'modelingApproach','ModelingApproach'},modelingDef, ...
+        hlp_getModelingApproaches, ...
+        'Select a modeling approach and define parameters.', ...
+        'cat','Modeling Pipeline', ...
+        'suppress',{'verb','timer'}), ...
+    arg_sub({'connectivityModeling','ConnectivityEstimation'},mvarConnectivityDef,@est_mvarConnectivity,'Connectivity estimation options','suppress',{'verb'},'cat','Modeling Pipeline'), ...
     arg_subswitch({'mode','Mode'},'Bootstrap', ...
-    { ...
-    'Bootstrap' { ...
-    arg({'nperms','NumPermutations'},200,[],'Number of resamples. This performs efron bootstrapping'), ...
-    }, ...
-    'Jacknife', { ...
-    arg_norep('dummy',[],[]), ...
-    }, ...
-    'InverseJacknife', { ...
-    arg_norep('dummy2',[],[]), ...
-    }, ...
-    'Crossval' { ...
-    arg({'nfolds','NumFolds'},10,[],'Number of folds. This performs k-fold resampling'), ...
-    }, ...
-    'PhaseRand', { ...
-    arg({'nperms','NumPermutations'},200,[],'Number of resamples. This performs Theiler phase randomization'), ...
-    }, ...
-    }, 'Resampling modes. Bootstrap (Efron Bootstrap resampling with replacement), Jacknife (leave-one-out cross-validation), Crossval (k-fold cross-validation), PhaseRand (Theiler phase randomization)'), ...
+        { ...
+        'Bootstrap' { ...
+        arg({'nperms','NumPermutations'},200,[],'Number of resamples. This performs efron bootstrapping'), ...
+        arg({'saveTrialIdx','SaveTrialIndices'},true,[],'Save trial indices for each resample iteration.'), ...
+        }, ...
+        'Jacknife', { ...
+        arg({'saveTrialIdx','SaveTrialIndices'},true,[],'Save trial indices for each resample iteration.'), ...
+        }, ...
+        'SingleTrials', { ...
+        arg({'saveTrialIdx','SaveTrialIndices'},true,[],'Save trial indices for each resample iteration.'), ...
+        }, ...
+        'Crossval' { ...
+        arg({'nfolds','NumFolds'},10,[],'Number of folds. This performs k-fold resampling'), ...
+        arg({'saveTrialIdx','SaveTrialIndices'},true,[],'Save trial indices for each resample iteration.'), ...
+        }, ...
+        'PhaseRand', { ...
+        arg({'nperms','NumPermutations'},200,[],'Number of resamples. This performs Theiler phase randomization'), ...
+        }, ...
+        }, 'Resampling modes. Bootstrap (Efron Bootstrap resampling with replacement), Jacknife (leave-one-out cross-validation), Crossval (k-fold cross-validation), PhaseRand (Theiler phase randomization)', ...
+        'CustomSchedule', { ...
+        arg({'resampleTrialIdx','ResamplingSchedule'},[],[],'Resampling schedule matrix [num_iterations x sample_size]. Each row is a vector of trial indices which constitute the sample set for a single resampling iteration.','shape','matrix'), ...
+        }, ...
+        'cat','Resampling Options'), ...
     arg_subtoggle({'autosave','AutoSave'},'off', ...
-    { ...
-    arg({'savefname','FileNamePrefix'},'SIFT_boostrap','','Prefix (including optional path) for autosave file. Data is saved in <FileNamePrefix>.part'), ...
-    arg({'savefrq','AutoSaveFrequency'},0.25,[eps 1-eps],'Fractional increment between saves. For example, 0.25 = quarterly saves'), ...
-    }, 'Autosave distributions. This will periodically save the computation to a mat file. In case of system crash, bootstrapping can be resumed from this file'), ...
-    arg({'connmethods','ConnectivityMethods'},conndef,ConnNames,'Connectivity estimator(s) to bootstrap. All connectivity estimators must be named exactly as they appear in EEG.CAT.Conn','type','logical'), ...
+        { ...
+        arg({'savefname','FileNamePrefix'},'SIFT_boostrap','','Prefix (including optional path) for autosave file. Data is saved in <FileNamePrefix>.part'), ...
+        arg({'savefrq','AutoSaveFrequency'},0.25,[eps 1-eps],'Fractional increment between saves. For example, 0.25 = quarterly saves'), ...
+        }, 'Autosave distributions. This will periodically save the computation to a mat file. In case of system crash, bootstrapping can be resumed from this file', ...
+        'cat','Resampling Options'), ...
     arg({'verb','VerbosityLevel'},2,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical') ...
     );
 
 
 arg_toworkspace(g);
 
-if (ALLEEG.trials==1 || isempty(ALLEEG.trials)) ...
+% check the dataset
+chk = hlp_checkeegset(ALLEEG,{'cat'});
+if ~isempty(chk)
+    error(chk{1}); 
+end
+
+if (ALLEEG.CAT.trials==1 || isempty(ALLEEG.CAT.trials)) ...
         && any(ismember(lower(mode.arg_selection),{'bootstrap','jacknife','inversejacknife','crossval'}))
     error(['Unable to compute bootstrap distributions for a single trial. ' char(10) ...
            'You must use either Analytic Statistics or Phase Randomization surrogate option']);
 end
     
 % Perform boostrapping
-switch lower(mode.arg_selection)
-    case 'bootstrap'
+switch mode.arg_selection
+    case 'Bootstrap'
         nperms = mode.nperms;
-        cv.training = @(x)(randsample(ALLEEG.trials, ALLEEG.trials, true));
-    case 'jacknife'
-        nperms = ALLEEG.trials;
-        cv = cvpartition(ALLEEG.trials,'leaveout');
-    case 'inversejacknife'
-        nperms = ALLEEG.trials;
-        cv = cvpartition(ALLEEG.trials,'leaveout');
-    case 'crossval'
+        cv.training = @(x)(randsample(ALLEEG.CAT.trials, ALLEEG.CAT.trials, true));
+    case 'Jacknife'
+        nperms = ALLEEG.CAT.trials;
+        cv = cvpartition(ALLEEG.CAT.trials,'leaveout');
+    case 'SingleTrials'
+        nperms = ALLEEG.CAT.trials;
+        cv = cvpartition(ALLEEG.CAT.trials,'leaveout');
+    case 'Crossval'
         nperms = mode.nfolds;
-        cv = cvpartition(ALLEEG.trials,'kfold',nperms);
-    case 'phaserand'
+        cv = cvpartition(ALLEEG.CAT.trials,'kfold',nperms);
+    case 'PhaseRand'
         nperms = mode.nperms;
+        mode.saveTrialIdx = false;
+    case 'CustomSchedule'
+        nperms = size(mode.resampleTrialIdx,1);
+        mode.saveTrialIdx = true;
 end
 
+% If necessary, init matrix for storing resampling trial indices
+if mode.saveTrialIdx
+    switch mode.arg_selection
+        case 'SingleTrials'
+            resampleTrialIdx = zeros(nperms,length(cv.test(1)),'int32');
+        case {'Bootstrap','Jacknife','Crossval'}
+            resampleTrialIdx = zeros(nperms,length(cv.training(1)),'int32');
+        case 'CustomSchedule'
+            resampleTrialIdx = mode.resampleTrialIdx;
+        otherwise
+            resampleTrialIdx = [];
+    end
+else
+    resampleTrialIdx = [];
+end
 
 % Initiate progress bar
 if verb==1
@@ -206,7 +257,11 @@ if verb==1
     tic
     t0 = toc;
 elseif verb==2
-    h=statusbar(sprintf('Resampling (x%d)...',nperms));
+    waitbarTitle = sprintf('%s Resampling (x%d)...',mode.arg_selection, nperms);
+    multiWaitbar(waitbarTitle, ...
+                 'Color', [1.0 0.4 0.0], ...
+                 'CanCancel','on', ...
+                 'CancelFcn',@(a,b) disp('[Cancel requested. Please wait...]'));
 end
 
 if autosave.arg_selection
@@ -215,24 +270,26 @@ end
 
 for perm=1:nperms
     
-    if strcmpi(mode.arg_selection,'inversejacknife') % (fit model to a random single-trial)
-        % preprocess data
-        EEG = pre_prepData('ALLEEG',ALLEEG,configs.prepData,'verb',0,'newtrials',cv.test(perm));
-        
-    elseif ~strcmpi(mode.arg_selection,'phaserand')
-        % all bootstrapping/resampling modes
-        
-        % preprocess data
-        EEG = pre_prepData('ALLEEG',ALLEEG,configs.prepData,'verb',1,'newtrials',cv.training(perm));
-        
-    else % (Phase randomization)
-        
-        % preprocess data (only once)
-        if perm==1
-            ALLEEG = pre_prepData('ALLEEG',ALLEEG,configs.prepData,'verb',0);
-        end
-        
-        EEG = ALLEEG;
+    % restore the original dataset
+    EEG = ALLEEG;
+            
+    % select the trials for this resample
+    switch mode.arg_selection
+        case 'SingleTrials'
+            % fit model to each single trial
+            rsmpIdx = cv.test(perm);
+        case 'PhaseRand'
+            % phase randomization
+            rsmpIdx = [];
+        case 'CustomSchedule'
+            % use predetermined trial indices
+            rsmpIdx = mode.resampleTrialIdx(perm,:);
+        otherwise
+            % all other bootstrapping/resampling modes
+            rsmpIdx = cv.training(perm);
+    end
+    
+    if strcmp(mode.arg_selection,'PhaseRand')
         
         % Create surrogate data by randomizing phases.
         % Multiply each fourier amplitude by e^{iw)
@@ -255,21 +312,30 @@ for perm=1:nperms
         
         EEG.CAT.srcdata = ipermute(EEG.CAT.srcdata,[2 1 3]);
         
+    else
+        % select subset of trials
+        EEG.CAT.srcdata = EEG.CAT.srcdata(:,:,rsmpIdx);
+        EEG.CAT.trials  = length(rsmpIdx);
     end
     
+    if mode.saveTrialIdx
+        resampleTrialIdx(perm,:) = rsmpIdx;
+    end
+        
+    % Fit model and estimate connectivity for this permutation
+    % ---------------------------------------------------------------------
     
+    % get the m-file name of the function implementing the modeling approach
+    modelingFuncName = hlp_getModelingApproaches('mfileNameOnly',g.modelingApproach.arg_selection);
+   
     % fit model
-    EEG = pop_est_fitMVAR(EEG,'nogui',configs.fitMVAR,'verb',0);
+    MODEL = feval(modelingFuncName,'EEG',EEG,g.modelingApproach,'verb',g.verb);
     
     % calculate connectivity
-    EEG = pop_est_mvarConnectivity(EEG,configs.mvarConnectivity,'verb',0);
-    
+    EEG.CAT.Conn = est_mvarConnectivity('EEG',EEG,'MODEL',MODEL,g.connectivityModeling,'verb',g.verb);
+
     % append causal estimates to the last dimension of respective arrays in Conn
-    if isempty(connmethods)
-        connfields = hlp_getConnMethodNames(EEG.CAT.Conn);
-    else
-        connfields = connmethods;
-    end
+    connfields = hlp_getConnMethodNames(EEG.CAT.Conn);
     
     if perm==1
         for m=1:length(connfields)
@@ -285,7 +351,7 @@ for perm=1:nperms
     for m=1:length(connfields)
         if ~isempty(EEG.CAT.Conn.(connfields{m}))
             % store permutation
-            PConn.(connfields{m})(perm,:,:,:,:,:,:,:) = single(EEG.CAT.Conn.(connfields{m}));
+            PConn.(connfields{m})(perm,:,:,:,:) = single(EEG.CAT.Conn.(connfields{m}));
         end
     end
     
@@ -296,35 +362,52 @@ for perm=1:nperms
     
     % update progress bar
     if verb==1
+        % text progress bar
         te = toc-t0;
         tt = ceil(te*(nperms-perm)/perm);
-        progress(perm/nperms,sprintf('Resampling [%d/%d] (EL: %0.1fm / ETA: %0.1fm)',perm,nperms,ceil(te)/60,tt/60));
+        progress(perm/nperms, ...
+            sprintf('Resampling [%d/%d] (EL: %0.1fm / ETA: %0.1fm)', ...
+            perm,nperms,ceil(te)/60,tt/60));
     elseif verb==2
-        statusbar(perm/nperms,h);
+        % graphical waitbar
+        cancel = multiWaitbar(waitbarTitle,perm/nperms);
+        if cancel
+            if strcmpi('yes',questdlg2( ...
+                            'Are you sure you want to cancel?', ...
+                            'Resampling','Yes','No','No'));
+                PConn = [];
+                multiWaitbar(waitbarTitle,'Close');
+                return;
+            else
+                multiWaitbar(waitbarTitle,'ResetCancel',true);
+            end
+        end 
     end
     
 end
 
+% construct PConn object
 for m=1:length(connfields)
     sz = size(PConn.(connfields{m}));
     % put permutations in last dimension
     PConn.(connfields{m}) = permute(PConn.(connfields{m}),circshift((1:length(sz))',-1));
 end
-    
-PConn.winCenterTimes = EEG.CAT.Conn.winCenterTimes;
-PConn.erWinCenterTimes = EEG.CAT.Conn.erWinCenterTimes;
-PConn.freqs = EEG.CAT.Conn.freqs;
-PConn.mode = mode.arg_selection;
+PConn.winCenterTimes    = EEG.CAT.Conn.winCenterTimes;
+PConn.erWinCenterTimes  = EEG.CAT.Conn.erWinCenterTimes;
+PConn.freqs             = EEG.CAT.Conn.freqs;
+PConn.mode              = mode.arg_selection;
+PConn.resampleTrialIdx  = resampleTrialIdx;
 
 % clean up
 if verb==1
     fprintf('\n')
 elseif verb==2
-    delete(h);
+    multiWaitbar(waitbarTitle,'Close');
 end
 
-if autosave.arg_selection && ~isempty(autosave.savefname),
-    if exist(sprintf('%s.part',autosave.savefname),'file')
-        delete(sprintf('%s.part',autosave.savefname));
-    end
+if autosave.arg_selection ...
+   && ~isempty(autosave.savefname) ...
+   && exist(sprintf('%s.part',autosave.savefname),'file')
+   % delete autosave file
+    delete(sprintf('%s.part',autosave.savefname));
 end

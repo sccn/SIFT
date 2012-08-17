@@ -1,5 +1,5 @@
 
-function [cfg handles] = pop_vis_TimeFreqGrid(ALLEEG,varargin)
+function [ALLEEG cfg handles] = pop_vis_TimeFreqGrid(ALLEEG,typeproc,varargin)
 %
 % Create a Time-Frequency Grid from a connectivity matrix. For details on
 % the Interactive Time-Frequency Grid see [1]. 
@@ -58,71 +58,80 @@ function [cfg handles] = pop_vis_TimeFreqGrid(ALLEEG,varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
-
 handles = [];
-
-
-% if isunix
-%     SLASH = '/';
-% else
-%     SLASH = '\';
-% end
-
-% [fnpath fnname] = fileparts(which('pop_vis_TimeFreqGrid'));
-% if exist('tfgrid.cfg','file')
-%     load('tfgrid.cfg','-mat');
-% else
-%     cfg = [];
-% end
-% 
-% varargin = [cfg varargin];
 
 if length(varargin) == 1 && isempty(varargin{1})
     varargin = {};
 end
 
-% varargin = [cfg varargin];
+if nargin<2
+    typeproc = 0;
+end
+
+fcnName     = strrep(mfilename,'pop_','');
+fcnHandle   = str2func(fcnName);
 
 % check the dataset
 res = hlp_checkeegset(ALLEEG,{'conn'});
 if ~isempty(res)
-    error('SIFT:causalBrainMovie',res{1});
+    error(['SIFT:' fcnName],res{1});
+end
+
+% check if we have statistics
+hasStats = isempty(hlp_checkeegset(ALLEEG,{'stats'}));
+
+% pass in stats as separate option
+if hasStats, varargin = [varargin 'Stats',ALLEEG(1).CAT.Stats]; end
+
+if isfield(ALLEEG(1).CAT.configs,fcnName)
+    % get default configuration (from prior use) and merge with varargin
+    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
+end
+
+for cnd=1:length(ALLEEG);
+    % make node labels a row array
+    ALLEEG(cnd).CAT.curComponentNames = ALLEEG(cnd).CAT.curComponentNames(:)';
 end
 
 % extract the Connectivity structures
 for cnd=1:length(ALLEEG);
     Conn(cnd) = ALLEEG(cnd).CAT.Conn;
-    ALLEEG(cnd).CAT.Conn = [];
 end
 
-hasStats = all(arrayfun(@hasStatsField, ALLEEG));
-
-% render the GUI
-if hasStats, varargin = [varargin 'Stats',ALLEEG(1).CAT.Stats]; end
-[PGh figh] = gui_TimeFreqGrid(ALLEEG,Conn,varargin{:});
-
-if isempty(PGh)
-    % user chose to cancel
-    cfg = [];
-    return;
+if strcmpi(typeproc,'nogui')
+    % get the config from function
+    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG,'Conn',Conn},varargin]));
+else
+    % render the GUI
+    [PGh figh] = feval(['gui_' fcnName],ALLEEG,Conn,varargin{:});
+    
+    if isempty(PGh)
+        % user chose to cancel
+        cfg = [];
+        return;
+    end
+    
+    % get the specification of the PropertyGrid
+    ps = PGh.GetPropertySpecification;
+    cfg = arg_tovals(ps,false);
 end
 
-% get the specification of the PropertyGrid
-ps = PGh.GetPropertySpecification;
-cfg = arg_tovals(ps,false);
-
-% save([fnpath SLASH '@configs' SLASH 'tfgrid.cfg'],'cfg');
+drawnow;
 
 % execute the low-level function
 if length(ALLEEG)==2 && ~cfg.plotCondDiff.arg_selection
-    % there is more than one condition and user wants to 
+    % there is more than one condition and user wants to
     % plot each condition sequentially
     for cnd=1:length(ALLEEG)
         if hasStats
             handles{cnd} = vis_TimeFreqGrid('ALLEEG',ALLEEG(cnd),'Conn',Conn(cnd),'Stats',ALLEEG(cnd).CAT.Stats,cfg);
         else
             handles{cnd} = vis_TimeFreqGrid('ALLEEG',ALLEEG(cnd),'Conn',Conn(cnd),cfg);
+        end
+        
+        if ~isempty(cfg)
+            % store the configuration structure
+            ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
         end
     end
 else
@@ -135,6 +144,8 @@ else
             handles = vis_TimeFreqGrid('ALLEEG',ALLEEG,'Conn',Conn,cfg);
     end
 end
+
+
 
 
 function x = hasStatsField(EEG)

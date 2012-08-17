@@ -73,7 +73,7 @@ end
 % setup the argument structure
 g = arg_define([0 1],varargin, ...
     arg_norep('EEG',mandatory), ...
-    arg_nogui({'verb','VerbosityLevel'},0,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical'), ...
+    arg({'verb','VerbosityLevel'},0,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical'), ...
     arg({'ComponentsToKeep'},MyComponentNames,MyComponentNames,'Select components to analyze. This should be a cell array of strings containing the IDs of components you wish to keep','type','logical'), ...
     arg_norep('MyComponentNames',[],[],'A dummy argument needed to set range of ComponentToKeep','shape','row','type','cellstr') ...
     );
@@ -86,19 +86,9 @@ if g.verb, fprintf('Selecting components...\n'); end
        
 % select a subset of components from g.EEG
 rmcomps = setdiff(1:nbcomps,ComponentIndicesToKeep);
-% g.EEG.icawinv(:,rmcomps)    = [];
-% g.EEG.icaweights(rmcomps,:) = [];
+
 g.EEG.CAT.srcdata(rmcomps,:)     = [];
-g.EEG.CAT.srcdata = reshape(g.EEG.CAT.srcdata, size(g.EEG.CAT.srcdata,1), g.EEG.pnts, g.EEG.trials);
-% g.EEG.icachansind           = 1:size(g.EEG.icaweights,1);
-
-% recompute the ICA activations
-% g.EEG = hlp_icaact(g.EEG);
-
-% remove source structures of excluded components
-% if isfield(g.EEG,'dipfit')
-%     g.EEG.dipfit.model(rmcomps) = [];
-% end
+g.EEG.CAT.srcdata = reshape(g.EEG.CAT.srcdata, size(g.EEG.CAT.srcdata,1), g.EEG.CAT.pnts, g.EEG.CAT.trials);
 
 g.EEG.CAT.curComps            = ComponentIndicesToKeep;
 g.EEG.CAT.curComponentNames   = g.ComponentsToKeep;

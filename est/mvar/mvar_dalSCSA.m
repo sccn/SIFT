@@ -1,5 +1,80 @@
-function [AR PE ww] = mvar_dalSCSA(varargin)
-
+function [AR PE] = mvar_dalSCSA(varargin)
+% Algorithm: Group Lasso (DAL/SCSA)
+% 
+% Description:
+%
+% This method infers a fully connected multivariate
+% This program infers a sparsely connected multi-
+% variate AR (VAR) model [1] assuming that sources 
+% are independent and super Gaussian (hyperbolic 
+% secant likelihood). An option is also provided to
+% use a gaussian likelihood (squared loss function)
+%
+% VAR[p] coefficients inferred using Group Lasso 
+% (L1,2 regularization) via the Sparsely Connected 
+% Sources Analysis (SCSA) and Dual Augmented 
+% Lagrangian (DAL) methods [1][2].
+% The p VAR coefficients describing interactions 
+% between two processes at time lags [t-1...t-p]
+% are grouped together using an L2 norm which 
+% penalizes large coefficients. An L1 penalty is
+% then applied to the coefficient groups. This
+% jointly prunes entire groups of coefficients
+% by setting the entire group to zero. The result
+% is a connectivity graph with sparse structure
+% (most processes are strictly non-interacting)
+% while regularizing (smoothing) the coefficient
+% sequences describing surviving non-zero 
+% interactions.
+% These constraints allow us to uniquely solve 
+% highly under-determined systems (e.g. many 
+% more parameters than observations).
+%
+% If Y = D(y,p) is a p-lag delay embedding of multi-
+% variate data vector y(t), X is a sparse block-
+% diagonal matrix of lagged copies of the delay 
+% embedded data, and A is an augmented matrix of
+% VAR coefficients, then we may adopt the structural 
+% model:
+%
+% Y = XA + e, for (super)gaussian noise e
+%
+% We then seek to solve the optimization problem
+%
+% [A_hat mu] = argmin_A{f(Y-XA) + L*sum(||A_i||_2)}
+%
+% Where f(z) specifies the unregularized portion of 
+% the cost function (e.g. mimimizing variance of 
+% residuals, e) and is given by:
+% f(z) = ||z||_2^2  for gaussian innovations, and
+% f(z) = -sum(log((1/pi)sech(z))) for supergaussian
+% (sech) innovations.
+% 
+% where A_i contains the i^th group of AR parameters 
+% e.g. the set of VAR weights {A(i,j)} describing auto-
+% regression (conditional linear dependence) of X_i 
+% onto X_j. L is the regularization parameter.
+%
+% This algorithm is a good choice if you have few 
+% data samples and many channels/sources and/or a 
+% high model order, or if the innovations are assumed
+% nongaussian (as with ICA sources).
+%
+% Author Credits:
+% 
+% Adapted from s_test_hsgl.m from DAL 1.05 [3]
+% Copyright(c) 2009-2011 Ryota Tomioka
+%              2009      Stefan Haufe
+%
+% Reference:
+%
+% [1] S. Haufe, R. Tomioka, G. Nolte, K-R. Mueller, M. Kawanabe. IEEE Trans. Biomed. Eng. 57(8), pp. 1954-1963, 2010.
+% [2] R. Tomioka, T. Suzuki, and M. Sugiyama. JMLR, 2011.
+% [3] DAL Toolbox: http://www.ibis.t.u-tokyo.ac.jp/ryotat/dal/
+%
+% Dependencies: dalhsgl()
+%
+% ------------------------------------------------------------------------
 % INPUTS:
 %   data:       the data (nchs x npnts)
 %   p:          the model order
@@ -160,9 +235,9 @@ if nargout>1
     PE = cov(res');
 end
 
-if nargout>2
-    ww = initAR;
-end
+% if nargout>2
+%     argsout.initAR = initAR;
+% end
 
 function v = vec(x)
 v = x(:);

@@ -13,10 +13,10 @@ function [ALLEEG cfg] = pop_stat_analyticStats(ALLEEG,typeproc,varargin)
 %   ALLEEG:         EEGLAB dataset to preprocess.
 %   typeproc:       Reserved for future use. Use 0
 %
-% Optional:         
+% Optional:
 %
 %   <'Name',value> pairs as defined in stat_surrogate()
-%   
+%
 % Output:
 %
 %   ALLEEG:         EEG structure(s) with Stats object stored in
@@ -31,8 +31,8 @@ function [ALLEEG cfg] = pop_stat_analyticStats(ALLEEG,typeproc,varargin)
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
 %   Theoretical Handbook and User Manual.
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift
-% 
-% Author: Tim Mullen 2010-2011, SCCN/INC, UCSD. 
+%
+% Author: Tim Mullen 2010-2011, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
@@ -52,46 +52,52 @@ function [ALLEEG cfg] = pop_stat_analyticStats(ALLEEG,typeproc,varargin)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-if isunix
-    SLASH = '/';
+
+if nargin<2
+    typeproc = 0;
+end
+
+fcnName     = strrep(mfilename,'pop_','');
+fcnHandle   = str2func(fcnName);
+
+% check the dataset
+res = hlp_checkeegset(ALLEEG,{'conn'});
+if ~isempty(res)
+    error(['SIFT:' fcnName],res{1});
+end
+
+if isfield(ALLEEG(1).CAT.configs,fcnName)
+    % get default configuration (from prior use) and merge with varargin
+    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
+end
+
+if strcmpi(typeproc,'nogui')
+    % get the config from function
+    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG(1)},varargin]));
 else
-    SLASH = '\';
+    % render the GUI
+    [PGh figh] = feval(['gui_' fcnName],ALLEEG(1),varargin{:});
+    
+    if isempty(PGh)
+        % user chose to cancel
+        cfg = [];
+        return;
+    end
+    
+    % get the specification of the PropertyGrid
+    ps = PGh.GetPropertySpecification;
+    cfg = arg_tovals(ps,false);
 end
-
-if (~isfield(ALLEEG(1).CAT,'Conn')), 
-    errordlg2('Please compute connectivity first!','Analytic Statistics');
-end
-
-% [fnpath fnname] = fileparts(which('pop_stat_surrogate'));
-% if isempty(varargin)
-%     if exist('preprep.cfg','file')
-%         load('preprep.cfg','-mat');
-%     else
-%         cfg = [];
-%     end
-%     varargin = {cfg};
-% end
-
-% render the GUI
-[PGh figh] = gui_analyticStats(ALLEEG(1),varargin{:});
-
-if isempty(PGh)
-    % user chose to cancel
-    cfg = [];
-
-    return;
-end
-
-% get the specification of the PropertyGrid
-ps = PGh.GetPropertySpecification;
-cfg = arg_tovals(ps,false);
 
 drawnow;
 
-% save([fnpath SLASH '@configs' SLASH 'preprep.cfg'],'cfg');
-
 % execute the low-level function
 for cnd=1:length(ALLEEG)
-    [ALLEEG(cnd).CAT.Stats] = stat_analyticStats('ALLEEG',ALLEEG(cnd),cfg);
+    [ALLEEG(cnd).CAT.Stats] = feval(fcnHandle,'EEG',ALLEEG(cnd),cfg);
+    
+    if ~isempty(cfg)
+        % store the configuration structure
+        ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
+    end
 end
 

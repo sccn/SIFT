@@ -70,7 +70,7 @@ end
 var = hlp_mergeVarargin(varargin{:});
 g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_fitMVAR','ignore','quiet');
 if ischar(g), error(g); end
-if isempty(g.epochTimeLims), g.epochTimeLims = [0 EEG.pnts/EEG.srate]; end
+if isempty(g.epochTimeLims), g.epochTimeLims = [0 EEG.CAT.pnts/EEG.srate]; end
 if isempty(g.morder) || length(g.morder)>2, error('invalid entry for field ''morder'''); end
 % combine structs, overwriting duplicates of g with
 if ~isfield(g,'updatecoeff'), g.updatecoeff = 0.001; end
@@ -156,7 +156,7 @@ for tr=1:ntr
         % concatenate VAR coefficients and noise covariance matrices for
         % this trial to end of AR/PE/RC series
         AR{q+t} = reshape(VAR(t,:,tr),nchs*g.morder,nchs).';
-        PE{q+t}  = MODEL.Q2(:,:,t,tr);
+        PE{q+t} = MODEL.Q2(:,:,t,tr);
         RC{q+t} = [];
         if g.timer, timeElapsed(t) = time/npnts; end
     end
@@ -190,6 +190,7 @@ MODEL.timeelapsed = timeElapsed;
 MODEL.updatecoeff = g.updatecoeff;
 MODEL.updatemode = g.updatemode;
 MODEL.downsampleFactor = g.downsampleFactor;
+MODEL.modelapproach = 'State-Space Modeling';
 
 % MODEL.normalize = g.normalize;
 

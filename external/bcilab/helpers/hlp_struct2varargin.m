@@ -21,6 +21,11 @@ function args = hlp_struct2varargin(struc,varargin)
 %                               Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
 %                               2010-03-28
 
+if isempty(struc)
+    args = {};
+    return;
+end
+
 opts = hlp_varargin2struct(varargin,'restrict',[],'suppress',[],'rewrite',[]);
 
 fields = fieldnames(struc)';
