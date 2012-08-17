@@ -20,9 +20,9 @@ syntax: glob
 *.m~
 
 # arfit
-arfit
+#arfit
 
 # experimental folder
-experimental
+#experimental
 @resources.zip
 archive*

@@ -1,5 +1,5 @@
 
-function [MODEL params] = est_fitMVAR(varargin)
+function [MODEL cfg] = est_fitMVAR(varargin)
 %
 % Fit (adaptive) multivariate autoregressive model to EEG data. See [1] for
 % details on VAR model fitting and implementations.
@@ -45,32 +45,10 @@ verb = arg_extract(varargin,{'verb','VerbosityLevel'},[],2);
 
 g = arg_define([0 1],varargin, ...
     arg_norep({'EEG','ALLEEG'},mandatory,[],'EEGLAB dataset'), ...
-    arg_subswitch({'algorithm','Algorithm'},hlp_getMVARalgorithms(true), ...
-    hlp_getMVARalgorithms(false), ...
-    {'Select a model fitting algorithm.', ...
-        sprintf([...
-            '\n' ...
-            '\n' ...
-            '------------------\n' ...
-            'Vieira-Morf:\n' ...
-            '------------------\n' ...
-            'Unconstrained VAR modeling via Vieira-Morf Maximum Entropy algorithm.\n', ...
-            '\n' ...
-            'References and code:\n', ...
-            '[1] A. Schlogl, Comparison of Multivariate Autoregressive Estimators. Signal processing, Elsevier B.V.\n', ...
-            '[2] S.L. Marple "Digital Spectral Analysis with Applications" Prentice Hall, 1987.\n', ...
-            '\n' ...
-            '------------------\n' ...
-            'GroupLasso_ADMM:\n' ...
-            '------------------\n' ...
-            'Sparse VAR modeling via Group Lasso.\n', ...
-            'This option estimates sparse VAR coefficients using the Alternating Direction Method of Multipliers (ADMM).\n', ...
-            '\n' ...
-            'References and code:\n', ...
-            '[1] Boyd, Parikh, Chu, Pelato and Eckstein et al. Foundations and Trends in Machine Learning 3(1):1-122,2011.\n', ...
-            '[2] http://www.stanford.edu/~boyd/papers/distr_opt_stat_learning_admm.html' ...
-            '\n' ...
-            ])},'cat','Modeling Parameters','suppress',{'ModelOrder','OrderSelector','Verbosity','InitialState'}), ...
+    arg_subswitch({'algorithm','Algorithm'},hlp_getMVARalgorithms('defaultNameOnly'), ...
+    hlp_getMVARalgorithms, ...
+    {'Select a model fitting algorithm.',hlp_buildMVARHelpText}, ...
+    'cat','Modeling Parameters','suppress',{'ModelOrder','OrderSelector','Verbosity','InitialState'}), ...
     arg({'morder','ModelOrder','modelOrder'},10,[1 Inf],'VAR model order.','cat','Modeling Parameters'), ...
     arg_nogui({'winStartIdx','WindowStartIndices'},[],[],'Starting indices for windows. This is a vector of sample points (start of windows) at which to estimate windowed VAR model','cat','Modeling Parameters'), ...
     arg({'winlen','WindowLength'},0.5,[eps Inf],'Sliding window length (sec)','cat','Modeling Parameters'), ...
@@ -79,9 +57,9 @@ g = arg_define([0 1],varargin, ...
     arg({'prctWinToSample','WindowSamplePercent'},100,[1 100],'Percent of windows to sample','cat','Modeling Parameters'), ...
     arg_subtoggle({'normalize','NormalizeData'},[],@pre_normData,'Z-normalize data within windows. Note this is not recommended for short windows','cat','Window Preprocessing'), ...
     arg_subtoggle({'detrend','Detrend'},{}, ...
-    {arg({'method','DetrendingMethod'},'constant',{'linear','constant'},{'Detrending options.', ...
+    {arg({'method','DetrendingMethod'},'constant',{'linear','constant'},{'Detrend data within each window.', ...
     sprintf(['\n' ...
-    'Linear: removes the least-squares fit of a straight line from each trial.\n' ...
+    'Linear: removes the least-squares fit of a straight line.\n' ...
     'Constant: removes the mean from each trial (centering)' ...
     ]) ...
     } ...
@@ -103,35 +81,7 @@ if ~(all(g.epochTimeLims>=EEG.xmin) && all(g.epochTimeLims<=EEG.xmax))
 if isempty(g.morder) || length(g.morder)>1
     error('invalid entry for field ''morder.'' Make sure the model order is a single integer.'); end
 
-% % initialize defaults for scsa
-% scsadef = struct('lambda',100,'shrink_diagonal',true,'initAR',[],'loss','hs');
-% if ~isfield(g,'scsa'), g.scsa = scsadef; end
-% fnames = fieldnames(g.scsa);
-% for f=1:length(fnames)
-%     scsadef.(fnames{f}) = g.scsa.(fnames{f});
-% end
-% g.scsa = scsadef;
-%
-% % initialize defaults for glADMM
-% gladmmdef = struct('lambda',[],'initAR',[],'rho',1.0,'alpha',1.0,'verb',0,'max_iter',1000);
-% if ~isfield(g,'gladmm'), g.gladmm = gladmmdef; end
-% fnames = fieldnames(g.gladmm);
-% for f=1:length(fnames)
-%     gladmmdef.(fnames{f}) = g.gladmm.(fnames{f});
-% end
-% g.gladmm = gladmmdef;
-%
-% % initialize defaults for ridge regression
-% ridgedef = struct('lambda',0.1,'scaled',1);
-% if ~isfield(g,'ridge'), g.ridge = ridgedef; end
-% fnames = fieldnames(g.ridge);
-% for f=1:length(fnames)
-%     ridgedef.(fnames{f}) = g.ridge.(fnames{f});
-% end
-% g.ridge = ridgedef;
-
-
-if nargout > 1, params = g; end
+if nargout > 1, cfg = g; end
 
 %% do some adjustments to parameters
 
@@ -166,10 +116,10 @@ if rem(g.winlen,1/EEG.srate)
     end
 end
 
-tidx = getindex(EEG.times,g.epochTimeLims*1000);
-if ~all(isequal(EEG.times(tidx),g.epochTimeLims*1000))
+tidx = getindex(EEG.CAT.times,g.epochTimeLims*1000);
+if ~all(isequal(EEG.CAT.times(tidx),g.epochTimeLims*1000))
     
-    g.epochTimeLims = EEG.times(tidx)/1000;
+    g.epochTimeLims = EEG.CAT.times(tidx)/1000;
     
     if g.verb
         fprintf('Adjusting epoch time limits to match sampling interval\n');
@@ -231,13 +181,6 @@ else
     timeElapsed = [];
 end
 
-% % check if algorithms exist
-% exist_mvarpll   = logical(exist('mvar_pll','file'));
-% exist_armorf    = logical(exist('armorf','file'));
-% exist_arfit     = logical(exist('arfit','file'));
-% exist_scsa      = logical(exist('dalhsgl','file'));
-
-
 %% Main loop: fit MVAR models to each window
 for t=1:numWins
     
@@ -246,101 +189,30 @@ for t=1:numWins
     % get indices of all data points (samples) in current window
     winpnts = g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1;
     
-    % select the appropriate algorithm and execute
-    switch lower(g.algorithm.arg_selection)
-        case 'vieira-morf-pll'
-            if 0 %exist_mvarpll
-                
-                if t==1
-                    % permute to [time x chans x trials]
-                    EEG.CAT.srcdata = permute(EEG.CAT.srcdata,[2 1 3]);
-                end
-                
-                data = squeeze(EEG.CAT.srcdata(winpnts,:,:));
-                % make 2-D with ModelOrder+2 NaNs between trials
-                data = nanpad(data,g.morder);
-                [AR{t},RC{t},PE{t}] = mvar_pll(gdouble(data), g.morder, 2);
-            else
-                error('mvar_pll.m not found! mvar_pll option not available!');
-            end
-        case 'vieira-morf-ding'
-            if 0 %exist_armorf
-                [AR{t},PE{t}] = armorf(reshape(EEG.CAT.srcdata(:,winpnts,:), ...
-                    [EEG.CAT.nbchan,EEG.trials*winLenPnts]),...
-                    EEG.trials,winLenPnts,g.morder);
-                AR{t} = -AR{t}; % convert to default mvar format
-            else
-                error('armorf.m not found! vieira-morf-ding option unavailable');
-            end
-        case 'vieira-morf'
-            
-            if t==1
-                % permute to [time x chans x trials]
-                EEG.CAT.srcdata = permute(EEG.CAT.srcdata,[2 1 3]);
-            end
-            
-            data = squeeze(EEG.CAT.srcdata(winpnts,:,:));
-            % make 2-D with ModelOrder+2 NaNs between trials
-            data = nanpad(data,g.morder);
-            [AR{t},RC{t},PE{t}] = mvar_vieiramorf('data',data, g.algorithm);
-        case 'arfit'
-            RC{t} = [];
-            [mu{t}, AR{t}, PE{t} sbc, fpe, th{t}] = mvar_arfit('data',permute(EEG.CAT.srcdata(:,winpnts,:),[2 1 3]),g.algorithm);
-            
-        case 'group lasso dal/scsa'
-            if t==1
-                % initialization block
-                %                     if iscell(g.algorithm.AR0)
-                %                         AR0 = g.algorithm.AR0{t};
-                %                     else
-                %                         AR0 = g.algorithm.AR0;
-                %                     end
-                
-                if ~strcmpi(class(EEG.CAT.srcdata),'double')
-                    % convert data to double precision (necessary for kron)
-                    EEG.CAT.srcdata = double(EEG.CAT.srcdata);
+    % execute the model-fitting algorithm
+    algFcnName = hlp_getMVARalgorithms('mfileNameOnly',g.algorithm.arg_selection);
+    switch nargout(algFcnName)
+        case 2
+            [AR{t} PE{t}] = feval(algFcnName, ...
+                                  'data',EEG.CAT.srcdata(:,winpnts,:), ...
+                                   g.algorithm);
+        case 3
+            [AR{t} PE{t} argsout] = feval(algFcnName, ...
+                                   'data',EEG.CAT.srcdata(:,winpnts,:),...
+                                    g.algorithm);
+            if isstruct(argsout)
+                % store contents of argsout fields in cell array at index t
+                % e.g. fieldname{t} = argsout.(fieldname)
+                fnames = fieldnames(argsout);
+                for k=1:length(fnames)
+                    eval([fnames{k} '{t}=argsout.(''' fnames{k} ''');']);
                 end
             end
-            
-            [AR{t} PE{t}] = mvar_dalSCSA('data',EEG.CAT.srcdata(:,winpnts,:),g.algorithm);
-            RC{t} = [];
-        case 'ridge regression'
-            [AR{t} PE{t}] = mvar_ridge('data',EEG.CAT.srcdata(:,winpnts,:),g.algorithm);
-            RC{t} = [];
-        case 'group lasso admm'
-            if t==1
-                % intialization block
-                %                 if iscell(g.algorithm.AR0)
-                %                     AR0 = g.algorithm.AR0{t};
-                %                 else
-                %                     AR0 = g.algorithm.AR0;
-                %                 end
-                if ~strcmpi(class(EEG.CAT.srcdata),'double')
-                    % convert data to double precision (necessary for kron)
-                    EEG.CAT.srcdata = double(EEG.CAT.srcdata);
-                end
-            end
-            
-            [AR{t} PE{t}] = mvar_glADMM('data',EEG.CAT.srcdata(:,winpnts,:),g.algorithm);
-            RC{t} = [];
         otherwise
-            if 0 %exist('mvar','file')
-                
-                if t==1
-                    % permute to [time x chans x trials]
-                    EEG.CAT.srcdata = permute(EEG.CAT.srcdata,[2 1 3]);
-                end
-                % one of the other mvar modes...
-                data = squeeze(EEG.CAT.srcdata(winpnts,:,:));
-                % make 2-D with ModelOrder+2 NaNs between trials
-                data = nanpad(data,g.morder);
-                [AR{t}, RC{t}, PE{t}] = mvar(data,g.morder,str2double(g.algorithm.arg_selection));
-            else
-                help 'est_fitMVAR';
-                error('unknown algorithm (%s)',g.algorithm.arg_selection);
-            end
+            error('SIFT:est_fitMVAR:badAlgArgs','%s must output either 2 or 3 arguments',algFcnName);
     end
-    
+        
+        
     if g.verb
         try
             waitbar(t/numWins,h,...
@@ -357,33 +229,26 @@ for t=1:numWins
 end
 
 %% Do some cleanup
+clear('-regexp','mvar_*')
+if g.verb, close(h); end
 
+%% Construct MODEL object
 switch lower(g.algorithm.arg_selection)
-    case 'scsa'
-        % clear persistent variables
-        clear mvar_dalSCSA;
+    case 'group lasso dal/scsa'
         %     MODEL.ww = ww;
         MODEL.lambda = g.algorithm.dal_args.lambda;
     case 'group lasso admm'
-        clear mvar_glADMM
-        
         MODEL.lambda = g.algorithm.admm_args.lambda;
         MODEL.rho    = g.algorithm.admm_args.rho;
         MODEL.Alpha  = g.algorithm.admm_args.Alpha;
 end
 
-if g.verb, close(h); end
-
-
-% construct MODEL object
 MODEL.AR = AR;
 MODEL.PE = PE;
 MODEL.RC = RC;
 MODEL.mu = mu;
-if strcmpi(g.algorithm.arg_selection,'arfit')
-    MODEL.th = th;
-end
-MODEL.winStartTimes = (g.winStartIdx-1)/EEG.srate; %EEG.times(g.winStartIdx)/1000;
+MODEL.th = th;
+MODEL.winStartTimes = (g.winStartIdx-1)/EEG.srate; %EEG.CAT.times(g.winStartIdx)/1000;
 MODEL.morder        = g.morder;
 MODEL.winstep       = g.winstep;
 MODEL.winlen        = g.winlen;
@@ -391,41 +256,158 @@ MODEL.algorithm     = g.algorithm.arg_selection;
 MODEL.modelclass    = 'mvar';
 MODEL.timeelapsed   = timeElapsed;
 MODEL.normalize     = g.normalize;
+MODEL.modelapproach = 'Segmentation VAR';
 
 
 
 
-function algs = hlp_getMVARalgorithms(defaultNameOnly)
+
+function algs = hlp_getMVARalgorithms(varargin)
 % return a cell array of MVAR algorithm names and associated function
 % handles. The format is
 % algs = {{name1 func_handle1} {name2 func_handle2} ... }
 % if defaultNameOnly = true, then we only return name1 as a string
+%
+% hlp_getMVARalgorithms('defNameOnly') returns only the name of the 
+%  default algorithm (as a string)
+%
+% hlp_getMVARalgorithms('mfileNameOnly',algName) where algName is a string
+%   with the human-readable name of a valid algorithm, returns the m-file 
+%   name of the function implementing the specified approach
+% 
+% NOTES:
+%
+% If the preamble text of the function (c.f. hlp_getFcnPreambleText())
+% begins with the line
+%
+% Algorithm: <algorithm_name>
+%
+% then <algorithm_name> is returned as the human-readable algorithm name. 
+% Otherwise, if this line cannot be found, the function name is returned.
+
 persistent mvarAlgs;
 
-if isempty(mvarAlgs)
-    % only do the check once (it's time-consuming)
-    
-    algs = {};
-    
-    if exist('mvar_vieiramorf','file')
-        algs{end+1} = {'Vieira-Morf'           @mvar_vieiramorf};   end
-    if exist('arfit','file')
-        algs{end+1} = {'ARfit'                 @mvar_arfit};        end
-    if exist('dalhsgl','file')
-        algs{end+1} =  {'Group Lasso DAL/SCSA'  @mvar_dalSCSA};      end
-    if exist('mvar_glADMM','file')
-        algs{end+1} =  {'Group Lasso ADMM'      @mvar_glADMM};       end
-    if exist('ridge','file')
-        algs{end+1} =  {'Ridge Regression'      @mvar_ridge};        end
-    
-    mvarAlgs = algs;
-else
-    
-    % retrive "cached" version
-    algs = mvarAlgs;
+defaultNameOnly = false;
+algName = '';
+
+if nargin==1 && strcmp(varargin{1},'defaultNameOnly')
+    defaultNameOnly = true;
 end
 
+if nargin==2 && ismember('mfileNameOnly',varargin);
+    algName = varargin{2};
+    if ~ischar(algName)
+        error('SIFT:est_fitMVAR:hlp_getMVARalgorithms:badInput', ...
+              'Bad argument pair for ''mfileNameOnly'''); 
+    end
+end
+
+if ~isempty(mvarAlgs)
+    % only do the check once (it's time-consuming)
+    % ... retrive "cached" version
+    algs = mvarAlgs;
+else
+    
+    algs = {};
+        
+    % get the names of all mvar_* functions in the /est/mvar folder
+    siftroot = fileparts(which('StartSIFT'));
+    fpath    = [siftroot filesep 'est' filesep 'mvar' filesep];
+    mvarFcns = wildcardsearch(fpath,'*mvar_*.m',true,true);
+    mvarFcns = regexprep(mvarFcns,['.*mvar' filesep],'');
+    mvarFcns = regexprep(mvarFcns,'\.m','');
+    
+    % cycle through the list of algorithms
+    for k=1:length(mvarFcns)
+        
+        % initialize variable which will determine whether 
+        % we exclude this algorithm (for instance if one or
+        % more dependencies are missing)
+        skipAlgorithm = false; 
+        
+        % get the help text (H1) for the algorithm entry function
+        preText = hlp_getFcnPreambleText(mvarFcns{k});
+        
+        % extract the human-readable algorithm name from the text 
+        % following the 'Algorithm:' header
+        preText = strtrim(preText);
+        algName = regexpi(preText,'Algorithm\s*[:]?\s*([^\n]*)','tokens');
+        if ~isempty(algName)
+            algName = strtrim(algName{1}{1});
+        else
+            algName = mvarFcns{k};
+        end
+        
+        % search if there are any key dependencies (functions) missing from
+        % the path. Key dependencies (m-file names) are listed in the 
+        % 'Dependencies:' block of the function HelpText preamble.
+        deplist = regexpi(preText,'Dependencies\s*[:]?\s*([^\n]*)','tokens');
+        if ~isempty(deplist)
+            % parse the list of function dependencies 
+            % and extract m-file/function names
+            deplist = regexp(deplist{1}{1},'\S*[^ \(\),\s]','match');
+            deplist = strtrim(deplist); % just in case
+
+            for dep=1:length(deplist)
+                % check if the dependency function exists
+                if ~exist(deplist{dep},'file')
+                    % ... a critical dependency does not exist
+                    % so we have to exclude this algorithm
+                    skipAlgorithm = true;
+                    break;
+                end
+            end
+        end
+        
+        if ~skipAlgorithm
+            algs{end+1} = {algName str2func(mvarFcns{k})};
+        end
+    end
+    
+    mvarAlgs = algs;
+end
+
+% return only the name of the first available algorithm
 if defaultNameOnly
-    % return only the name of the first available algorithm
-    algs = algs{1}{1};
+    algs = 'Vieira-Morf';
+%     algs = algs{1}{1};
+elseif ~isempty(algName)
+    % get the function handle matching the desired algorithm name
+    tmp = cellfun(@(x) fastif(isequal(x{1},algName),x{2},''),algs,'UniformOutput',false);
+    tmp(cellfun(@isempty,tmp))=[];
+    if isempty(tmp)
+        error('SIFT:est_fitMVAR:hlp_getMVARalgorithms:badAlgorithmName', ...
+              'Unknown algorithm ''%s''',algName);
+    else
+        % return function name as a string
+        algs = char(tmp{1});
+    end
+end
+
+
+
+function hlpText = hlp_buildMVARHelpText()
+% return a formatted help text string which contains help text definitions
+% for each of the var modeling functions
+
+% first get the list of function names
+algs = hlp_getMVARalgorithms;
+
+hlpText = '';
+
+% for each algorithm...
+for k=1:length(algs)
+    % ... get the human-readable name for the algorithm
+    algFullName = algs{k}{1};
+    % ... get the function m-file name ...
+    algFcnName = hlp_getMVARalgorithms('mfileNameOnly',algFullName);
+    % ... get the preamble for the function ...
+    preamble = hlp_getFcnPreambleText(algFcnName);
+    % ... and insert into the hlpText
+    hlpText = sprintf([hlpText '\n\n' ...
+                       '---------------------------------------\n' ...
+                       algFullName '\n' ...
+                       '---------------------------------------\n' ...
+                       preamble
+                       ]);
 end

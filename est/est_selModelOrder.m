@@ -88,9 +88,7 @@ function [IC g] = est_selModelOrder(EEG,varargin)
 g = arg_define([0 1],varargin, ...
     arg_norep({'EEG','ALLEEG'},mandatory,[],'EEGLAB dataset'), ...
     arg_subswitch({'modelingApproach','ModelingApproach'},'Segmentation VAR', ...
-    { ...
-    {'Segmentation VAR' @est_fitMVAR}, ...   % {'Kalman Filtering' {arg('arg_dummy',[],[],'replace this with @est_fitMVARKalman')}}, ...
-    }, ...
+    hlp_getModelingApproaches, ...
     'Select a modeling approach and define parameters. Make sure to use the same parameters you intend to use for the final modeling step.', ...
     'cat','Modeling Parameters', ...
     'suppress',{'verb','timer','ModelOrder','WindowSamplePercent','EpochTimeLimits','WindowStartIndices'}), ...
@@ -156,15 +154,9 @@ end
 %     g.prctWinToSample = 100;
 % end
 
+% get the m-file name of the function implementing the modeling approach
+modelingFuncName = hlp_getModelingApproaches('mfileNameOnly',g.modelingApproach.arg_selection);
 
-% get the handle of the modeling function
-switch g.modelingApproach.arg_selection
-    case 'Segmentation VAR'
-        modelingFuncName = 'est_fitMVAR';
-    case 'Kalman Filtering'
-        modelingFuncName = 'est_fitMVARKalman';
-end
-    
 if ~g.downdate
     % sequentially fit a separate MODEL for each model order
     
@@ -240,7 +232,7 @@ end
 [sbc fpe aic hq ris]    = deal(nan*ones(pmax-pmin+1,numWins));
 nparams = nbchan^2.*(pmin:pmax);
 
-npnts       = EEG.trials*max(1,floor(winlen*EEG.srate));
+npnts       = EEG.CAT.trials*max(1,floor(winlen*EEG.srate));
 
 for t=1:numWins
     

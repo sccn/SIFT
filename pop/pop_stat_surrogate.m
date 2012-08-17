@@ -50,67 +50,107 @@ function [ALLEEG cfg] = pop_stat_surrogate(ALLEEG,typeproc,varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
-if isunix
-    SLASH = '/';
-else
-    SLASH = '\';
+if nargin<2
+    typeproc = 0;
 end
 
-if (~isfield(ALLEEG(1).CAT,'Conn')), 
-    errordlg2('Please compute connectivity first!','Surrogate Statistics');
+fcnName     = strrep(mfilename,'pop_','');
+fcnHandle   = str2func(fcnName);
+
+% check the dataset
+res = hlp_checkeegset(ALLEEG,{'cat'});
+if ~isempty(res)
+    error(['SIFT:' fcnName],res{1});
 end
+
+if isfield(ALLEEG(1).CAT.configs,fcnName) ...
+   && ~isempty(ALLEEG(1).CAT.configs.(fcnName))
+    % We have a stat_surrogate() configuration structure from prior use
+    % However, the user might have since changed the modeling approach
+    % and may instead want to use modeling configs instead
     
-% [fnpath fnname] = fileparts(which('pop_stat_surrogate'));
-% if isempty(varargin)
-%     if exist('preprep.cfg','file')
-%         load('preprep.cfg','-mat');
-%     else
-%         cfg = [];
-%     end
-%     varargin = {cfg};
+    % default case
+    useSurrogateConfigDefault = true;
+    
+    % First, check if the user has fit a model
+    res = hlp_checkeegset(ALLEEG,{'model'});
+    if isempty(res)
+        % the user has fit a model...
+        % ...so get the name of the modeling approach function
+        modelApproach = ALLEEG(1).CAT.MODEL.modelapproach;
+        modFcnName  = hlp_getModelingApproaches('mfileNameOnly',modelApproach);
+        
+        % ...and check if we have a configuration structure for it
+        if ~isempty(ALLEEG(1).CAT.configs.(modFcnName))
+            
+            % We have a modeling config struct, so check if the user 
+            % prefers to ignore the stat_surrogate() configs and instead 
+            % set the default options based on the saved configs for 
+            % model-fitting, etc.
+            res = questdlg2(...
+                    sprintf(['It looks like you''ve previously estimated a surrogate distribution.\n', ...
+                             'I found a saved set of default options for stat_surrogate()\n', ...
+                             'However, it also looks like you have previously fit a model.\n', ...
+                             'I can populate the default options using either the stored options for\n', ...
+                             'stat_surrogate() or those from modeling configuration.']), ...
+                	'Load Default Options', ...
+                    'Use Modeling Defaults',...
+                    'Use SurrogateStats Defaults', ...
+                    'Use Modeling Defaults');
+            if strcmpi(res,'Use Modeling Defaults')
+                useSurrogateConfigDefault = false;
+            end
+        end
+    end
+    
+    if useSurrogateConfigDefault
+        % get default configuration (from prior use) and merge with varargin
+        varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
+    end
+    
+end
+
+if strcmpi(typeproc,'nogui')
+    % get the config from function
+    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG(1)},varargin]));
+else
+    % render the GUI
+    [PGh figh] = feval(['gui_' fcnName],ALLEEG(1),varargin{:});
+    
+    if isempty(PGh)
+        % user chose to cancel
+        cfg = [];
+        return;
+    end
+    
+    % get the specification of the PropertyGrid
+    ps = PGh.GetPropertySpecification;
+    cfg = arg_tovals(ps,false);
+end
+
+drawnow;
+
+% if length(ALLEEG)>1
+%     fprintf('More than one dataset is loaded. I will use the same resampling schedule for all datasets\n');
+%     fprintf('This will enable us to form the joint bootstrap distribution over multiple conditions\n');
 % end
 
-
-% render the GUI
-[PGh figh] = gui_surrogate(ALLEEG(1),varargin{:});
-
-if isempty(PGh)
-    % user chose to cancel
-    cfg = [];
-
-    return;
-end
-
-% get the specification of the PropertyGrid
-ps = PGh.GetPropertySpecification;
-cfg = arg_tovals(ps,false);
-
-drawnow
+% compute surrogate distributions
+for cnd=1:length(ALLEEG)
+        
+    if ~isempty(cfg)
+        % store the configuration structure
+        ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
+    end
+   
+    % execute the low-level function
+    PConn = feval(fcnHandle,'ALLEEG',ALLEEG(cnd),cfg);
     
-% save([fnpath SLASH '@configs' SLASH 'preprep.cfg'],'cfg');
-
-for cnd=1:length(ALLEEG)
-    res=questdlg2(['In the following dialog, please load the original (not processed by SIFT) dataset corresponding to Dataset '...
-             fastif(isempty(ALLEEG(cnd).filename),num2str(cnd),ALLEEG(cnd).filename) '.' char(10) ...
-             'Press Cancel to use the currently selected EEG datasets.'], ...
-             'Loading data for Surrogate Statistics...','OK','Cancel','OK');
-         switch lower(res)
-             case 'ok'
-                tmp = pop_loadset;
-                
-                if isempty(tmp)
-                    return;
-                else
-                    ALLEEGorig(cnd) = tmp;
-                end
-             case 'cancel'
-                 ALLEEGorig(cnd) = ALLEEG(cnd);
-         end
+    if ~isempty(PConn)
+        ALLEEG(cnd).CAT.PConn = PConn;
+    else
+        % user canceled
+        return;
+    end
+    
 end
-
-% execute the low-level function
-for cnd=1:length(ALLEEG)
-    [ALLEEG(cnd).CAT.PConn] = stat_surrogate('ALLEEG',ALLEEGorig(cnd),'configs',ALLEEG(cnd).CAT.configs,cfg);
-end
-

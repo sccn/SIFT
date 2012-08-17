@@ -97,7 +97,7 @@ if ~any(mode==(0:8))
 end;
 
 
-[LEN, M, NTR] = size(y);		% signal length, number of channels, number of trials
+[LEN, M, NTR] = size(y)  % signal length, number of channels, number of trials
 L = M*M*p;
 
 if LEN<(p+1),
@@ -133,7 +133,6 @@ Q1  = eye(L);         % state noise covariance matrix
 Q2  = eye(M);         % measurement noise covariance matrix
 ye  = zeros(size(y)); % prediction of y
 
-%     Kalman=struct('F',eye(L),'H',zeros(M,L),'G',zeros(L,M),'x',zeros(L,1),'Kp',eye(L),'Q1',eye(L)*UC,'Q2',eye(M),'ye',zeros(size(y)));
 if nargin>=4 && ~isempty(Kalman)
     
     if isfield(Kalman,'ye'), ye = Kalman.ye; end
@@ -199,32 +198,30 @@ for tr=1:NTR
         end
         
         %Update of measurement matrix
-        H = blkdiageye(Yr,M);
-        %     H=kron(eye(M),Yr);
-        
+        H = blkdiageye(Yr,M);        
         
         %calculate a-priori prediction error (1-step prediction error)
-        
         ye(n,:,tr)=(H*x)';
         err=y(n,:,tr)-ye(n,:,tr);
         
         if ~any(isnan(err(:))),
-            %update of Q2 (measurement noise covariance matrix, V)) using the prediction error of the previous step
+            % update of Q2 (measurement noise covariance matrix, V)) 
+            % using the prediction error of the previous step
             Q2=(1-UC)*Q2+UC*(err'*err);
             
             
             KpH=Kp*H';
             HKp=H*Kp;
             
-            %Kalman gain
+            % Kalman gain
             G=KpH/(H*KpH+Q2);
             
-            %calculation of the a-posteriori state error covariance matrix
-            %K=Kp-G*KpH'; Althouh PK is supposed to be symmetric, this operation makes the filter unstable
+            % calculation of the a-posteriori state error covariance matrix
+            % K=Kp-G*KpH'; Althouh PK is supposed to be symmetric, this operation makes the filter unstable
             K=Kp-G*HKp;
             
-            %mode==0 no update of Q1 (process noise covariance matrix, W)
-            %update of Q1 using the predicted state error cov matrix
+            % mode==0 no update of Q1 (process noise covariance matrix, W)
+            % update of Q1 using the predicted state error cov matrix
             if (mode==1)
                 Q1=diag(diag(K)).*UC;
             elseif(mode==2)  % similar to mode a2 from thesis
@@ -242,6 +239,7 @@ for tr=1:NTR
             %current estimation of state x
             x=x+G*(err)';
             
+            % perform optional constraint projection
             if doConstraints
                 KD = K*Constr_D';
                 
@@ -252,22 +250,13 @@ for tr=1:NTR
         end; % isnan(err)
         
         if ~mod(n,downsampleFactor)
-            % store the current state
             
-            if 0; doConstraints;
-                
-                KD = K*Constr_D';
-                
-                % project the solution onto the constraint surface
-                xout(:,curval,tr) = x - (KD/(Constr_D*KD))*(Constr_D*x - Constr_d);
-            else
-                
-                xout(:,curval,tr) = x;
-            end
+            % store the current state
+            xout(:,curval,tr) = x;
             
             if nargout>1
                 Q2out(:,:,curval,tr)=Q2;
-            end;
+            end
             
             if nargout>4
                 Kout(:,:,curval,tr) = K;
@@ -297,11 +286,3 @@ end
 xout = permute(xout,[2 1 3]);
 
 if verb==2, close(h); end
-
-
-function C = blkdiageye(X,k)
-% construct blockdiagonal matrix with k copies of X on diagonal
-% Equivalent to C = kron(eye(k),X) but much faster
-
-ss = repmat('X,',1,k); ss(end)=[];
-eval(sprintf('C = blkdiag(%s);',ss));

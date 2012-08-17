@@ -23,7 +23,7 @@ function varargout = gui_analyticStats(varargin)
 
 % Edit the above text to modify the response to help gui_analyticStats
 
-% Last Modified by GUIDE v2.5 08-Sep-2011 11:05:21
+% Last Modified by GUIDE v2.5 28-Jun-2012 14:06:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -125,7 +125,7 @@ handles.PropertyGridHandle = arg_guipanel( ...
 guidata(hObject, handles);
 
 % Wait for user to click OK, Cancel or close figure
-uiwait(handles.gui_PrepData);
+uiwait(handles.gui_analyticStats);
 
 
 % --- Outputs from this function are returned to the command line.
@@ -155,17 +155,17 @@ function cmdCancel_Callback(hObject, eventdata, handles)
 
 handles.ExitButtonClicked = 'Cancel';
 guidata(hObject,handles);
-uiresume(handles.gui_PrepData)
+uiresume(handles.gui_analyticStats)
 
 
 function cmdOK_Callback(hObject, eventdata, handles)
 
 handles.ExitButtonClicked ='OK';
 guidata(hObject,handles);
-uiresume(handles.gui_PrepData);
+uiresume(handles.gui_analyticStats);
 
 function cmdHelp_Callback(hObject, eventdata, handles)
 warndlg2('Coming soon!'); % use pophelp
 
 
-function gui_PrepData_ResizeFcn(hObject, eventdata, handles)
+function gui_analyticStats_ResizeFcn(hObject, eventdata, handles)

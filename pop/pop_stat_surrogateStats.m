@@ -49,28 +49,63 @@ function [ALLEEG cfg] = pop_stat_surrogateStats(ALLEEG,typeproc,varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+if nargin<2
+    typeproc = 0;
+end
 
-if isunix
-    SLASH = '/';
+fcnName     = strrep(mfilename,'pop_','');
+fcnHandle   = str2func(fcnName);
+
+% check the dataset
+res = hlp_checkeegset(ALLEEG,{'pconn'});
+if ~isempty(res)
+    error(['SIFT:' fcnName],res{1});
+end
+
+if isfield(ALLEEG(1).CAT.configs,fcnName)
+    % get default configuration (from prior use) and merge with varargin
+    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
+end
+
+if strcmpi(typeproc,'nogui')
+    % get the config from function
+    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG(1)},varargin]));
 else
-    SLASH = '\';
-end
-
-% [fnpath fnname] = fileparts(which('pop_stat_surrogateStats'));
-% if isempty(varargin)
-%     if exist('preprep.cfg','file')
-%         load('preprep.cfg','-mat');
-%     else
-%         cfg = [];
-%     end
-%     varargin = {cfg};
-% end
-
-if (~isfield(ALLEEG(1).CAT,'PConn')), 
-    error('SIFT:pop_stat_surrogateStats','Please compute surrogate distributions first.');
-end
+    % render the GUI
+    [PGh figh] = feval(['gui_' fcnName],ALLEEG(1),varargin{:});
     
+    if isempty(PGh)
+        % user chose to cancel
+        cfg = [];
+        return;
+    end
+    
+    % get the specification of the PropertyGrid
+    ps = PGh.GetPropertySpecification;
+    cfg = arg_tovals(ps,false);
+end
+
+drawnow;
+
+% execute the low-level function
+for cnd=1:length(ALLEEG)
+    [ALLEEG(cnd).CAT.Stats] = feval(fcnHandle,'EEG',ALLEEG(cnd),cfg);
+    
+    if ~isempty(cfg)
+        % store the configuration structure
+        ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
+    end
+end
+
+
+
+
+
+
+
 statcondargs = '';   
+
+% put CAT structures into array
 CAT = [ALLEEG.CAT];
 
 switch ALLEEG(1).CAT.PConn.mode 
@@ -80,12 +115,12 @@ switch ALLEEG(1).CAT.PConn.mode
         inputargs = {'BootstrapConnectivity',[CAT.Conn],'NullDistribution',[CAT.PConn]};
         
     otherwise
-        statcondargs = {'tail','both','mode','bootstrap'};
+        statcondargs = {'tail','both'};
         inputargs = {'BootstrapConnectivity',[CAT.PConn]};
 end
     
 % render the GUI
-% varargin = [varargin 'statcondargs',{statcondargs}];
+varargin = [varargin 'statcondargs',{statcondargs}];
 [PGh figh] = gui_surrogateStats([CAT.PConn],varargin{:});
 
 if isempty(PGh)
@@ -100,14 +135,18 @@ cfg = arg_tovals(ps,false);
 
 drawnow
 
-% save([fnpath SLASH '@configs' SLASH 'preprep.cfg'],'cfg');
-
 % execute the low-level function
     
 % return statistics and the mean of the bootstrap estimator (if
 % available)
 [Stats ConnMean] = stat_surrogateStats(inputargs{:},cfg);
 for cnd=1:length(ALLEEG)
+    
+    if ~isempty(cfg)
+        % store the configuration structure
+        ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
+    end
+    
     ALLEEG(cnd).CAT.Stats = Stats;
         
     if ~isempty(ConnMean(cnd))

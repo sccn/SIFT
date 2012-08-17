@@ -37,7 +37,12 @@
 
 function vers = eegplugin_sift(fig, trystrs, catchstrs)
 
-    vers = 'sift';
+    fid = fopen([fileparts(which('StartSIFT.m')) filesep 'resources' filesep 'version.txt']);
+    version = fscanf(fid,'%s');
+    fclose(fid);
+
+    vers = num2str(version);
+    
     if nargin < 3
         error('eegplugin_sift requires 3 arguments');
     end;
@@ -62,48 +67,49 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     PreProc_callback        = [finalcmd catchstrs.new_and_hist];
     
+    cmd = 'EEG = pop_est_fitMVAR(EEG,0);';
+    finalcmd = [ trystrs.no_check cmd ];
+    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
+    FitModel_callback       = [finalcmd catchstrs.store_and_hist];
+    
+    cmd  = 'EEG = pop_est_selModelOrder(EEG,0);';
+    finalcmd = [ trystrs.no_check cmd ];
+    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
+    SelectModelOrder_callback   = [finalcmd catchstrs.store_and_hist];
+    
+    cmd  = 'pop_est_validateMVAR(EEG,0);';
+    finalcmd = [ trystrs.no_check cmd ];
+    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
+    ValidateModel_callback   = [finalcmd catchstrs.store_and_hist];
+    
     cmd = 'EEG = pop_est_mvarConnectivity(EEG);';
     finalcmd = [ trystrs.no_check cmd ];
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     Connectivity_callback   = [finalcmd catchstrs.store_and_hist];
     
-    
-%     cmd = 'pop_vis_TimeFreqGrid(EEG,cfg);';
-    cmd = ['try, cfg = EEG(1).CAT.configs.TimeFreqGrid; catch, cfg = []; end;' ...
-               'EEG(1).CAT.tmpcfg = pop_vis_TimeFreqGrid(EEG,cfg);' ...
-               'if ~isempty(EEG(1).CAT.tmpcfg), ' ...
-               ' for cnd = 1:length(EEG), EEG(cnd).CAT.configs.TimeFreqGrid = EEG(1).CAT.tmpcfg; end; end; ' ...
-               ' EEG(1).CAT = rmfield(EEG(1).CAT,''tmpcfg''); '];
+    cmd = 'EEG = pop_vis_TimeFreqGrid(EEG)';
     finalcmd = [ trystrs.no_check cmd ];
-    finalcmd = [finalcmd 'LASTCOM = ''' strrep(cmd,'''','''''') ''';' ];
+    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     TFGrid_callback         = [finalcmd catchstrs.store_and_hist];
     
     
     CausalProjection_callback = 'warndlg2(''Coming Soon!'')';
     
-%     cmd = 'pop_vis_causalBrainMovie3D(EEG,cfg);';
-    cmd = ['try, cfg = EEG(1).CAT.configs.BrainMovie3D; catch, cfg = []; end;' ...
-               'EEG(1).CAT.tmpcfg = pop_vis_causalBrainMovie3D(EEG,cfg);' ...
-               'if ~isempty(EEG(1).CAT.tmpcfg), ' ...
-               ' for cnd = 1:length(EEG), EEG(cnd).CAT.configs.BrainMovie3D = EEG(1).CAT.tmpcfg; end; end; ' ...
-               ' EEG(1).CAT = rmfield(EEG(1).CAT,''tmpcfg''); '];
+    cmd = 'pop_vis_causalBrainMovie3D(EEG);';
     finalcmd = [ trystrs.no_check cmd ];
-    finalcmd = [finalcmd 'LASTCOM = ''' strrep(cmd,'''','''''') ''';' ];
+    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     BranMovie_callback      = [finalcmd catchstrs.store_and_hist];
     
-%     cmd = 'if (~isfield(EEG(1).CAT,''Conn'')), errordlg2(''Please compute connectivity first!'',''Surrogate Statistics''); else, EEG = pop_stat_surrogate(EEG,0);';
     cmd = 'EEG = pop_stat_surrogate(EEG,0);';
     finalcmd = [ trystrs.no_check cmd ];
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     SurrogateDistrib_callback = [finalcmd catchstrs.store_and_hist];
     
-%     cmd = 'if (~isfield(EEG(1).CAT,''PConn'')), errordlg2(''Please compute surrogate distributions first!'',''Surrogate Statistics''); else, EEG = pop_stat_surrogateStats(EEG,0);';
     cmd = 'EEG = pop_stat_surrogateStats(EEG,0);';
     finalcmd = [ trystrs.no_check cmd ];
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     SurrogateStats_callback = [finalcmd catchstrs.store_and_hist];
     
-%     cmd = 'if (~isfield(EEG(1).CAT,''Conn'')), errordlg2(''Please compute connectivity first!'',''Analytic Statistics''); else, EEG = pop_stat_analyticStats(EEG,0);';
     cmd = 'EEG = pop_stat_analyticStats(EEG,0);';
     finalcmd = [ trystrs.no_check cmd ];
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
@@ -111,21 +117,8 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     
     SimpleStat_callback     = 'warndlg2(''Coming Soon!'')';
     
-    cmd = 'EEG = pop_est_fitMVAR(EEG,0);';
-    finalcmd = [ trystrs.no_check cmd ];
-    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
-    FitModel_callback       = [finalcmd catchstrs.store_and_hist];
     
-    cmd  = 'pop_est_validateMVAR(EEG,0);';
-    finalcmd = [ trystrs.no_check cmd ];
-    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
-    ValidateModel_callback   = [finalcmd catchstrs.store_and_hist];
-    
-    cmd  = 'pop_est_selModelOrder(EEG,0);';
-    finalcmd = [ trystrs.no_check cmd ];
-    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
-    SelectModelOrder_callback   = [finalcmd catchstrs.store_and_hist];
-    
+
     % create menus
     % ------------
     menu = uimenu( highlevelmenu, 'label', 'SIFT', 'separator', 'on' ,'userdata', 'startup:off;study:on');

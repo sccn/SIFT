@@ -86,7 +86,7 @@ g = finputcheck(varargin,...
     'connThresh'   ''          []          0; ...       % absolute thresholding to apply after significance thresholding. can be a scalar or a matrix of same size as EEG.CAT.C. Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
     'prcThresh'    'real'      [eps 100]   100;...      % top percentile of connections to keep
     'frange'       'real'      []          [];...       % same units as Conn.freqs
-    'trange'       'real'      []          [];...       % same units as EEG.times
+    'trange'       'real'      []          [];...       % same units as EEG.CAT.times
     'sigThresh'    ''          []          [];...       % can be a scalar or a matrix of same size as EEG.CAT.C. Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
     'badchans'     'integer'   []          [];...
     'method'       ''          ''          '';...       % cell array of dimensionality reduction methods to apply in a specified order.

@@ -92,7 +92,7 @@ if isempty(lambda)
     % maximum group regularization parameter
     lambda = 0.1*lambda_max;
     
-    if g.verb, fprintf('lambda set to %0.10g\n',lambda); end
+    if g.verb, fprintf('...lambda set to %0.10g\n',lambda); end
 end
 
 %% Data preprocessing

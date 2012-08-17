@@ -1,4 +1,4 @@
-function [IC EEG] = pop_est_selModelOrder(ALLEEG,typeproc,varargin)
+function [ALLEEG cfg] = pop_est_selModelOrder(ALLEEG,typeproc,varargin)
 %
 % Fit a series of MVAR models up to a specified model order and compute the
 % model order selection (information) criteria. If the model fitting
@@ -81,68 +81,65 @@ function [IC EEG] = pop_est_selModelOrder(ALLEEG,typeproc,varargin)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-
-IC = {};
 if nargin<2
     typeproc = 0;
 end
 
-% initialize default outputs
-for cond=1:length(ALLEEG)
-    for q=1:nargout, 
-        varargout{q}{cond} = []; 
-    end
-end
-if nargout>1
-    EEG = ALLEEG;
-end
+fcnName     = strrep(mfilename,'pop_','');
+fcnHandle   = str2func(fcnName);
 
 % check the dataset
 res = hlp_checkeegset(ALLEEG,{'cat'});
 if ~isempty(res)
-    error('SIFT:est_selModelOrder',res{1});
+    error(['SIFT:' fcnName],res{1});
 end
 
-if isfield(ALLEEG(1).CAT.configs,'selModelOrder')
+if isfield(ALLEEG(1).CAT.configs,fcnName)
     % get default configuration (from prior use) and merge with varargin
-    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.selModelOrder) varargin];
+    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
 end
 
 if strcmpi(typeproc,'nogui')
     % get the config from function
-    cfg = arg_tovals(arg_report('rich',@est_selModelOrder,[{'EEG',ALLEEG(1)},varargin]));
+    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG(1)},varargin]));
 else
     % render the GUI
-    [PGh figh] = gui_est_selModelOrder(ALLEEG(1),varargin{:});
-
+    [PGh figh] = feval(['gui_' fcnName],ALLEEG(1),varargin{:});
+    
     if isempty(PGh)
         % user chose to cancel
+        cfg = [];
         return;
     end
-
+    
     % get the specification of the PropertyGrid
     ps = PGh.GetPropertySpecification;
     cfg = arg_tovals(ps,false);
 end
 
-% Apply model validation routines
-for cond=1:length(ALLEEG)
-    
- % calculate the information criteria
- IC{cond} = est_selModelOrder('EEG',ALLEEG(cond),cfg);
+drawnow;
 
+% Apply model selection
+for cnd=1:length(ALLEEG)
+    % calculate the information criteria
+    ALLEEG(cnd).CAT.IC = est_selModelOrder('EEG',ALLEEG(cnd),cfg);
+    
+    if ~isempty(cfg)
+        % store the configuration structure
+        ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
+    end
 end
 
-% now ask the user if he wants to proceed to model fitting using these
-% options
+% determine if we will proceed to model fitting using these options
 res=questdlg2(sprintf(['Do you want to proceed to model fitting?\n' ...
                        'A Model-fitting GUI will be generated for you based on the options you selected above']), ...
               'Model Order Selection Assistant', 'No', 'Yes', 'Yes');
           
-if strcmpi(res,'Yes')
+if strcmpi(res,'yes')
     % Open the model-fitting GUI for model fitting. 
     % Once model is fit results will be return in EEG structure
-    EEG = feval(['pop_' IC{1}.modelFitting.modelingFuncName],ALLEEG,0,IC{1}.modelFitting.modelingArguments);
+    modFuncName = ['pop_' ALLEEG(1).CAT.IC.modelFitting.modelingFuncName];
+    ALLEEG = feval(modFuncName, ALLEEG,0,ALLEEG(1).CAT.IC.modelFitting.modelingArguments);
 end
 
 

@@ -63,10 +63,9 @@ image(im);
 axis image
 axis off
 
-SLASH = fastif(isunix,'/','\');
-
-fid = fopen([fileparts(which('StartSIFT.m')) SLASH 'resources' SLASH 'version.txt']);
+fid = fopen([fileparts(which('StartSIFT.m')) filesep 'resources' filesep 'version.txt']);
 version = fscanf(fid,'%s');
+fclose(fid);
 
 set(handles.txtSplashText,'String',...
     {sprintf('Welcome to the Source Information Flow Toolbox version %s',version), ...

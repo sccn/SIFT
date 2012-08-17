@@ -289,7 +289,7 @@ for cond=1:length(ALLEEG)
     end
     
     % preserve times in case eeg_checkset deletes them (when num_trials=1)
-    times = g.EEG.times;
+    times = g.EEG.CAT.times;
     
     g.EEG.icaact        = [];  % force recompute of icaact
     EEGprep(cond)       = eeg_checkset(g.EEG);
@@ -339,18 +339,18 @@ end
 if ~isempty(g.newtlims)
     if g.verb, disp(['Updating time limits to ' num2str(g.newtlims)]); end
     g.EEG = pop_select2(g.EEG,'time',g.newtlims);
-    %         [dummy g.eventp] = min(abs(g.EEG.times));
-    %         if g.EEG.pnts*g.EEG.srate > g.newtlims(end)
+    %         [dummy g.eventp] = min(abs(g.EEG.CAT.times));
+    %         if g.EEG.CAT.pnts*g.EEG.srate > g.newtlims(end)
     %             fprintf('WARNING! endp=%d exceeds total number of points (%d). Updating endp to %d\n', ...
-    %                 g.EEG.pnts, g.EEG.pnts, g.EEG.pnts);
+    %                 g.EEG.CAT.pnts, g.EEG.CAT.pnts, g.EEG.CAT.pnts);
     %
     %         end
-    %         if g.varg.winlen > g.EEG.pnts/g.EEG.srate
+    %         if g.varg.winlen > g.EEG.CAT.pnts/g.EEG.srate
     %             fprintf('WARNING! winlen=%0.1f s exceeds new epoch length (%0.1f s). Updating winlen to %0.1f s\n', ...
-    %                 g.varg.winlen, g.EEG.pnts/g.EEG.srate, g.EEG.pnts/g.EEG.srate);
-    %             g.varg.winlen = g.EEG.pnts/g.EEG.srate;
+    %                 g.varg.winlen, g.EEG.CAT.pnts/g.EEG.srate, g.EEG.CAT.pnts/g.EEG.srate);
+    %             g.varg.winlen = g.EEG.CAT.pnts/g.EEG.srate;
     %         end
-    %         g.varg.endp = g.EEG.pnts;
+    %         g.varg.endp = g.EEG.CAT.pnts;
     if g.verb, fprintf('Done!\n'); end
 end
 
@@ -390,8 +390,8 @@ end
 if isfield(g,'badsegments') && ~isempty(g.badsegments)
     for seg=1:size(g.badsegments,1)
         if g.verb, fprintf('Setting interval [%1.2f %1.2f] to NaN\n',g.badsegments(1),g.badsegments(2)); end
-        [dummy pnts(1)] = min(abs(g.EEG.times-g.badsegments(1)*1000));
-        [dummy pnts(2)] = min(abs(g.EEG.times-g.badsegments(2)*1000));
+        [dummy pnts(1)] = min(abs(g.EEG.CAT.times-g.badsegments(1)*1000));
+        [dummy pnts(2)] = min(abs(g.EEG.CAT.times-g.badsegments(2)*1000));
         g.EEG.data(:,pnts(1):pnts(2),:) = NaN;
     end
     if g.verb, fprintf('Done!\n'); end

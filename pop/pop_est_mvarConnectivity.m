@@ -1,9 +1,9 @@
 
-function varargout = pop_est_mvarConnectivity(ALLEEG,typeproc,varargin)
+function [ALLEEG cfg] = pop_est_mvarConnectivity(ALLEEG,typeproc,varargin)
 %
-% Computes connectivity estimates from a precomputed MODEL 
+% Computes connectivity estimates from a precomputed MODEL
 % and stores the result in ALLEEG.CAT.Conn
-% 
+%
 % Input:
 %
 %   ALLEEG          EEG structure with fields CAT.MODEL
@@ -12,7 +12,7 @@ function varargout = pop_est_mvarConnectivity(ALLEEG,typeproc,varargin)
 %
 %   'connmethods':  cell array of strings denoting connectivity methods to
 %                   compute (parenthesized acronym from list below)
-% 
+%
 %                     DIRECTED TRANSFER FUNCTION MEASURES:
 %                         Directed Tranfer Function (DTF)
 %                         Normalized DTF (nDTF)
@@ -47,16 +47,16 @@ function varargout = pop_est_mvarConnectivity(ALLEEG,typeproc,varargin)
 %                   Conn.(connmethod) is a [num_chans x num_chans x
 %                   num_freqs x num_time] connectivity matrix
 %   params          The options used in the connectivity estimation
-%   
+%
 % See Also: est_mvarConnectivity(), pop_est_fitMVAR()
 %
-% References: 
-% 
+% References:
+%
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
 %   Theoretical Handbook and User Manual. Chapter 6.
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift
-% 
-% Author: Tim Mullen, 2010, SCCN/INC, UCSD. 
+%
+% Author: Tim Mullen, 2010, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
@@ -75,54 +75,59 @@ function varargout = pop_est_mvarConnectivity(ALLEEG,typeproc,varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-res = hlp_checkeegset(ALLEEG,{'cat','model'});
-if ~isempty(res)
-    error(res{end});
-end
-
-if isempty(ALLEEG(1).CAT.MODEL)
-    error('SIFT:pop_est_mvarConnectivity','You must fit an MVAR model first');
-end
-
 if nargin<2
     typeproc = 0;
 end
 
-if isfield(ALLEEG(1).CAT.configs,'mvarConnectivity')
+fcnName     = strrep(mfilename,'pop_','');
+fcnHandle   = str2func(fcnName);
+
+% check the dataset
+res = hlp_checkeegset(ALLEEG,{'model'});
+if ~isempty(res)
+    error(['SIFT:' fcnName],res{1});
+end
+
+if isfield(ALLEEG(1).CAT.configs,fcnName)
     % get default configuration (from prior use) and merge with varargin
-    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.mvarConnectivity) varargin];
+    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
 end
 
 if strcmpi(typeproc,'nogui')
     % get the config from function
-    cfg = arg_tovals(arg_report('rich',@est_mvarConnectivity,[{'EEG',ALLEEG(1) 'MODEL', ALLEEG(1).CAT.MODEL},varargin]));
+    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG(1),'MODEL',ALLEEG(1).CAT.MODEL},varargin]));
 else
     % render the GUI
-    [PGh figh] = gui_est_mvarConnectivity(ALLEEG,varargin{:});
-
+    [PGh figh] = feval(['gui_' fcnName],ALLEEG(1),varargin{:});
+    
     if isempty(PGh)
         % user chose to cancel
+        cfg = [];
         return;
     end
-
+    
     % get the specification of the PropertyGrid
     ps = PGh.GetPropertySpecification;
     cfg = arg_tovals(ps,false);
 end
 
+drawnow;
 
 % now calculate connectivity
-for cond=1:length(ALLEEG)
-    ALLEEG(cond).CAT.Conn = est_mvarConnectivity(ALLEEG(cond),ALLEEG(cond).CAT.MODEL,cfg);
-
+for cnd=1:length(ALLEEG)
+    [ALLEEG(cnd).CAT.Conn] = feval(fcnHandle,'ALLEEG',ALLEEG(cnd),'MODEL',ALLEEG(cnd).CAT.MODEL,cfg);
+        
     % clear any existing visualization GUI config files
-    try, ALLEEG(cond).CAT.configs.TimeFreqGrid = []; catch, end;
-    try, ALLEEG(cond).CAT.configs.BrainMovie3D = []; catch, end;
+    visFields = fieldnames(ALLEEG(cnd).CAT.configs);
+    visFields = visFields(~cellfun(@isempty,strfind(visFields,'vis_')));
+    for k=1:length(visFields)
+        ALLEEG(cnd).CAT.configs.(visFields{k}) = struct([]);
+    end
     
-    ALLEEG(cond).CAT.configs.mvarConnectivity = cfg;
+    if ~isempty(cfg)
+        % store the configuration structure
+        ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
+    end
 end
-
-varargout{1} = ALLEEG;
-varargout{2} = cfg;
 
 

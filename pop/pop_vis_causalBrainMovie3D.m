@@ -1,5 +1,5 @@
 
-function cfg = pop_vis_causalBrainMovie3D(ALLEEG,varargin)
+function [ALLEEG cfg handles] = pop_vis_causalBrainMovie3D(ALLEEG,typeproc,varargin)
 %
 % Create an interactive 3D BrainMovie from a connectivity matrix. See [1]
 % for more details on the Interactive BrainMovie3D. 
@@ -53,68 +53,67 @@ function cfg = pop_vis_causalBrainMovie3D(ALLEEG,varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
-
-% if isunix
-%     SLASH = '/';
-% else
-%     SLASH = '\';
-% end
-
+handles = [];
 
 if length(varargin) == 1 && isempty(varargin{1})
     varargin = {};
 end
 
+if nargin<2
+    typeproc = 0;
+end
 
-% if nargin < 3 || ~islogical(loadcfg)
-%     loadcfg = false;
-% end
-% 
-% [fnpath fnname] = fileparts(which('pop_vis_causalBrainMovie3D'));
-% if loadcfg && exist('bm.cfg','file')
-%     load('bm.cfg','-mat');
-% else
-%     cfg = [];
-% end
-
-% varargin = [cfg varargin];
+fcnName     = strrep(mfilename,'pop_','');
+fcnHandle   = str2func(fcnName);
 
 % check the dataset
 res = hlp_checkeegset(ALLEEG,{'conn'});
 if ~isempty(res)
-    error('SIFT:vis_causalBrainMovie3D',res{1});
+    error(['SIFT:' fcnName],res{1});
 end
 
 if any(cellfun(@isempty,{ALLEEG.dipfit}))
-    error('SIFT:vis_causalBrainMovie3D','In order to use BrainMovie3D, source locations must be stored in EEG.dipfit');
+    error('SIFT:vis_causalBrainMovie3D:NeedDipfit', ...
+        'BrainMovie3D requires source or channel locations stored in EEG.dipfit');
 end
-    
-% extract the Connectivity structures
+
+if isfield(ALLEEG(1).CAT.configs,fcnName)
+    % get default configuration (from prior use) and merge with varargin
+    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
+end
+
+
 for cnd=1:length(ALLEEG);
-    Conn(cnd) = ALLEEG(cnd).CAT.Conn;
-    ALLEEG(cnd).CAT.Conn = [];
-    
-    % make row array
+    % make node labels a row array
     ALLEEG(cnd).CAT.curComponentNames = ALLEEG(cnd).CAT.curComponentNames(:)';
 end
 
-
-% render the GUI
-[PGh figh] = gui_causalBrainMovie3D(ALLEEG,Conn,struct('arg_direct',0),varargin{:});
-
-if isempty(PGh)
-    % user chose to cancel
-    cfg = [];
-    return;
+if strcmpi(typeproc,'nogui')
+    % get the config from function
+    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG(1),'Conn',ALLEEG(1).CAT.Conn},varargin]));
+else
+    % render the GUI
+    [PGh figh] = feval(['gui_' fcnName],ALLEEG(1),ALLEEG(1).CAT.Conn,varargin{:});
+    
+    if isempty(PGh)
+        % user chose to cancel
+        cfg = [];
+        return;
+    end
+    
+    % get the specification of the PropertyGrid
+    ps = PGh.GetPropertySpecification;
+    cfg = arg_tovals(ps,false);
 end
 
-% get the specification of the PropertyGrid
-ps = PGh.GetPropertySpecification;
-cfg = arg_tovals(ps,false);
-
-% save([fnpath SLASH '@configs' SLASH 'bm.cfg'],'cfg');
+drawnow;
 
 % execute the low-level function
-handles = vis_causalBrainMovie3D('ALLEEG',ALLEEG,'Conn',Conn,cfg);
-
+for cnd=1:length(ALLEEG)
+    handles = feval(fcnHandle,'EEG',ALLEEG(cnd),'Conn',ALLEEG(1).CAT.Conn,cfg);
+    
+    if ~isempty(cfg)
+        % store the configuration structure
+        ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
+    end
+end

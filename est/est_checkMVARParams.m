@@ -49,7 +49,7 @@ function [infostring warnstring errstring] = est_checkMVARParams(EEG, params)
 
 srate = EEG.srate;
 wlen = srate*params.winlen;  % winlen in samples
-T = EEG.trials; 
+T = EEG.CAT.trials; 
 p = params.morder;
 M = EEG.CAT.nbchan;
 

@@ -52,6 +52,7 @@ if isstruct(PConn)
     % multiple connectivity methods
     connmethods = hlp_getConnMethodNames(PConn);
     for m=1:length(connmethods)
+        % recursively compute stats for all methods
         ci.(connmethods{m}) = stat_computeCI(PConn(cnd).(connmethods{m}),alpha,tail);  
     end
 else
@@ -63,14 +64,14 @@ else
     switch lower(tail)
         case 'both'
             ci(1,:,:,:,:,:,:,:,:) = prctile(PConn,alpha/2,nd);      % lower
-            ci(2,:,:,:,:,:,:,:,:) = prctile(PConn,100-alpha/2,nd);    % upper
+            ci(2,:,:,:,:,:,:,:,:) = prctile(PConn,100-alpha/2,nd);  % upper
         case 'upper'
             mval = mean(PConn,nd); % mean of estimator
             ci(1,:,:,:,:,:,:,:,:) = mval;
             ci(2,:,:,:,:,:,:,:,:) = prctile(PConn,100-alpha,nd);    % upper
         case 'lower'
             mval = mean(PConn,nd); % mean of estimator
-            ci(1,:,:,:,:,:,:,:,:) = prctile(PConn,alpha,nd);      % lower
+            ci(1,:,:,:,:,:,:,:,:) = prctile(PConn,alpha,nd);        % lower
             ci(2,:,:,:,:,:,:,:,:) = mval;
         otherwise
             error('SIFT:stat_computeCI','unknown tail option');

@@ -29,8 +29,6 @@ function [ALLEEG cfg] = pop_est_fitMVAR(ALLEEG,typeproc,varargin)
 % 
 % Author: Tim Mullen 2009, SCCN/INC, UCSD. 
 % Email:  tim@sccn.ucsd.edu
-% 
-% Revised Jan 2010.
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
 %
@@ -52,44 +50,46 @@ if nargin<2
     typeproc = 0;
 end
 
+fcnName     = strrep(mfilename,'pop_','');
+fcnHandle   = str2func(fcnName);
+
 % check the dataset
 res = hlp_checkeegset(ALLEEG,{'cat'});
 if ~isempty(res)
-    error('SIFT:est_fitMVAR',res{1});
+    error(['SIFT:' fcnName],res{1});
 end
 
-if isfield(ALLEEG(1).CAT.configs,'fitMVAR')
+if isfield(ALLEEG(1).CAT.configs,fcnName)
     % get default configuration (from prior use) and merge with varargin
-    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.fitMVAR) varargin];
+    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
 end
 
 if strcmpi(typeproc,'nogui')
     % get the config from function
-    cfg = arg_tovals(arg_report('rich',@est_fitMVAR,[{'EEG',ALLEEG(1)},varargin]));
+    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG(1)},varargin]));
 else
     % render the GUI
-    [PGh figh] = gui_est_fitMVAR(ALLEEG,varargin{:});
-
+    [PGh figh] = feval(['gui_' fcnName],ALLEEG(1),varargin{:});
+    
     if isempty(PGh)
         % user chose to cancel
         cfg = [];
         return;
     end
-
+    
     % get the specification of the PropertyGrid
     ps = PGh.GetPropertySpecification;
     cfg = arg_tovals(ps,false);
 end
 
-% save([fnpath SLASH '@configs' SLASH 'preprep.cfg'],'cfg');
+drawnow;
 
-% fit the MVAR model
-for cond=1:length(ALLEEG)
-    [ALLEEG(cond).CAT.MODEL] = est_fitMVAR('EEG',ALLEEG(cond),cfg);
+% execute the low-level function
+for cnd=1:length(ALLEEG)
+    [ALLEEG(cnd).CAT.MODEL] = feval(fcnHandle,'EEG',ALLEEG(cnd),cfg);
+    
+    if ~isempty(cfg)
+        % store the configuration structure
+        ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
+    end
 end
-
-% save the configuration file
-for cond=1:length(ALLEEG)
-    ALLEEG(cond).CAT.configs.fitMVAR = cfg;
-end
-

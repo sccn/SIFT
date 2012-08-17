@@ -411,7 +411,7 @@ if ~isempty(Conn)
     clear Conn;
 end
 
-ALLEEG = arg_extract(varargin,'ALLEEG',1);
+ALLEEG = arg_extract(varargin,{'EEG','ALLEEG'},1);
 [MyComponentNames MyChannelNames defcoordformat] = deal({});
 if ~isempty(ALLEEG)
     ALLEEG = ALLEEG(1);

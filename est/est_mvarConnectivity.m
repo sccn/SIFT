@@ -62,7 +62,7 @@ else
     EEG = [];
 end
 
-if ~isempty(EEG)
+if ~isempty(EEG) && isfield(EEG,'srate')
     defreqs = ['1:' num2str(fix(EEG.srate/2)-1)];
 else
     defreqs = [];
@@ -137,10 +137,10 @@ if g.verb
     % inform user of total amount of memory (megabytes) required
     bytesReq = 4*length(g.connmethods)*numWins*length(g.freqs)*nchs^2;
     
-    ret = questdlg2(sprintf('This operation will require %4.4f MB of memory (per condition). \nMake sure you have enough memory available. \nDo you want to continue?',bytesReq/(1024^2)), 'Connectivity Estimation','OK','Cancel','OK');
-    if strcmpi(ret,'cancel');
-        return;
-    end
+    fprintf('-------------------------------------------------------------------------\n');
+    fprintf(['Connectivity estimation will require %5.5g MB of memory (per condition).\n' ...
+             'Make sure you have enough memory available.\n'],bytesReq/(1024^2));
+    fprintf('-------------------------------------------------------------------------\n');
 end
 
 if g.verb
