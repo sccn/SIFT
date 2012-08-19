@@ -133,12 +133,12 @@ end
 
 % plot results, if requested
 if g.plot
-    eegplot(data+fitlines,'g.srate',g.srate,'data2',fitlines,'title','Original Data');
+    eegplot(data+fitlines,'srate',g.srate,'data2',fitlines,'title','Original Data');
     h = gcf;
     ax = findobj(gcf,'tag','eegaxis');
     plts = get(ax,'children');
     legend([plts(end) plts(1)],'original','best local-linear fit');
-    eegplot(data,'g.srate',g.srate,'title','Detrended Data','children',h);
+    eegplot(data,'srate',g.srate,'title','Detrended Data','children',h);
     ax = findobj(gcf,'tag','eegaxis');
     plts = get(ax,'children');
     legend(plts(end),'detrended data');
