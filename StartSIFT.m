@@ -8,10 +8,6 @@ if nargin<1
     interactive = true;
 end
 
-% call up the splash screen
-if interactive
-    gui_splashscreen;
-end
     
 % temporary hack to remove measure projection toolbox from path 
 % (MPT interferes with SIFT)
@@ -31,6 +27,11 @@ if ~exist('vis_TimeFreqGrid.m','file')
     addpath(genpath(siftroot));
 end
     
+% call up the splash screen
+if interactive
+    gui_splashscreen;
+end
+
 % optionally download arfit (if not already present)
 if ~exist(ARfitTargetPath,'file') && interactive
     res = input('SIFT: Would you like to download and install the ARFIT toolbox as a SIFT plugin (recommended)? ''y''/''n'': ','s');

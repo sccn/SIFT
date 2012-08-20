@@ -211,10 +211,10 @@ if ischar(checkcode)
     switch checkcode
         case 'error'
             % generate error
-            checkstr = [sprintf('One or more parameters are invalid (see below)\n') checkstr];
-            errordlg2(checkstr,'Checking MVAR parameters...');
-            % go back to main input GUI
-            ok = false;
+            % if OK is pressed continue onward, otherwise, go back to main input GUI
+            checkstr = [sprintf('Some errors were generated (see below), Continue?\n') checkstr];
+            res=questdlg2(checkstr,'Checking MVAR parameters', 'Cancel', 'OK', 'OK');
+            ok = strcmpi(res,'OK');
         case 'warning'
             % if OK is pressed continue onward, otherwise, go back to main input GUI
             checkstr = [sprintf('Some warnings were generated (see below), Continue?\n') checkstr];
