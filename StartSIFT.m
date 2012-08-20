@@ -1,9 +1,18 @@
-function ok = StartSIFT
+function ok = StartSIFT(interactive)
 % This function initializes the Source Information Flow Toolbox (SIFT)
 % Author: Tim Mullen, 2011, SCCN/INC/UCSD
 
 ok = false;
 
+if nargin<1
+    interactive = true;
+end
+
+% call up the splash screen
+if interactive
+    gui_splashscreen;
+end
+    
 % temporary hack to remove measure projection toolbox from path 
 % (MPT interferes with SIFT)
 % if exist('measure_projection')
@@ -23,7 +32,7 @@ if ~exist('vis_TimeFreqGrid.m','file')
 end
     
 % optionally download arfit (if not already present)
-if ~exist(ARfitTargetPath,'file')
+if ~exist(ARfitTargetPath,'file') && interactive
     res = input('SIFT: Would you like to download and install the ARFIT toolbox as a SIFT plugin (recommended)? ''y''/''n'': ','s');
     if strcmpi(res,'y')
        

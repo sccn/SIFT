@@ -8,5 +8,5 @@ var = hlp_struct2varargin(cfg);
 for i=1:length(var),
     if isstruct(var{i}),
         var{i} = hlp_struct2vararginrec(var{i});
-    end;
-end;
+    end
+end
