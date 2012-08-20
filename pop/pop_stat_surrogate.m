@@ -130,6 +130,10 @@ end
 
 drawnow;
 
+if strcmpi(typeproc,'cfg_only')
+    return;
+end
+
 % if length(ALLEEG)>1
 %     fprintf('More than one dataset is loaded. I will use the same resampling schedule for all datasets\n');
 %     fprintf('This will enable us to form the joint bootstrap distribution over multiple conditions\n');

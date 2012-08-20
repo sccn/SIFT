@@ -113,6 +113,10 @@ end
 
 drawnow;
 
+if strcmpi(typeproc,'cfg_only')
+    return;
+end
+
 % now calculate connectivity
 for cnd=1:length(ALLEEG)
     [ALLEEG(cnd).CAT.Conn] = feval(fcnHandle,'ALLEEG',ALLEEG(cnd),'MODEL',ALLEEG(cnd).CAT.MODEL,cfg);

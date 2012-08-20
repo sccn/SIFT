@@ -118,6 +118,10 @@ end
 
 drawnow;
 
+if strcmpi(typeproc,'cfg_only')
+    return;
+end
+
 % execute the low-level function
 if length(ALLEEG)==2 && ~cfg.plotCondDiff.arg_selection
     % there is more than one condition and user wants to

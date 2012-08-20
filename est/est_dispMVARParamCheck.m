@@ -61,11 +61,11 @@ if params.verb>0
     % display summary on command line
     for str=1:length(infostring)
         if ~isempty(errstring{str})
-            checkstr = [checkstr sprintf('ERROR\t')];
+            checkstr = [checkstr sprintf('ERROR: \t')];
         elseif ~isempty(warnstring{str})
-            checkstr = [checkstr sprintf('WARNING\t')];
+            checkstr = [checkstr sprintf('WARNING: \t')];
         else
-            checkstr = [checkstr sprintf('OK\t')];
+            checkstr = [checkstr sprintf('OK: \t')];
         end
         checkstr = [checkstr sprintf(infostring{str})];
         checkstr = [checkstr sprintf(warnstring{str})];

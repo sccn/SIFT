@@ -89,6 +89,10 @@ end
 
 drawnow;
 
+if strcmpi(typeproc,'cfg_only')
+    return;
+end
+
 % initialize progress bar
 if cfg.verb==2
     multiWaitbar('Preprocessing datasets',...
