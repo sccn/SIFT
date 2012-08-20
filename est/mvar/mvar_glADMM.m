@@ -126,13 +126,16 @@ g = arg_define([0 1],varargin, ...
 [nchs npnts ntr] = size(g.data);
 p = g.morder;
 
-% initial solution
+% initialize state
 if ~isempty(g.AR0)
     initAR = g.AR0;
 elseif isempty(initAR)
     initAR = zeros(p*nchs^2,1);
 end
-
+if size(initAR,1) ~= p*nchs^2
+    % dimensions have changed, reset state
+    initAR = zeros(p*nchs^2,1);
+end
 
 % Reshape the design matrix into VAR[1]
 X = [];

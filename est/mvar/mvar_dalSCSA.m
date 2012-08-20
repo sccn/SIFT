@@ -139,6 +139,10 @@ if ~isempty(AR0)
 elseif isempty(initAR)
     initAR = zeros(p*nchs^2,1);
 end
+if size(initAR,1) ~= p*nchs^2
+    % dimensions have changed, reset state
+    initAR = zeros(p*nchs^2,1);
+end
 
 X = [];
 Y = [];
