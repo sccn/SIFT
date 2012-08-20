@@ -157,7 +157,7 @@ end
 % retrieve the values for the realized switch option...
 [selected,value] = spec.mapper(value);
 % build the complementary alternative, if requested
-if strcmp(reptype,'build')
+if strcmp(reptype,'build')    
     if selected
         spec.alternatives{1} = arg_desel;
     else
@@ -209,10 +209,24 @@ if isequal(args,'on')
 elseif isequal(args,'off') || isequal(args,[])
     selected = false;
     args = [];
-elseif length(args) == 1 && isstruct(args) && isfield(args,'arg_selection')
+elseif length(args) == 1 && isfield(args,'arg_selection')
     selected = args.arg_selection;
 elseif length(args) == 1 && iscell(args) && isstruct(args{1}) && isfield(args{1},'arg_selection')
     selected = args{1}.arg_selection;
+elseif isequal(args,{'arg_selection',0})
+    selected = false;
+    args = {};
+elseif isequal(args,{'arg_selection',1})
+    selected = true;
+    args = {};
+elseif iscell(args)
+    % find the arg_selection in the cell array
+    pos = find(strcmp('arg_selection',args(1:end-1)),1,'last');
+    if isempty(pos)
+        selected = true;
+    else
+        [selected,args] = deal(args{pos+1},args([1:pos-1 pos+2:end]));
+    end
 else
     selected = true;
 end
