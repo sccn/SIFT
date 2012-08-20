@@ -233,8 +233,12 @@ if isempty(args)
     selection = selectors{1};
 elseif isfield(args{1},'arg_selection')
     selection = args{1}.arg_selection;
-else
+elseif any(strcmp(args{1},selectors))
     [selection,args] = deal(args{1},args(2:end));
+else
+    % find the arg_selection in the cell array
+    pos = find(strcmp('arg_selection',args(1:end-1)),1,'last');
+    [selection,args] = deal(args{pos+1},args([1:pos-1 pos+2:end]));
 end
 % Note: If this error is triggered, an value was passed for an argument which has a flexible structure (chosen out of a set of possibilities), but the possibility
 %       which was chosen according to the passed value does not match any of the specified ones. For a value that is a cell array of arguments, the choice is 
