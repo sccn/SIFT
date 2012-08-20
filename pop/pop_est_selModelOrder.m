@@ -119,6 +119,10 @@ end
 
 drawnow;
 
+if strcmpi(typeproc,'cfg_only')
+    return;
+end
+
 % Apply model selection
 for cnd=1:length(ALLEEG)
     % calculate the information criteria

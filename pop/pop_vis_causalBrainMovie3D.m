@@ -108,6 +108,10 @@ end
 
 drawnow;
 
+if strcmpi(typeproc,'cfg_only')
+    return;
+end
+
 % execute the low-level function
 for cnd=1:length(ALLEEG)
     handles = feval(fcnHandle,'EEG',ALLEEG(cnd),'Conn',ALLEEG(1).CAT.Conn,cfg);

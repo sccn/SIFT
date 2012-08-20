@@ -133,6 +133,10 @@ end
 
 drawnow;
 
+if strcmpi(typeproc,'cfg_only')
+    return;
+end
+
 % Apply model validation routines
 for cnd=1:length(ALLEEG)
     

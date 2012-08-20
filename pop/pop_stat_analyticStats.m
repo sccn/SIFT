@@ -91,6 +91,10 @@ end
 
 drawnow;
 
+if strcmpi(typeproc,'cfg_only')
+    return;
+end
+
 % execute the low-level function
 for cnd=1:length(ALLEEG)
     [ALLEEG(cnd).CAT.Stats] = feval(fcnHandle,'EEG',ALLEEG(cnd),cfg);
