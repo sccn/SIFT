@@ -244,6 +244,7 @@ g = arg_define([0 Inf], varargin, ...
     arg_norep({'EEG','ALLEEG'},mandatory,[],'An EEGLAB dataset'), ...
     arg({'verb','VerbosityLevel'},2,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical'), ...
     arg_subswitch({'sigtype','SignalType','chantype'},hlp_getSigTypeArglist(defSigType,true),hlp_getSigTypeArglist(defSigType),'Type of signal to analyze.','suppress',{'componentsToKeep'}), ...
+    arg({'varnames','VariableNames'},[],[],'Optional names for channels/components. This does not affect variable selection. If left empty, component indices or channel names (chanlocs) are used. The number of names provided must equal the number of components/channels selected','type','cellstr','shape','row'), ...
     arg_subtoggle({'diff','DifferenceData'},[],@pre_diffData,'Differencing options. A difference filter of order k applied to time series X is defined as [for i=1:k, for t=1:N, X(t) = X(t)-X(t-1)]','cat','Filtering','suppress',{'verb'}), ...
     arg_subtoggle({'detrend','Detrend'},[],@pre_detrend,'Detrend or center each epoch','cat','Filtering','suppress',{'verb','srate'}), ...
     arg_subtoggle({'normalize','NormalizeData'},{'method', {'time','ensemble'}, 'verb',verb},@pre_normData,'Data normalization. Normalize trials across time, ensemble, or both','cat','Normalization','suppress',{'verb'}), ...
@@ -290,7 +291,11 @@ switch lower(g.sigtype.arg_selection)
     case 'components'
         % specify default component names
         curComps = 1:size(EEG.icaweights,1);
-        MyComponentNames = strtrim(cellstr(num2str(curComps'))');
+        if isempty(g.varnames)
+            MyComponentNames = strtrim(cellstr(num2str(curComps'))');
+        else
+            MyComponentNames = g.varnames;
+        end
         % create dataset
         EEG.CAT = hlp_sift_emptyset(               ...
             'srcdata', EEG.icaact,                 ...
@@ -303,10 +308,14 @@ switch lower(g.sigtype.arg_selection)
             );
     case 'channels'
         % specify default channel names
-        if isfield(EEG,'chanlocs') && ~isempty(EEG.chanlocs)
-            MyChannelNames = {EEG.chanlocs.labels};
+        if isempty(g.varnames)
+            if isfield(EEG,'chanlocs') && ~isempty(EEG.chanlocs)
+                MyChannelNames = {EEG.chanlocs.labels};
+            else
+                MyChannelNames = strtrim(cellstr(num2str((1:EEG.nbchan)'))');
+            end
         else
-            MyChannelNames = strtrim(cellstr(num2str((1:EEG.nbchan)'))');
+            MyChannelNames = g.varnames;
         end
         % create dataset
         EEG.CAT = hlp_sift_emptyset(               ...
@@ -319,6 +328,13 @@ switch lower(g.sigtype.arg_selection)
             'trials',  EEG.trials                  ...
             );
 end
+
+% do a little error-checking
+if ~isempty(g.varnames) && length(g.varnames) ~= EEG.CAT.nbchan
+    error('pre_prepData:badVarNamesLength','The number of entries in the list of %s names (''VariableNames'') must equal the number of %s', ...
+        lower(g.sigtype.arg_selection(end:end-1)),lower(g.sigtype.arg_selection));
+end
+
 EEG.CAT.signalType = g.sigtype.arg_selection;
 
 

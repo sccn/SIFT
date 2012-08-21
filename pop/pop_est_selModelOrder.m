@@ -126,6 +126,7 @@ end
 % Apply model selection
 for cnd=1:length(ALLEEG)
     % calculate the information criteria
+    cfg.arg_direct = 0;
     ALLEEG(cnd).CAT.IC = est_selModelOrder('EEG',ALLEEG(cnd),cfg);
     
     if ~isempty(cfg)

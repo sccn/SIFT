@@ -69,7 +69,6 @@ if g.verb==2
     multiWaitbar('Normalizing','Reset','Color',hlp_getNextUniqueColor);
 end
 
-normdata = data;
 for k=1:length(g.method)
     if g.verb==2
         multiWaitbar('Normalizing',k/length(g.method));
@@ -83,15 +82,17 @@ for k=1:length(g.method)
                 return;
             end
             if g.verb, fprintf('Normalizing data across ensemble...\n'); end
-            normdata = data-repmat(mean(data,3),[1 1 ntr]);
-            normdata = normdata./repmat(std(data,0,3),[1 1 ntr]);
+            normdata = bsxfun(@minus,data,mean(data,3));
+            normdata = bsxfun(@rdivide,normdata,std(data,0,3));
         case 'time'
             % pointwise subtract trial mean
             % divide by trial stdev
             if g.verb, fprintf('Normalizing data across time...\n'); end
-            normdata = data-repmat(mean(data,2),[1 pnts 1]);
-            normdata = normdata./repmat(std(data,0,2),[1 pnts 1]);
+            normdata = bsxfun(@minus,data,mean(data,2));
+            normdata = bsxfun(@rdivide,normdata,std(data,0,2));
     end
+    
+    data = normdata;
 end
 
 if g.verb==2
