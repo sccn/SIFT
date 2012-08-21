@@ -5,7 +5,7 @@ function ok = StartSIFT(interactive)
 ok = false;
 
 if nargin<1
-    interactive = true;
+    interactive = false;
 end
 
     
