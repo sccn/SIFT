@@ -48,7 +48,7 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     end;
     
     % run SIFT startup routines
-    ok=StartSIFT;
+    ok=StartSIFT(false);
     
     if ~ok
         fprintf('SIFT initialization failed!\n');
@@ -117,7 +117,7 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     
     SimpleStat_callback     = 'warndlg2(''Coming Soon!'')';
     
-    
+    AboutSIFT_callback = 'gui_splashscreen;';
 
     % create menus
     % ------------
@@ -127,6 +127,8 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     connectmenu = uimenu( menu, 'label', 'Connectivity'  ,'callback',Connectivity_callback,'userdata', 'startup:off;study:on');
     statmenu    = uimenu( menu, 'label', 'Statistics','userdata', 'startup:off;study:on');
     vismenu     = uimenu( menu, 'label', 'Visualization' ,'userdata', 'startup:off;study:on');
+    aboutmenu   = uimenu( menu, 'label', 'About SIFT' ,'callback',AboutSIFT_callback,'userdata', 'startup:off;study:on');
+    
     uimenu( vismenu , 'label', 'Time-Frequency Grid', 'callback', TFGrid_callback ,'userdata', 'startup:off;study:on');
     uimenu( vismenu , 'label', 'BrainMovie3D', 'callback', BranMovie_callback ,'userdata', 'startup:off;study:on');
     uimenu( vismenu , 'label', 'Causal Projection', 'callback', CausalProjection_callback, 'enable','off' );

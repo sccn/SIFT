@@ -55,7 +55,7 @@ g = arg_define([0 1],varargin, ...
     arg({'winstep','WindowStepSize'},0.03,[eps Inf],'Window step size (sec)','cat','Modeling Parameters'), ...
     arg({'epochTimeLims','EpochTimeLimits'},[],[],'Sub-epoch time limits (sec). This is relative to event time (e.g. [-1 2]). Default is the full epoch time range','cat','Modeling Parameters'), ...
     arg({'prctWinToSample','WindowSamplePercent'},100,[1 100],'Percent of windows to sample','cat','Modeling Parameters'), ...
-    arg_subtoggle({'normalize','NormalizeData'},[],@pre_normData,'Z-normalize data within windows. Note this is not recommended for short windows','cat','Window Preprocessing'), ...
+    arg_subtoggle({'normalize','NormalizeData'},[],@pre_normData,'Z-normalize data within windows. Note this is not recommended for short windows','cat','Window Preprocessing','suppress',{'verb'}), ...
     arg_subtoggle({'detrend','Detrend'},{}, ...
     {arg({'method','DetrendingMethod'},'constant',{'linear','constant'},{'Detrend data within each window.', ...
     sprintf(['\n' ...
@@ -159,11 +159,11 @@ end
 
 if g.normalize.arg_selection
     % normalize each window separately
-    if g.verb, fprintf('Normalizing each window across %s...\n',g.normalize.method{:}); end
-    for t=1:numWins
-        winpnts = g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1;
-        EEG.CAT.srcdata(:,winpnts,:) = pre_normData(EEG.CAT.srcdata(:,winpnts,:),'Method',g.normalize.method,'verb',0);
-    end
+    if g.verb, fprintf('I will normalize each window across %s...\n',g.normalize.method{:}); end
+%     for t=1:numWins
+%         winpnts = g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1;
+%         EEG.CAT.srcdata(:,winpnts,:) = pre_normData(EEG.CAT.srcdata(:,winpnts,:),'Method',g.normalize.method,'verb',0);
+%     end
 end
 
 if g.detrend.arg_selection
@@ -189,16 +189,24 @@ for t=1:numWins
     % get indices of all data points (samples) in current window
     winpnts = g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1;
     
+    % select the data chunk
+    datachunk = EEG.CAT.srcdata(:,winpnts,:);
+    
+    if g.normalize.arg_selection
+        % normalize the data chunk
+        datachunk = pre_normData(datachunk,'Method',g.normalize.method,'verb',0);
+    end
+
     % execute the model-fitting algorithm
     algFcnName = hlp_getMVARalgorithms('mfileNameOnly',g.algorithm.arg_selection);
     switch nargout(algFcnName)
         case 2
             [AR{t} PE{t}] = feval(algFcnName, ...
-                                  'data',EEG.CAT.srcdata(:,winpnts,:), ...
+                                  'data',datachunk, ...
                                    g.algorithm);
         case 3
             [AR{t} PE{t} argsout] = feval(algFcnName, ...
-                                   'data',EEG.CAT.srcdata(:,winpnts,:),...
+                                   'data',datachunk,...
                                     g.algorithm);
             if isstruct(argsout)
                 % store contents of argsout fields in cell array at index t
