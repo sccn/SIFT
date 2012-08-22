@@ -1,4 +1,4 @@
-function V = est_calcInvCovMatFourier(Rinv,E,foi,fs,N,p, verb)
+function V = est_calcInvCovMatFourier(Rinv,E,foi,fs,M,p, verb)
 %
 % Obtain the frequency domain transform of the inverse covariance matrix of 
 % an M-variate VAR[p] process
@@ -10,7 +10,7 @@ function V = est_calcInvCovMatFourier(Rinv,E,foi,fs,N,p, verb)
 %     E:    noise covariance matrix
 %     foi:  frequencies of interest (Hz)
 %     fs:   sampling rate
-%     N:    # chans
+%     M:    # chans
 %     p:    model order
 %     verb: verbosity level. 0 = no output, 1=text.
 %
@@ -46,26 +46,27 @@ function V = est_calcInvCovMatFourier(Rinv,E,foi,fs,N,p, verb)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+DEBUG = 0;
 
 %% extract the diagonal elements of H=Rinv
 % structure of Hd is (e.g., for p=2): 
 % [diag(H(1,1)), diag(H(2,1)), diag(H(1,2)), diag(H(2,2))]
 % where diag(H(u,v)) is the column vector formed by the diagonal of
 % submatrix H(u,v) of H
-Hd = zeros(N,p^2);
+Hd = zeros(M,p^2);
 cnt=1;
 for v=1:p
     for u=1:p
-        Hd(:,cnt)=diag(Rinv((u-1)*N+1:u*N,(v-1)*N+1:v*N));
+        Hd(:,cnt)=diag(Rinv((u-1)*M+1:u*M,(v-1)*M+1:v*M));
         cnt=cnt+1;
     end
 end
 
-%DEBUG
-% for j=1:N
-%     try chol(reshape(Hd(j,:),[p p])); catch; fprintf('Hj<0: j=%d - ',j); keyboard; end;
-% end
-%DEBUG
+if DEBUG
+    for j=1:N
+        try chol(reshape(Hd(j,:),[p p])); catch; fprintf('Hj<0: j=%d - ',j); keyboard; end;
+    end
+end
 
 %% create u,v index vectors
 % us = [1 2 ... p 1 2 ... p ... ]'   (p^2 length)
@@ -82,7 +83,7 @@ end
 fi=0;
 COS=zeros(p^2,4); 
 freqs=(2*pi*foi)/fs; 
-V = zeros(length(freqs),N,N,2,2); % NOTE: V will end up (N,N,freqs,2,2)
+V = zeros(length(freqs),M,M,2,2); % NOTE: V will end up (M,M,freqs,2,2)
 if verb, h=waitbar(0,'calculating V^-1...'); end
 for f=freqs
     fi=fi+1;
@@ -111,16 +112,8 @@ for f=freqs
     Vm = kron(diag(E)',Vm);   % Vm = kron(diag(p^2*E)',Vm);
     
     % next, reshape to desired structure (NxNx2x2)
-    V(fi,:,:,:,:) = permute(reshape(Vm',2,2,N,N),[3 4 1 2]);
-    
-%     I=eye(2);
-%     % and, finally, invert each submatrix
-%     for i=1:N
-%         for j=1:N
-%             V(fi,i,j,:,:)=squeeze(V(fi,i,j,:,:))\I;
-%         end
-%     end
-    
+    V(fi,:,:,:,:) = permute(reshape(Vm',2,2,M,M),[3 4 1 2]);
+
     if verb, waitbar(fi/length(freqs),h); end
 end % for freqs
 
@@ -128,18 +121,3 @@ end % for freqs
 V = permute(V,[2 3 1 4 5]);
 if verb, close(h); end
 
-
-% -----------------------------------
-
-% function diags = getDiags(R,p,N,j)
-% % extract jjth diagonal element from each NxN submatrix of R
-% % result is a column vector.
-% 
-% I=repmat([0:(p-1)]'*N+j,p,1);
-% J = zeros(p,1);
-% for ii=1:p-1
-%     J=[J;ones(p,1)*ii*N];
-% end
-% J=J+j;
-% indx=sub2ind(size(R),I,J);
-% diags=R(indx);

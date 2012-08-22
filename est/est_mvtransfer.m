@@ -1,18 +1,18 @@
-function Conn = est_mvtransfer(AR,C,freqs,srate,connmethods)
+function Conn = est_mvtransfer(varargin)
 %
-% Calculate spectral, coherence, and connectivity measures from a fitted 
-% VAR model. See [1] for additional details on VAR model fitting and 
-% connectivity measures.  
+% Calculate spectral, coherence, and connectivity measures from a fitted
+% VAR model. See [1] for additional details on VAR model fitting and
+% connectivity measures.
 %
 % Input:
 %
-%   AR:             [M x M*p]   Matrix of autoregressive coefficients for 
+%   AR:             [M x M*p]   Matrix of autoregressive coefficients for
 %                               M-variate process of order p.
 %   C:              [M x M]     Noise covariance matrix
 %   freqs:          [vector]    Vector of frequencies of interest (Hz)
 %   srate:          [single]    Sampling rate of the data
 %   connmethods:    {vector}    Cell vector of strings containing names of
-%                               connectivity/spectral estimators. Allowed 
+%                               connectivity/spectral estimators. Allowed
 %                               values are:
 %           'dDTF':             Direct Directed Transfer Function []
 %           'dDTF08':           Modified direct DTF with normalization
@@ -29,7 +29,7 @@ function Conn = est_mvtransfer(AR,C,freqs,srate,connmethods)
 %                               one of the estimators named above
 %
 % Supported measures:
-% 
+%
 %     'dDTF'
 %     'dDTF08'
 %     'ffDTF'
@@ -48,17 +48,17 @@ function Conn = est_mvtransfer(AR,C,freqs,srate,connmethods)
 %     'DTF'
 %     'Sinv'
 %     'PDC'
-% 
+%
 % See Also: est_mvarConnectivity(), pop_est_mvarConnectivity()
 %
 % References:
 %
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
-%   Theoretical Handbook and User Manual. Chapters 3,6. 
+%   Theoretical Handbook and User Manual. Chapters 3,6.
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift
-% 
 %
-% Author: Tim Mullen 2010, SCCN/INC, UCSD. 
+%
+% Author: Tim Mullen 2010, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
 % This function was inspired by the mvfreqz() function in the TSA toolbox of
 % A. Schloegl
@@ -79,51 +79,35 @@ function Conn = est_mvtransfer(AR,C,freqs,srate,connmethods)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+%hlp_getValidConnMethods({'Directed Transfer Function'})
 
+
+g = arg_define([0 Inf],varargin, ...
+        arg_nogui({'AR'},mandatory,[],'AR coefficient matrix. This is an [M x M*p] Matrix of autoregressive coefficients for M-variate process of order p.'), ...
+        arg_nogui({'C','NoiseCov'},mandatory,[],'Noise covariance matrix. This is an [M x M] process noise covariance matrix'), ...
+        arg({'freqs','Frequencies'},[],[],'Frequencies to estimate'), ...
+        arg_nogui({'srate','SamplingRate'},mandatory,[],'Process sampling rate'), ...
+        arg({'connmethods','ConnectivityMeasures'},false,hlp_getValidConnMethods,'Select a connectivity measure','cat','Connectivity','type','logical') ...
+        );
+        
+arg_toworkspace(g);
+
+if isempty(g.freqs)
+    freqs = 1:srate;
+end
 
 if ischar(connmethods)
     connmethods = {connmethods};
 end
 
-% depedency graph -- each of the measures on the right depend on the
-% measure on the left (dependency arrow goes from left to right
-% e.g., 'Coh',{'iCoh'} means iCoh depends on Coh (Coh-->iCoh)
-% On the RHS, only include measures which are *directly* dependent on 
-% the LHS measure. e.g., if A->B->C, then you should have three entries
-%  'A', {'B'};
-%  'B', {'C'};
-%  'C', {}
-% If a new measure is added, you MUST update this depedency table
-% (add the method descriptor to the LHS, add any children of this method 
-% to the RHS and update the RHS of any other entries which this method 
-% depends on)
-dependencies = {...
-                'dDTF',     {};
-                'dDTF08',   {};
-                'ffDTF',    {'dDTF'};
-                'nDTF',     {};
-                'GGC',      {};
-                'GGC2',     {};
-                'iCoh',     {};
-                'Coh',      {'iCoh'};
-                'S',        {'Coh','GGC','GGC2'};
-                'pCoh',     {'dDTF','dDTF08'};
-                'mCoh',     {};
-                'RPDC',     {};
-                'GPDC',     {};
-                'nPDC',     {};
-                'PDCF',     {};
-                'dtf_denom' {'ffDTF','nDTF'};
-                'DTF',      {'nDTF','ffDTF','dDTF08','dtf_denom','S'};
-                'Sinv',     {'mCoh','pCoh','PDCF'};
-                'PDC',      {'DTF','G','nPDC','GPDC','RPDC','PDCF'};
-                'Rinv',     {'RPDC'}};
-            
+% get the depedency graph
+dependencies = hlp_microcache('depgraph',@hlp_makeConnMeasureDepGraph);
+
 % list of all possible intermediate (and final) estimators we might want to
-% calculate. 
+% calculate.
 alldescriptors = dependencies(:,1);
 
-methodsneeded = alldescriptors(find(isneeded(alldescriptors,connmethods,dependencies)));                
+methodsneeded = alldescriptors(hlp_microcache('blah',@isneeded,alldescriptors,connmethods,dependencies));
 univariate_measures = {'mCoh'};  % list of measures that are univariate (nchs x freqs)
 singleton_measures = {'DC'};     % list of measures that do not depend on frequency (nchs x 1)
 
@@ -135,7 +119,6 @@ z = 2*pi*1i/srate;
 
 
 I = eye(nchs);
-A = [I -AR];
 Cinv=inverse(C);
 
 % initialize objects
@@ -155,23 +138,18 @@ for i=1:length(tmp)
     Conn.(tmp{i}) = zeros(nchs,1);
 end
 
-% if any(strcmpi('Sinv',methodsneeded))
-%     detSinv = zeros(nfreqs,1);
-% end
- 
-ddc2 = diag(diag(C).^(-1/2)); 
+sqrtinvcov = diag(diag(C).^(-1/2));
 
 for n=1:nfreqs
-     
+    
     if any(strcmpi('PDC',methodsneeded))
         % complex non-normalized PDC
         % (Fourier transform of model coefficients)
-        for k = 1:morder+1,
-            Conn.PDC(:,:,n) = Conn.PDC(:,:,n) + A(:,k*nchs+(1-nchs:0))*exp(-z*(k-1)*freqs(n));
+        for k = 1:morder
+            Conn.PDC(:,:,n) = Conn.PDC(:,:,n) + AR(:,(1:nchs)+(k-1)*nchs)*exp(-z*k*freqs(n));
         end
+        Conn.PDC(:,:,n) = I-Conn.PDC(:,:,n);
     end
-    
-%     imagesc(abs(Conn.PDC(:,:,n).*exp(1i*z)));
     
     if any(strcmpi('DTF',methodsneeded))
         % complex non-normalized DTF
@@ -187,10 +165,10 @@ for n=1:nfreqs
     end
     
     if any(strcmpi('Sinv',methodsneeded))
-        % inverse spectral matrix:  
+        % inverse spectral matrix:
         % inv(S) = inv(DTF*C*DTF') = inv(DTF)'inv(C)inv(DTF) = PDC'inv(C)PDC
-    	Conn.Sinv(:,:,n) = Conn.PDC(:,:,n)'*Cinv*Conn.PDC(:,:,n);
-%         detSinv(n) = det(Conn.Sinv(:,:,n));    
+        Conn.Sinv(:,:,n) = Conn.PDC(:,:,n)'*Cinv*Conn.PDC(:,:,n);
+        %         detSinv(n) = det(Conn.Sinv(:,:,n));
     end
     
     if any(strcmpi('Coh',methodsneeded))
@@ -212,7 +190,7 @@ for n=1:nfreqs
     
     if any(strcmpi('GPDC',methodsneeded))
         % generalized PDC
-        gtmp = abs(ddc2*Conn.PDC(:,:,n));
+        gtmp = abs(sqrtinvcov*Conn.PDC(:,:,n));
         gtmp_denom =diag(gtmp'*gtmp)';
         Conn.GPDC(:,:,n) = gtmp./sqrt(gtmp_denom(ones(1,nchs),:));
     end
@@ -223,13 +201,18 @@ for n=1:nfreqs
         pdc_denom = diag(abs(Conn.PDC(:,:,n))'*abs(Conn.PDC(:,:,n)))';
         Conn.nPDC(:,:,n) = Conn.PDC(:,:,n)./sqrt(pdc_denom(ones(1,nchs),:));
     end
-        
+    
+    if any(strcmpi('pdc_denom',methodsneeded))
+        tmp = diag(abs(Conn.PDC(:,:,n))'*abs(Conn.PDC(:,:,n)))';
+        Conn.pdc_denom(:,:,n) = tmp(ones(1,nchs),:);
+    end
+    
     if any(strcmpi('PDCF',methodsneeded))
         % partial directed coherence factor
         pdcf_denom = diag(Conn.Sinv(:,:,n)).';
         Conn.PDCF(:,:,n) = abs(Conn.PDC(:,:,n))./sqrt(pdcf_denom(ones(1,nchs),:));
     end
-        
+    
     % --- DIRECTED TRANSFER FUNCTION MEASURES ---
     
     if any(strcmpi('dtf_denom',methodsneeded))
@@ -243,20 +226,15 @@ for n=1:nfreqs
         Conn.nDTF(:,:,n) = Conn.DTF(:,:,n)./sqrt(Conn.dtf_denom(:,:,n));
     end
     
-%     % store the estimates for this frequency
-%     for m=methodsneeded
-%         eval(sprintf('Conn.(%s)(:,:,n) = %s;',m{1},m{1}));
-%     end
-    
- end  % for each frequency
- 
- 
- % --- MORE DTF MEASURES ---
+end  % for each frequency
+
+
+% --- MORE DTF MEASURES ---
 if any(strcmpi('ffDTF',methodsneeded))
     % (real) full-frequency DTF
     Conn.ffDTF = abs(Conn.DTF)./abs(repmat(sqrt(sum(Conn.dtf_denom,3)),[1 1 nfreqs]));
 end
- 
+
 if any(strcmpi('dDTF',methodsneeded))
     % (real) direct-DTF
     Conn.dDTF = abs(Conn.pCoh).*Conn.ffDTF;
@@ -276,6 +254,11 @@ if any(strcmpi('Rinv',methodsneeded))
     Conn.Rinv = est_calcInvCovMat(AR,C);
 end
 
+if any(strcmpi('Vpdc',methodsneeded))
+    % used for computing alpha-significance levels of the PDC
+    Conn.Vpdc = est_calcInvCovMatFourierPDC(Conn.Rinv,C,freqs,srate,nchs,morder,0);
+end
+
 if any(strcmpi('RPDC',methodsneeded))
     V = est_calcInvCovMatFourier(Conn.Rinv,C,freqs,srate,nchs,morder,0);
     for i=1:nchs
@@ -283,13 +266,13 @@ if any(strcmpi('RPDC',methodsneeded))
             aij = [real(squeeze(Conn.PDC(i,j,:))).'; imag(squeeze(Conn.PDC(i,j,:))).'];
             aji = [real(squeeze(Conn.PDC(j,i,:))).'; imag(squeeze(Conn.PDC(j,i,:))).'];
             for k=1:nfreqs
-                Conn.RPDC(i,j,k) = ((aij(:,k)'/squeeze(V(i,j,k,:,:))))*aij(:,k);
-                Conn.RPDC(j,i,k) = ((aji(:,k)'/squeeze(V(j,i,k,:,:))))*aji(:,k);
-%                 %% DEBUG!
-%                  try chol(squeeze(V(j,i,k,:,:))); % check for pos-definiteness
-%                  catch, fprintf('V<0 i=%d j=%d f=%d || ',i,j,k); end
-%                  if i~=j && RPDC(i,j,k) < 0 || RPDC(j,i,k) < 0, keyboard; end
-%                 %% DEBUG!
+                Conn.RPDC(i,j,k) = (((aij(:,k)'/squeeze(V(i,j,k,:,:))))*aij(:,k))/2;
+                Conn.RPDC(j,i,k) = (((aji(:,k)'/squeeze(V(j,i,k,:,:))))*aji(:,k))/2;
+                %                 %% DEBUG!
+                %                  try chol(squeeze(V(j,i,k,:,:))); % check for pos-definiteness
+                %                  catch, fprintf('V<0 i=%d j=%d f=%d || ',i,j,k); end
+                %                  if i~=j && RPDC(i,j,k) < 0 || RPDC(j,i,k) < 0, keyboard; end
+                %                 %% DEBUG!
             end
         end
     end
@@ -310,11 +293,11 @@ if any(strcmpi('GGC',methodsneeded))
 end
 
 if any(strcmpi('GGC2',methodsneeded))
-    % Bivariate Granger-Geweke Causality (similar to Bessler et al. 2007)
+    % Bivariate Granger-Geweke Causality (similar to Bressler et al. 2007)
     for i=1:nchs
         for j=1:nchs
             Conn.GGC2(i,j,:) = log( absS(i,i,:)./ ...
-                                 (absS(i,i,:) - (C(j,j)-(C(i,j)^2/C(i,i)))*absHsq(i,j,:)));
+                (absS(i,i,:) - (C(j,j)-(C(i,j)^2/C(i,i)))*absHsq(i,j,:)));
         end;
     end;
 end
@@ -337,48 +320,49 @@ Conn = rmfield(Conn,setdiff(fieldnames(Conn),connmethods));
 Conn = structfun(@(x) (single(double(x))),Conn,'uniformoutput',false);
 
 
-%% HELPER FUNCTIONS 
+%% HELPER FUNCTIONS
 
- function needed = isneeded(curmethod,allmethods,dependencies)
+function needed = isneeded(curmethod,allmethods,dependencies)
 % check whether a particular measure will need to be calculated
 % Inputs:
 %   - curmethod:  a string or cell array of strings containing method
 %                 descriptors to check whether needed
 %   - allmethods: a cell array of strings containing method descriptors we
 %                 want to calculate
+%   - dependencies: a dependency graph as described in the containing
+%                 function
 % Output:
-%   - needed:     array of same size as curmethod containing 1 if method is 
+%   - needed:     array of same size as curmethod containing 1 if method is
 %                 needed, 0 otherwise
 
 nmethods = length(curmethod);
 
 if iscell(curmethod) && nmethods >1
-    needed = zeros(1,nmethods);
+    needed = false(1,nmethods);
     for i=1:nmethods
         needed(i) = isneeded(curmethod{i},allmethods,dependencies);
     end
     return;
 end
-             
+
 if isempty(curmethod)
-    needed =0;
+    needed = false;
     return;
 elseif ismember(curmethod,allmethods)
-    needed = 1;
+    needed =  true;
     return;
 else
-    % recursively determine whether any of the other methods the user 
+    % recursively determine whether any of the other methods the user
     % wants depend on curmethod
-    idx=strmatch(curmethod,dependencies(:,1),'exact');
-    if isempty(idx) || isempty(dependencies(idx,2)), needed=0; return; end
+    idx=strcmp(curmethod,dependencies(:,1));
+    if ~any(idx) || isempty(dependencies(idx,2)), needed=0; return; end
     children=dependencies(idx,2);
     if any(isneeded(children{1},allmethods,dependencies))
-        needed = 1;
+        needed = true;
         return;
     end
 end
 
 % if we get here, this particular curmethod is not needed
-needed = 0;
-    
-    
+needed = false;
+

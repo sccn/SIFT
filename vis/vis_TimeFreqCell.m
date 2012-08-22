@@ -5,7 +5,7 @@ function g = vis_TimeFreqCell(varargin)
 % detailed expansion of one cell of a TimeFrequencyGrid.
 %
 % Inputs:
-% 
+%
 %       ConnMatrix:     [N x N x T x F] connectivity matrix, where
 %                       N=numvars, T=numtimes, F=numfreqs
 %       alltimes:       Times. Vector of timepoints (ordinate). See
@@ -16,133 +16,133 @@ function g = vis_TimeFreqCell(varargin)
 %
 % Optional:
 %
-%     topovec:                    [2 x nchs] matrix of topoplots                                                                        
-%                                 Input Data Type: real number (double)                                                                 
-% 
-%     dipfitstruct:               EEG.dipfit structure containing only models for [ch_j ch_i]                                           
-%                                 Where ch_j -> ch_i                                                                                    
-%                                 Input Data Type: real number (double)                                                                 
-% 
-%     chanlocs:                   Chanlocs structure                                                                                    
-%                                 Input Data Type: string                                                                               
-% 
-%     chaninfo:                   Chaninfo structure                                                                                    
-%                                 Input Data Type: string                                                                               
-% 
-%     connmethod:                 Connectivity method name                                                                              
-%                                 Input Data Type: real number (double)                                                                 
-% 
-%     NodeLabels:                 Labels for the two nodes                                                                              
-%                                 Input Data Type: real number (double)                                                                 
-% 
-%     TimeRange:                  Time Range to plot                                                                                    
-%                                 Input Data Type: real number (double)                                                                 
-% 
-%     Frequencies:                Frequencies to plot                                                                                   
-%                                 Input Data Type: real number (double)                                                                 
-% 
-%     Baseline:                   Time range of baseline [Min Max] (sec)                                                                
-%                                 Will subtract baseline from each point. Leave blank for no baseline.                                  
-%                                 Input Data Type: real number (double)                                                                 
-% 
-%     FrequencyScale:             Frequency Scale                                                                                       
-%                                 Make the y-scale logarithmic or linear                                                                
-%                                 Possible values: {'log','linear'}                                                                     
-%                                 Default value  : 'linear'                                                                             
-%                                 Input Data Type: string                                                                               
-% 
-%     LineWidth:                  Linewidth for marginals                                                                               
-%                                 Input Range  : [1  Inf]                                                                               
-%                                 Default value: 2                                                                                      
-%                                 Input Data Type: real number (double)                                                                 
-% 
-%     EventMarkers:               Event marker time and style                                                                           
-%                                 Specify event markers with a cell array of {time linecolor linestyle linewidth} cell arrays. Ex. {    
-%                                 { 0.2 'y' ':' 2} { 1.5 'r' ':' 2}} will render two dotted-line event makers, yellow at 200 ms and     
-%                                 red at 1500 ms                                                                                        
-%                                 Input Data Type: any evaluable Matlab expression.                                                     
-% 
-%     Bidirectional:              Plot both directions                                                                                  
-%                                 Input Data Type: boolean                                                                              
-% 
-%     SourceMarginPlot:           Source location plotting                                                                              
-%                                 Options: 'Topoplot': plot source scalp projection. 'Dipole': plot dipole                              
-%                                 Possible values: {'none','topoplot','dipole'}                                                         
-%                                 Default value  : 'dipole'                                                                             
-%                                 Input Data Type: string                                                                               
-% 
-%     DipolePlottingOptions:      Options for dipole plotting                                                                           
-%                                 Input Data Type: string                                                                               
-%     ----------------------                                                                                                            
-% 
-%         mri:                    Dipplot MRI structure                                                                                 
-%                                 Can be the name of matlab variable (in the base workspace) containing MRI structure. May also be a    
-%                                 path to a Matlab file containing MRI structure. Default uses MNI brain.                               
-%                                 Input Data Type: string                                                                               
-% 
-%         DipoleCoordinateFormat: Coordinate format for dipplot                                                                         
-%                                 Possible values: {'spherical','mni'}                                                                  
-%                                 Default value  : 'mni'                                                                                
-%                                 Input Data Type: string                                                                               
-% 
-%         DipplotOptions:         Additional dipplot options                                                                            
-%                                 Cell array of <'name',value> pairs of additional options for dipplot (see 'doc dipplot')              
-%                                 Input Data Type: any evaluable Matlab expression.                                                     
-% 
-%     TitleString:                Figure time string                                                                                    
-%                                 Input Data Type: string                                                                               
-% 
-%     TitleFontSize:              Title Font Size                                                                                       
-%                                 Input Data Type: real number (double)                                                                 
-% 
-%     AxesFontSize:               Axes Font Size                                                                                        
-%                                 Input Data Type: real number (double)                                                                 
-% 
-%     TextColor:                  Text color                                                                                            
-%                                 See 'doc ColorSpec'.                                                                                  
-%                                 Input Data Type: any evaluable Matlab expression.                                                     
-% 
-%     BackgroundColor:            Background Color                                                                                      
-%                                 See 'doc ColorSpec'.                                                                                  
-%                                 Input Data Type: any evaluable Matlab expression.                                                     
-% 
-%     ColorLimits:                Color scaling limits                                                                                  
-%                                 If [min max], scale by [min max]. If scalar, and all(Conn>0), limits are set to [0 maxprc]. If        
-%                                 scalar, and any(Conn<0), limits are set to [-maxprc maxprc] where maxprc is                           
-%                                 prctile(abs(Conn),scalar)                                                                             
-%                                 Input Data Type: real number (double)                                                                 
-% 
-%     Thresholding:               Thresholding options                                                                                  
-%                                 You can choose to use statistics (passed in as 'stats' structure), or simple percentile or absolute   
-%                                 thresholds.                                                                                           
-%                                 Possible values: {'None','Statistics','Simple'}                                                       
-%                                 Default value  : 'None'                                                                               
-%                                 Input Data Type: string                                                                               
-%     -------------                                                                                                                     
-% 
-%         AlphaSignificance:      P-value threshold for significance. e.g., 0.05 for p<0.05                                             
-%                                 Input Range  : [0  1]                                                                                 
-%                                 Default value: 0.05                                                                                   
-%                                 Input Data Type: real number (double)                                                                 
-% 
-%         PercentileThreshold:    Percentile threshold                                                                                  
-%                                 If of form [percentile, dimension], percentile is applied elementwise across the specified            
-%                                 dimension.                                                                                            
-%                                 Input Data Type: real number (double)                                                                 
-% 
-%         AbsoluteThreshold:      Exact threshold                                                                                       
-%                                 Input Data Type: real number (double)     
+%     topovec:                    [2 x nchs] matrix of topoplots
+%                                 Input Data Type: real number (double)
 %
-% 
-% See Also: pop_vis_TimeFreqGrid(), vis_TimeFreqGrid(), 
+%     dipfitstruct:               EEG.dipfit structure containing only models for [ch_j ch_i]
+%                                 Where ch_j -> ch_i
+%                                 Input Data Type: real number (double)
 %
-% References: 
-% 
+%     chanlocs:                   Chanlocs structure
+%                                 Input Data Type: string
+%
+%     chaninfo:                   Chaninfo structure
+%                                 Input Data Type: string
+%
+%     connmethod:                 Connectivity method name
+%                                 Input Data Type: real number (double)
+%
+%     NodeLabels:                 Labels for the two nodes
+%                                 Input Data Type: real number (double)
+%
+%     TimeRange:                  Time Range to plot
+%                                 Input Data Type: real number (double)
+%
+%     Frequencies:                Frequencies to plot
+%                                 Input Data Type: real number (double)
+%
+%     Baseline:                   Time range of baseline [Min Max] (sec)
+%                                 Will subtract baseline from each point. Leave blank for no baseline.
+%                                 Input Data Type: real number (double)
+%
+%     FrequencyScale:             Frequency Scale
+%                                 Make the y-scale logarithmic or linear
+%                                 Possible values: {'log','linear'}
+%                                 Default value  : 'linear'
+%                                 Input Data Type: string
+%
+%     LineWidth:                  Linewidth for marginals
+%                                 Input Range  : [1  Inf]
+%                                 Default value: 2
+%                                 Input Data Type: real number (double)
+%
+%     EventMarkers:               Event marker time and style
+%                                 Specify event markers with a cell array of {time linecolor linestyle linewidth} cell arrays. Ex. {
+%                                 { 0.2 'y' ':' 2} { 1.5 'r' ':' 2}} will render two dotted-line event makers, yellow at 200 ms and
+%                                 red at 1500 ms
+%                                 Input Data Type: any evaluable Matlab expression.
+%
+%     Bidirectional:              Plot both directions
+%                                 Input Data Type: boolean
+%
+%     SourceMarginPlot:           Source location plotting
+%                                 Options: 'Topoplot': plot source scalp projection. 'Dipole': plot dipole
+%                                 Possible values: {'none','topoplot','dipole'}
+%                                 Default value  : 'dipole'
+%                                 Input Data Type: string
+%
+%     DipolePlottingOptions:      Options for dipole plotting
+%                                 Input Data Type: string
+%     ----------------------
+%
+%         mri:                    Dipplot MRI structure
+%                                 Can be the name of matlab variable (in the base workspace) containing MRI structure. May also be a
+%                                 path to a Matlab file containing MRI structure. Default uses MNI brain.
+%                                 Input Data Type: string
+%
+%         DipoleCoordinateFormat: Coordinate format for dipplot
+%                                 Possible values: {'spherical','mni'}
+%                                 Default value  : 'mni'
+%                                 Input Data Type: string
+%
+%         DipplotOptions:         Additional dipplot options
+%                                 Cell array of <'name',value> pairs of additional options for dipplot (see 'doc dipplot')
+%                                 Input Data Type: any evaluable Matlab expression.
+%
+%     TitleString:                Figure time string
+%                                 Input Data Type: string
+%
+%     TitleFontSize:              Title Font Size
+%                                 Input Data Type: real number (double)
+%
+%     AxesFontSize:               Axes Font Size
+%                                 Input Data Type: real number (double)
+%
+%     TextColor:                  Text color
+%                                 See 'doc ColorSpec'.
+%                                 Input Data Type: any evaluable Matlab expression.
+%
+%     BackgroundColor:            Background Color
+%                                 See 'doc ColorSpec'.
+%                                 Input Data Type: any evaluable Matlab expression.
+%
+%     ColorLimits:                Color scaling limits
+%                                 If [min max], scale by [min max]. If scalar, and all(Conn>0), limits are set to [0 maxprc]. If
+%                                 scalar, and any(Conn<0), limits are set to [-maxprc maxprc] where maxprc is
+%                                 prctile(abs(Conn),scalar)
+%                                 Input Data Type: real number (double)
+%
+%     Thresholding:               Thresholding options
+%                                 You can choose to use statistics (passed in as 'stats' structure), or simple percentile or absolute
+%                                 thresholds.
+%                                 Possible values: {'None','Statistics','Simple'}
+%                                 Default value  : 'None'
+%                                 Input Data Type: string
+%     -------------
+%
+%         AlphaSignificance:      P-value threshold for significance. e.g., 0.05 for p<0.05
+%                                 Input Range  : [0  1]
+%                                 Default value: 0.05
+%                                 Input Data Type: real number (double)
+%
+%         PercentileThreshold:    Percentile threshold
+%                                 If of form [percentile, dimension], percentile is applied elementwise across the specified
+%                                 dimension.
+%                                 Input Data Type: real number (double)
+%
+%         AbsoluteThreshold:      Exact threshold
+%                                 Input Data Type: real number (double)
+%
+%
+% See Also: pop_vis_TimeFreqGrid(), vis_TimeFreqGrid(),
+%
+% References:
+%
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
 %   Theoretical Handbook and User Manual. Chapter 6.
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift
 %
-% Author: Tim Mullen, 2010, SCCN/INC, UCSD. 
+% Author: Tim Mullen, 2010, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
@@ -170,7 +170,7 @@ if ~isempty(varargin)
     elseif isfield(varargin{1},'icaact')
         stats = arg_extract(varargin(3:end),'stats');
     else
-        stats = arg_extract(varargin,'stats');
+        stats = arg_extract(varargin,'stats',[],[]);
     end
     
     if isempty(stats)
@@ -181,6 +181,7 @@ if ~isempty(varargin)
     clear stats;
 end
 
+StatThreshMethods = {'pval','thresh','logical'};
 
 g = arg_define([0 Inf],varargin, ...
     arg_norep({'ConnMatrix','ConnectivityMatrix'},mandatory), ...
@@ -196,6 +197,7 @@ g = arg_define([0 Inf],varargin, ...
     arg({'timeRange','TimeRange'},[],[],'Time Range to plot','cat','DisplayProperties'), ...
     arg({'freqValues','Frequencies'},[],[],'Frequencies to plot','cat','DisplayProperties'), ...
     arg({'baseline','Baseline'},[],[],'Time range of baseline [Min Max] (sec). Will subtract baseline from each point. Leave blank for no baseline.','cat','DataProcessing'), ...
+    arg({'smooth','Smooth2D'},false,[],'Smooth time-freq image. This will apply nearest-neighbor interpolation.','cat','DataProcessing'), ...
     arg({'freqscale','FrequencyScale'},'linear',{'log','linear'},'Frequency Scale. Make the y-scale logarithmic or linear','cat','DisplayProperties'), ...
     arg({'linewidth','LineWidth'},2,[1 Inf],'Linewidth for marginals','cat','DisplayProperties'), ...
     arg({'events','EventMarkers'},[],[],'Event marker time and style. Specify event markers with a cell array of {time linecolor linestyle linewidth} cell arrays. Ex. { { 0.2 ''y'' '':'' 2} { 1.5 ''r'' '':'' 2}} will render two dotted-line event makers, yellow at 200 ms and red at 1500 ms','type','expression','shape','row','cat','DisplayProperties'), ...
@@ -203,34 +205,42 @@ g = arg_define([0 Inf],varargin, ...
     arg({'bidir','Bidirectional'},true,[],'Plot both directions','cat','DisplayProperties'), ...
     arg({'topoplot','SourceMarginPlot'},'dipole',{'none','topoplot','dipole'},'Source location plotting. Options: ''Topoplot'': plot source scalp projection. ''Dipole'': plot dipole','cat','DisplayProperties'), ...
     arg_sub({'dipplot','DipolePlottingOptions'},[], ...
-    { ...
+        { ...
         arg_nogui({'mri'},'',[],'Dipplot MRI structure. Can be the name of matlab variable (in the base workspace) containing MRI structure. May also be a path to a Matlab file containing MRI structure. Default uses MNI brain.','type','char','shape','row'), ...
         arg_nogui({'coordformat','DipoleCoordinateFormat'},'mni',{'spherical','mni'},'Coordinate format for dipplot','type','char','shape','row'), ...
         arg_nogui({'dipplotopt','DipplotOptions'},'{}','','Additional dipplot options. Cell array of <''name'',value> pairs of additional options for dipplot (see ''doc dipplot'')','type','expression','shape','row') ...
-    },'Options for dipole plotting'), ...
+        },'Options for dipole plotting'), ...
     arg({'titleString','TitleString'},'','','Figure time string','type','char','cat','TextAndFont'), ...
     arg({'titleFontSize','TitleFontSize'},12,[],'Title Font Size','cat','TextAndFont'), ...
     arg({'axesFontSize','AxesFontSize'},10,[],'Axes Font Size','cat','TextAndFont'), ...
     arg({'textColor','TextColor'},[0 0 0],[],'Text color. See ''doc ColorSpec''.','type','expression','shape','row','cat','TextAndFont'), ...
     arg({'backgroundColor','BackgroundColor'},[0 0 0],[],'Background Color. See ''doc ColorSpec''.','type','expression','shape','row','cat','TextAndFont'), ...
+    arg({'foilines','FrequencyMarkers'},[],[],'Vector of frequencies (Hz) at which to draw horizontal lines','cat','FrequencyMarkers'), ...
+    arg({'foilinecolor','FrequencyMarkerColor'},[],[],'Coloring for frequency markers. If an [1 x 3] array of RBG values, then color all lines using this color. If an [N x 3] matrix of RBG values, then color the kth line with the colorspec from the kth row. If empty then cycle through colorlist','shape','matrix','cat','FrequencyMarkers'), ...
     arg({'clim','ColorLimits'},[0 100],[],'Color scaling limits. If [min max], scale by [min max]. If scalar, and all(Conn>0), limits are set to [0 maxprc]. If scalar, and any(Conn<0), limits are set to [-maxprc maxprc] where maxprc is prctile(abs(Conn),scalar)','shape','row','cat','DisplayProperties'), ...
     arg_subswitch({'thresholding','Thresholding'},'None', ...
-    {'None' { ...
-    arg_norep({'dummy1'},[],[],'dummy') ...
-    }, ...
-    'Statistics' {...
-    arg({'alpha','AlphaSignificance'},0.05,[0 1],'P-value threshold for significance. e.g., 0.05 for p<0.05') ...
-    }, ...
-    'Simple' {...
-    arg({'prcthresh','PercentileThreshold'},100,[],'Percentile threshold. If of form [percentile, dimension], percentile is applied elementwise across the specified dimension.','shape','row','cat','Thresholding'), ...
-    arg({'absthresh','AbsoluteThreshold'},[],[],'Exact threshold.','cat','Thresholding') ...
-    } ...
-    }, 'Thresholding options. You can choose to use statistics (passed in as ''stats'' structure), or simple percentile or absolute thresholds.','cat','Thresholding') ...
+        {'None' { ...
+        arg_norep({'dummy1'},[],[],'dummy') ...
+        }, ...
+        'Statistics' {...
+            arg({'plotci','PlotConfidenceIntervals'},false,[],'Plot confidence intervals (if available). Does not apply to for time-frequency images.'), ...
+            arg({'sigthreshmethod','ThresholdingMethod'},StatThreshMethods{1},StatThreshMethods,'Method to use for significance masking') ...
+            arg({'alpha','AlphaSignificance'},0.05,[0 1],'P-value threshold for significance. e.g., 0.05 for p<0.05') ...
+            }, ...
+        'Simple' {...
+            arg({'prcthresh','PercentileThreshold'},0,[],'Percentile threshold. If of form [percentile, dimension], percentile is applied elementwise across the specified dimension.','type','denserealdouble','shape','row','cat','Thresholding'), ...
+            arg({'absthresh','AbsoluteThreshold'},[],[],'Exact threshold.','cat','Thresholding') ...
+            } ...
+        }, 'Thresholding options. You can choose to use statistics (passed in as ''stats'' structure), or simple percentile or absolute thresholds.','cat','Thresholding') ...
     );
 
 % check inputs and handle defaults
 % ---------------------------------------------------
+colorlist   = {'k','g','b','c','m','y','r'};
+
 g.applyThreshold = ~strcmpi(g.thresholding.arg_selection,'none');
+
+if (g.applyThreshold && islogical(g.StatsMatrix)), g.thresholding.sigthreshmethod = 'logical'; end
 
 if ndims(g.ConnMatrix) == 2
     % make ConnMatrix a [1 x N x M] matrix
@@ -279,15 +289,13 @@ g.ConnMatrix                = g.ConnMatrix(:,freqIndices,timeIndices);
 if ~isempty(g.StatsMatrix)
     switch ndims(g.StatsMatrix)
         case 3
-            g.StatsMatrix    = g.StatsMatrix(:,freqIndices,timeIndices); 
+            g.StatsMatrix    = g.StatsMatrix(:,freqIndices,timeIndices);
         case 4
             g.StatsMatrix    = g.StatsMatrix(:,freqIndices,timeIndices,:);
     end
 end
 
 cmaplen = length(g.colormap);
-
-% Rangle = angle(ConnOrig);
 
 if g.bidir
     ordinate(1)  = 0.67;
@@ -300,42 +308,11 @@ else
     numdirs = 1;
 end
 
-% compute angles
-% --------------
-% Rangle = angle(ConnOrig);
-% if ~isreal(ConnOrig)
-%     ConnOrig = abs(ConnOrig);
-%     Rraw =ConnOrig; % raw coherence values
-%     setylim = 1;
-%     if ~isnan(g.baseline)
-%      	ConnOrig = ConnOrig - repmat(baseline',[1 g.timesout]); % remove baseline mean
-%     end;
-% else
-%     Rraw = ConnOrig;
-%     setylim = 0;
-% end;
-
-%
-%
-% if g.bidir
-%     setylim = 1;
-% else
-%     setylim = 0;
-% end
-
-
-
 % create figure
-figure('name',g.titleString,'DefaultAxesFontSize',g.axesFontSize); %,'color',g.backgroundColor
+figure('name',g.titleString,'DefaultAxesFontSize',g.axesFontSize);
 colormap(g.colormap);
 
-% COLORMAP
-%    map=hsv(300); % install circular color map - green=0, yellow, orng, red, violet = max
-%    %                                         cyan, blue, violet = min
 map = g.colormap;
-% % cmapmid =  floor(cmaplen/2)+1;
-% map = flipud([map(251:end,:);map(1:250,:)]);
-% map(151,:) = map(151,:)*0.9; % tone down the (0=) green!
 
 pos = get(gca,'position'); % plot relative to current axes
 q = [pos(1) pos(2) 0 0];
@@ -344,10 +321,10 @@ axis('off')
 
 [leftMargAxLim botMargAxLim] = deal(zeros(numdirs,4));
 
+% backup frequencies for logimagesc
+origFreqs = g.allfreqs;
+
 for dir=1:numdirs
-    %
-    % Image the coherence [% perturbations]
-    %
     
     Conn = squeeze(g.ConnMatrix(dir,:,:,:,:));
     
@@ -357,17 +334,6 @@ for dir=1:numdirs
     
     ConnOrig = Conn;
     
-    %
-    %     if numdirs>1
-    %        % bidirectional
-    %        Conn = squeeze(g.ConnMatrix(dir,:,:,:,:));
-    %        ConnOrig = Conn;
-    %     else
-    %        Conn = g.ConnMatrix;     % for thresholding
-    %        ConnOrig = Conn;         % unthresholded
-    %     end
-    %
-    
     % remove baseline
     if ~isempty(g.baseline)
         % baseline mean coherence at each frequency
@@ -376,7 +342,7 @@ for dir=1:numdirs
         baselineMean = mean(baseline,ndims(baseline));
         
         
-        Conn = Conn-repmat(baselineMean,1,size(Conn,2));  %hlp_rmbaseline(Conn,g.baseline,g.alltimes);
+        Conn = Conn-repmat(baselineMean,1,size(Conn,2));
         ConnOrig = Conn;
     else
         baselineMean = Conn;
@@ -385,22 +351,44 @@ for dir=1:numdirs
     % perform statistical thresholding
     % zero out (and 'green out') nonsignif. ConnOrig values
     if g.applyThreshold
+        
         Stat = squeeze(g.StatsMatrix(dir,:,:,:,:));
         
-        %         if numdirs>1
-        %             Stat = squeeze(g.StatsMatrix(dir,:,:,:,:));
-        %         else
-        %             Stat = g.StatsMatrix;
-        %         end
+        if dims(Stat)==1
+            % expand Stat to dimensions of Conn
+            Stat = repmat(Stat,[size(Conn,1) size(Conn,2)]);
+        elseif size(Stat,1)==1
+            stmp = Stat; Stat = [];
+            Stat(:,:,1) = repmat(stmp(1),size(Conn));
+            Stat(:,:,2) = repmat(stmp(2),size(Conn));
+        end
         
-        switch dims(Stat)
-            case 3, Conn  (Conn > Stat(:,:,1) & (Conn < Stat(:,:,2))) = 0;
-                %                    Rraw(Conn > Stat(:,:,1) & (Conn < Stat(:,:,2))) = 0;
-            case 2, Conn  (Conn < Stat) = 0;
-                %                    Rraw(Conn < Stat) = 0;
-            case 1, Conn  (Conn < repmat(Stat(:),[1 size(Conn,2)])) = 0;
-                %                    Rraw(Conn < repmat(Stat(:),[1 size(Rraw,2)])) = 0;
-        end;
+        switch g.thresholding.arg_selection
+            case 'Statistics'
+                
+                
+                switch g.thresholding.sigthreshmethod
+                    case 'pval'
+                        Conn (Stat > (1-g.thresholding.alpha.alpha)) = 0;
+                        Stat = [];
+                    case 'thresh'
+                        switch dims(Stat)
+                            case 3, Conn  (Conn > Stat(:,:,1) & (Conn < Stat(:,:,2))) = 0;
+                            case 2, Conn  (Conn < Stat) = 0;
+                            case 1, Conn  (Conn < repmat(Stat(:),[size(Conn,1) size(Conn,2)])) = 0;
+                        end;
+                    case 'logical'
+                        Conn (~Stat) = 0;
+                        Stat = [];
+                end
+            case 'Simple'
+                switch dims(Stat)
+                    case 3, Conn  (Conn > Stat(:,:,1) & (Conn < Stat(:,:,2))) = 0;
+                    case 2, Conn  (Conn < Stat) = 0;
+                    case 1, Conn  (Conn < repmat(Stat(:),[size(Conn,1) size(Conn,2)])) = 0;
+                end;
+        end
+        
     end
     
     
@@ -409,12 +397,18 @@ for dir=1:numdirs
     colormap(map);
     
     if ~strcmpi(g.freqscale, 'log')
-        try, imagesc(g.alltimes,g.allfreqs,Conn,max(Conn(:))*[-1 1]);
-        catch, imagesc(g.alltimes,g.allfreqs,Conn,[-1 1]); end;
+        try     imagesc(g.alltimes,g.allfreqs,Conn,max(Conn(:))*[-1 1]);
+        catch,  imagesc(g.alltimes,g.allfreqs,Conn,[-1 1]); end
+        IntegrConn  = ConnOrig;
+        IntegrFreqs = g.allfreqs';
     else
-        try, imagesclogy(g.alltimes,g.allfreqs,Conn,max(Conn(:))*[-1 1]);
-        catch, imagesclogy(g.alltimes,g.allfreqs,Conn,[-1 1]); end;
+        
+        [IntegrFreqs IntegrConn] = logimagesc(g.alltimes,origFreqs,Conn);
+        try     set(gca,'Clim',max(Conn(:))*[-1 1]);
+        catch,  set(gca,'Clim',[-1 1]); end
     end
+    YTickMark = get(gca,'YTick');
+    YTickLabel = get(gca,'YTickLabel');
     set(gca,'ydir','norm');
     
     if ~isempty(g.clim)
@@ -440,6 +434,23 @@ for dir=1:numdirs
             set(vl,'color',events{2},'linestyle',events{3},'linewidth',events{4});
         end
     end
+    
+    % draw horizontal lines at frequencies of interest
+    if ~isempty(g.foilines)
+        for ln=1:length(g.foilines)
+            hl = hline(g.foilines(ln));
+            if isempty(g.foilinecolor)
+                color = colorlist{mod(ln-1,length(colorlist))+1};
+            elseif size(g.foilinecolor,1) > 1
+                color = g.foilinecolor(ln,:);
+            elseif size(g.foilinecolor,1) == 1
+                color = g.foilinecolor;
+            end
+            
+            set(hl,'color',color,'linestyle','-','linewidth',1);
+            set(hl,'tag','foilines');
+        end
+    end
     hold off
     
     
@@ -450,11 +461,20 @@ for dir=1:numdirs
         ch1=2; ch2=1;
     end
     
-    if ~isempty(str2num(g.nodelabels{ch1}))
-        ltext = sprintf('IC%s -> IC%s',g.nodelabels{ch1},g.nodelabels{ch2});
+    if g.bidir || ~isequal(g.nodelabels{ch1},g.nodelabels{ch2})
+        if ~isempty(str2num(g.nodelabels{ch1}))
+            ltext = sprintf('IC%s -> IC%s',g.nodelabels{ch1},g.nodelabels{ch2});
+        else
+            ltext = sprintf('%s -> %s',g.nodelabels{ch1},g.nodelabels{ch2});
+        end
     else
-        ltext = sprintf('%s -> %s',g.nodelabels{ch1},g.nodelabels{ch2});
+        if ~isempty(str2num(g.nodelabels{ch1}))
+            ltext = sprintf('IC%s',g.nodelabels{ch1});
+        else
+            ltext = sprintf('%s',g.nodelabels{ch1});
+        end
     end
+    
     text(0.98,0.92,ltext,'parent',gca,'units','normalized','fontweight','bold','fontsize',g.axesFontSize,'horizontalalignment','right','backgroundcolor',[1 1 1],'edgecolor',[0.3 0.3 0.3]);
     
     
@@ -465,55 +485,46 @@ for dir=1:numdirs
     h(8) = axes('Position',[.95 ordinate(dir) .05 height].*s+q);
     
     cbar(h(8),1:length(map),[tmpscale(1) tmpscale(2)]);
-    %
-    %    if setylim
-    %        cbar(h(8),1:length(map),[0 tmpscale(2)]);
-    % %         cbar(h(8),151:300, [0 tmpscale(2)]); % use only positive colors (gyorv)
-    %    else
-    %        cbar(h(8),1:length(map)  , [-tmpscale(2) tmpscale(2)]);
-    % %        cbar(h(8),1:300  , [-tmpscale(2) tmpscale(2)]); % use only positive colors (gyorv)
-    %    end;
-    %
+    ylabel(g.connmethod);
     
-    
-    
-  
     % Plot bottom marginal
     % ----------------------------
+    StatMarginal = [];
     
     h(10) = axes('Units','Normalized','Position',[.1 ordinate(dir)-0.1 .8 .1].*s+q);
-    Emax = max(ConnOrig,[],1); % envelope of infoflow at each time point
-    Emin = min(ConnOrig,[],1); % envelope infoflow at each time point
+    ConnMarginal = trapz(IntegrFreqs,IntegrConn); % integrate across frequency for each time point
     
-    %    Emax = mean(ConnOrig,1);  % max of data collapsed across time
-    %    Emin = Emax;
+    %    plot(g.alltimes,ConnMarginal, g.alltimes, ConnMarginal, 'LineWidth',g.linewidth); hold on;
+    plot(g.alltimes,ConnMarginal,'LineWidth',g.linewidth); hold on;
+%     vlh = vline([0 0]);
+%     set(vlh,'LineWidth',0.7);
     
-    [dummy idx] = max(abs(ConnOrig));
-    for i=1:length(idx)   % CRAPPY CODE!!
-        plotdat(i) = ConnOrig(idx(i),i);
-    end
-    
-    %    plot(g.alltimes,Emin, g.alltimes, Emax, 'LineWidth',g.linewidth); hold on;
-    plot(g.alltimes,plotdat,'LineWidth',g.linewidth); hold on;
-    plot([g.alltimes(1) g.alltimes(length(g.alltimes))],[0 0],'LineWidth',0.7);
-    
-    % plot bootstrap significance limits (base mean +/-)
+    % plot bootstrap significance limits
     if ~isempty(g.StatsMatrix) && dims(Stat) > 1
         switch dims(Stat)
-            case 2, plot(g.alltimes,mean(Stat(:,:),1),'g' ,'LineWidth',g.linewidth);
-                plot(g.alltimes,mean(Stat(:,:),1),'k:','LineWidth',g.linewidth);
-            case 3, plot(g.alltimes,mean(Stat(:,:,1),1),'g' ,'LineWidth',g.linewidth);
-                plot(g.alltimes,mean(Stat(:,:,1),1),'k:','LineWidth',g.linewidth);
-                plot(g.alltimes,mean(Stat(:,:,2),1),'g' ,'LineWidth',g.linewidth);
-                plot(g.alltimes,mean(Stat(:,:,2),1),'k:','LineWidth',g.linewidth);
+            case 2,
+                StatMarginal = trapz(g.allfreqs,Stat)';
+                
+            case 3,
+                StatMarginal(:,1) = trapz(g.allfreqs,squeeze(Stat(:,:,1)));
+                StatMarginal(:,2) = trapz(g.allfreqs,squeeze(Stat(:,:,2)));
         end;
-        axis([min(g.alltimes) max(g.alltimes) min([Emin(:)' Stat(:)'])*1.2-10^-5 max([Emax(:)' Stat(:)'])*1.2+10^-5]);
+        
+        for i=1:size(StatMarginal,2)
+            plot(g.alltimes,StatMarginal(:,i),'g' ,'LineWidth',g.linewidth);
+            plot(g.alltimes,StatMarginal(:,i),'k:','LineWidth',g.linewidth);
+        end
+        
+        axmin = min([ConnMarginal(:)' Stat(:)']);
+        axmax = max([ConnMarginal(:)' Stat(:)']);
+        axis([min(g.alltimes) max(g.alltimes) (sign(axmin)-0.2)*abs(axmin)-eps (sign(axmax)+0.2)*abs(axmax)+eps]);
     else
-        if ~all(isnan(Emin(:)))
-            axis([min(g.alltimes)-eps max(g.alltimes)+eps min(Emin)*1.2-10^-5 max(Emax)*1.2+10^-5]);
+        if ~all(isnan(ConnMarginal(:)))
+            axmin = min(ConnMarginal);
+            axmax = max(ConnMarginal);
+            axis([min(g.alltimes)-eps max(g.alltimes)+eps (sign(axmin)-0.2)*abs(axmin)-eps (sign(axmax)+0.2)*abs(axmax)+eps]);
         end
     end;
-    
     
     tick = get(h(10),'YTick');
     set(h(10),'YTick',[tick(1) ; tick(length(tick))])
@@ -523,27 +534,15 @@ for dir=1:numdirs
     
     % Create left marginal
     % ---------------------------
-    
+    StatMarginal = [];
     h(11) = axes('Units','Normalized','Position',[0 ordinate(dir) .1 height].*s+q);
     
-    % DETERMINE WHAT TO PLOT ON THE LEFT SIDE OF THE IMAGE
-    Emax = max(ConnOrig,[],2);  % max of data collapsed across time
-    Emin = min(ConnOrig,[],2);
-    
-    %    Emax = mean(ConnOrig,2);  % max of data collapsed across time
-    %    Emin = Emax;
-    
-    % plot the maximal +- values
-    plotdat = [];
-    [dummy idx] = max(abs(ConnOrig),[],2);
-    for i=1:length(idx)   % CRAPPY CODE!!
-        plotdat(i) = ConnOrig(i,idx(i));
-    end
+    ConnMarginal = trapz(g.alltimes,ConnOrig,2);  % integrate across time
     
     if ~strcmpi(g.freqscale, 'log')
-        plot(g.allfreqs,plotdat,'b','LineWidth',g.linewidth); % plot baseline
+        plot(g.allfreqs,ConnMarginal,'b','LineWidth',g.linewidth); % plot baseline
     else
-        semilogx(g.allfreqs,Emax,'b','LineWidth',g.linewidth); % plot baseline
+        semilogx(g.allfreqs,ConnMarginal,'b','LineWidth',g.linewidth); % plot baseline
         set(h(11),'View',[90 90])
         divs = linspace(log(g.allfreqs(1)), log(g.allfreqs(end)), 10);
         set(gca, 'xtickmode', 'manual');
@@ -551,39 +550,51 @@ for dir=1:numdirs
         % out-of border label with within border ticks
         set(gca, 'xtick', divs);
     end;
-    if g.applyThreshold % plot bootstrap significance limits (base max +/-)
+    if g.applyThreshold && ~isempty(Stat) % plot bootstrap significance limits (base max +/-)
         hold on
+        
+        switch dims(Stat)
+            case 1,
+                StatMarginal = Stat(:);
+            case 2,
+                StatMarginal = trapz(g.alltimes,Stat(:,:),2);
+                
+            case 3,
+                StatMarginal(:,1) = trapz(g.alltimes,squeeze(Stat(:,:,1)),2);
+                StatMarginal(:,2) = trapz(g.alltimes,squeeze(Stat(:,:,2)),2);
+        end
+        
         if ~strcmpi(g.freqscale, 'log')
-            switch dims(Stat)
-                case 1, plot(g.allfreqs,Stat(:),'g' ,'LineWidth',g.linewidth);
-                    plot(g.allfreqs,Stat(:),'k:','LineWidth',g.linewidth);
-                case 2, plot(g.allfreqs,mean(Stat(:,:),2),'g' ,'LineWidth',g.linewidth);
-                    plot(g.allfreqs,mean(Stat(:,:),2),'k:','LineWidth',g.linewidth);
-                case 3, plot(g.allfreqs,mean(Stat(:,:,1),2),'g' ,'LineWidth',g.linewidth);
-                    plot(g.allfreqs,mean(Stat(:,:,1),2),'k:','LineWidth',g.linewidth);
-                    plot(g.allfreqs,mean(Stat(:,:,2),2),'g' ,'LineWidth',g.linewidth);
-                    plot(g.allfreqs,mean(Stat(:,:,2),2),'k:','LineWidth',g.linewidth);
-            end;
+            
+            for i=1:size(StatMarginal,2)
+                plot(g.allfreqs,StatMarginal(:,i),'g' ,'LineWidth',g.linewidth);
+                plot(g.allfreqs,StatMarginal(:,i),'k:','LineWidth',g.linewidth);
+            end
+            
         else
-            switch dims(Stat)
-                case 1, semilogy(g.allfreqs,Stat(:),'g' ,'LineWidth',g.linewidth);
-                    semilogy(g.allfreqs,Stat(:),'k:','LineWidth',g.linewidth);
-                case 2, semilogy(g.allfreqs,mean(Stat(:,:),2),'g' ,'LineWidth',g.linewidth);
-                    semilogy(g.allfreqs,mean(Stat(:,:),2),'k:','LineWidth',g.linewidth);
-                case 3, semilogy(g.allfreqs,mean(Stat(:,:,1),2),'g' ,'LineWidth',g.linewidth);
-                    semilogy(g.allfreqs,mean(Stat(:,:,1),2),'k:','LineWidth',g.linewidth);
-                    semilogy(g.allfreqs,mean(Stat(:,:,2),2),'g' ,'LineWidth',g.linewidth);
-                    semilogy(g.allfreqs,mean(Stat(:,:,2),2),'k:','LineWidth',g.linewidth);
-            end;
+            
+            for i=1:size(StatMarginal,2)
+                semilogy(g.allfreqs,StatMarginal(:,i),'g' ,'LineWidth',g.linewidth);
+                semilogy(g.allfreqs,StatMarginal(:,i),'k:','LineWidth',g.linewidth);
+            end
         end;
-        if ~isnan(max(Emax))
-            axis([g.allfreqs(1) g.allfreqs(end) min([Emin(:)' Stat(:)'])*1.2-10^-5 max([Emax(:)'  Stat(:)'])*1.2+10^-5]);
+        if ~isnan(max(ConnMarginal))
+            axmin = min([ConnMarginal(:)' Stat(:)']);
+            axmax = max([ConnMarginal(:)' Stat(:)']);
+            axis([g.allfreqs(1) g.allfreqs(end) ...
+                (sign(axmin)-0.2)*abs(axmin)-eps   (sign(axmax)+0.2)*abs(axmax)+eps]);
         end;
-    else             % plot marginal mean coherence only
-        if ~isnan(max(Emax))
-            axis([g.allfreqs(1)-eps g.allfreqs(end)+eps min(Emin)*1.2-10^-5 max(Emax)*1.2+10^-5]);
+    else
+        if ~isnan(max(ConnMarginal))
+            axmin = min(ConnMarginal);
+            axmax = max(ConnMarginal);
+            axis([g.allfreqs(1) g.allfreqs(end) ...
+                (sign(axmin)-0.2)*abs(axmin)-eps   (sign(axmax)+0.2)*abs(axmax)+eps]);
         end;
     end
+    
+    
+    
     
     
     tick = get(h(11),'YTick');
@@ -609,47 +620,61 @@ end
 
 % draw shaded region for baselines
 for i=1:length(botMargAx)
-    axes(botMargAx(i));
-    v = axis(gca);
+%     axes(botMargAx(i));  % setfocus
+%     v = axis(gca);
     if ~isempty(g.baseline)
         % shade in the baseline region
         base = g.alltimes(baseidx);
-        patch([base(1) base(1) base(2) base(2)],[v(3) v(4) v(4) v(3)],[0.7 0.7 1],'FaceAlpha',0.5,'EdgeColor','none');
+        hlp_vrect(base,'axesHandle',botMargAx(i),'patchProperties',{'FaceAlpha',0.5,'EdgeColor','none'});
+        
+%         patch([base(1) base(1) base(2) base(2)],[v(3) v(4) v(4) v(3)],[0.7 0.7 1],'FaceAlpha',0.5,'EdgeColor','none');
     end
-
+    
     % plot event markers
     if ~isempty(g.events)
         for ev=1:length(g.events)
-            vl = vline(g.events{ev}{1});
+            vl = vline(g.events{ev}{1},':','',[0 0],botMargAx(i));
             set(vl,'color',g.events{ev}{2},'linestyle',g.events{ev}{3},'linewidth',g.events{ev}{4});
         end
     end
     
 end
-    
-%%%%%%%%%%%%%%% plot topoplot() and/or dipoles %%%%%%%%%%%%%%%%%%%%%%%
 
+% ------------------------------------
+% | plot topoplot() and/or dipoles
+% ------------------------------------
+FromSourcePlotPos   = [-.1 .43 .2 .14];
+ToSourcePlotPos     = [.9 .43 .2 .14];
+SingleSourcePlotPos = [-.1 -.1 .2 .14];
 switch lower(g.topoplot)
+    
     case 'topoplot'
-        h(15) = subplot('Position',[-.1 .43 .2 .14].*s+q);
-        if size(g.topovec,2) <= 2
-            topoplot(g.topovec(1),g.elocs,'electrodes','off', ...
-                'style', 'blank', 'emarkersize1chan', 10, 'chaninfo', g.chaninfo);
-        else
-            topoplot(g.topovec(1,:),g.elocs,'electrodes','off', 'chaninfo', g.chaninfo);
-        end;
-        dippos = get(h(15),'position');
-        lpos = dippos([1 2])+[dippos(3)/2 2*dippos(4)];
-        if ~isempty(str2num(g.nodelabels{ch2}))
-            ltext = sprintf('IC%s',g.nodelabels{ch2});
-        else
-            ltext = sprintf('%s',g.nodelabels{ch2});
-        end
-        text(1.2,0.5,ltext,'horizontalalignment','left','units','normalized','parent',h(15),'fontweight','bold','fontsize',g.axesFontSize);
-        axis('square')
-        %         axcopy(gca);
         
-        h(16) = subplot('Position',[.9 .43 .2 .14].*s+q);
+        if g.bidir
+            h(15) = subplot('Position',FromSourcePlotPos.*s+q);
+            if size(g.topovec,2) <= 2
+                topoplot(g.topovec(1),g.elocs,'electrodes','off', ...
+                    'style', 'blank', 'emarkersize1chan', 10, 'chaninfo', g.chaninfo);
+            else
+                topoplot(g.topovec(1,:),g.elocs,'electrodes','off', 'chaninfo', g.chaninfo);
+            end;
+            dippos = get(h(15),'position');
+            lpos = dippos([1 2])+[dippos(3)/2 2*dippos(4)];
+            if ~isempty(str2num(g.nodelabels{ch2}))
+                ltext = sprintf('IC%s',g.nodelabels{ch2});
+            else
+                ltext = sprintf('%s',g.nodelabels{ch2});
+            end
+            text(1.2,0.5,ltext,'horizontalalignment','left','units','normalized','parent',h(15),'fontweight','bold','fontsize',g.axesFontSize);
+            axis('square')
+        end
+        
+        if g.bidir
+            h(16) = subplot('Position',ToSourcePlotPos.*s+q);
+        else
+            h(16) = subplot('Position',SingleSourcePlotPos.*s+q);
+        end
+        
         if size(g.topovec,2) <= 2
             topoplot(g.topovec(2),g.elocs,'electrodes','off', ...
                 'style', 'blank', 'emarkersize1chan', 10, 'chaninfo', g.chaninfo);
@@ -666,34 +691,42 @@ switch lower(g.topoplot)
         end
         text(-0.2,0.5,ltext,'horizontalalignment','right','units','normalized','parent',h(16),'fontweight','bold','fontsize',g.axesFontSize);
         axis('square')
-        %         axcopy(gca);
+        
     case 'dipole'
-        h(15) = subplot('Position',[-.1 .43 .2 .14].*s+q);
-        %         dipplot(g.dipfitstruct(1),'color',{'r'},'verbose','off', ...
-        %             'dipolelength',0.01,'dipolesize',20,'view',[1 0 0], ...
-        %             'projimg', 'off', 'projlines', 'on', 'axistight',  ...
-        %             'on', 'cornermri', 'on', 'normlen', 'on','gui','off');
         
-        % view [1 0 0] % saggital
-        % view [0 -0.99 0.01] for zeynep model
-        pop_dipplot(struct('dipfit',g.dipfitstruct),1,'color',{'r'},'verbose','off','dipolelength',0.01,...
-            'dipolesize',20,'view',[1 0 0],'projimg', 'off',  ...
-            'projlines', 'on', 'axistight', 'on',            ...
-            'cornermri', 'on', 'normlen', 'on','gui','off','mri',g.dipplot.mri,'coordformat',g.dipplot.coordformat);
-        
-        if ~isempty(str2num(g.nodelabels{1}))
-            ltext = sprintf('IC%s',g.nodelabels{1});
-        else
-            ltext = g.nodelabels{1};
+        if g.bidir
+            h(15) = subplot('Position',FromSourcePlotPos.*s+q);
+            %         dipplot(g.dipfitstruct(1),'color',{'r'},'verbose','off', ...
+            %             'dipolelength',0.01,'dipolesize',20,'view',[1 0 0], ...
+            %             'projimg', 'off', 'projlines', 'on', 'axistight',  ...
+            %             'on', 'cornermri', 'on', 'normlen', 'on','gui','off');
+            
+            % view [1 0 0] % saggital
+            % view [0 -0.99 0.01] for zeynep model
+            pop_dipplot(struct('dipfit',g.dipfitstruct),1,'color',{'r'},'verbose','off','dipolelength',0.01,...
+                'dipolesize',20,'view',[1 0 0],'projimg', 'off',  ...
+                'projlines', 'on', 'axistight', 'on',            ...
+                'cornermri', 'on', 'normlen', 'on','gui','off','mri',g.dipplot.mri,'coordformat',g.dipplot.coordformat);
+            
+            if ~isempty(str2num(g.nodelabels{1}))
+                ltext = sprintf('IC%s',g.nodelabels{1});
+            else
+                ltext = g.nodelabels{1};
+            end
+            dippos = get(h(15),'position');
+            lpos = dippos([1 2])+[dippos(3)/2 2*dippos(4)];
+            text(1.2,0.5,ltext,'horizontalalignment','left','units','normalized','parent',h(15),'fontweight','bold','fontsize',g.axesFontSize);
+            
+            %         ylabel(g.nodelabels{1});
+            %         axcopy(gca);
         end
-        dippos = get(h(15),'position');
-        lpos = dippos([1 2])+[dippos(3)/2 2*dippos(4)];
-        text(1.2,0.5,ltext,'horizontalalignment','left','units','normalized','parent',h(15),'fontweight','bold','fontsize',g.axesFontSize);
         
-        %         ylabel(g.nodelabels{1});
-        %         axcopy(gca);
         
-        h(16) = subplot('Position',[.9 .43 .2 .14].*s+q);
+        if g.bidir
+            h(16) = subplot('Position',ToSourcePlotPos.*s+q);
+        else
+            h(16) = subplot('Position',SingleSourcePlotPos.*s+q);
+        end
         %         dipplot(g.dipfitstruct(2),'color',{'r'},'verbose','off', ...
         %             'dipolelength',0.01,'dipolesize',20,'view',[1 0 0], ...
         %             'projimg', 'off', 'projlines', 'on', 'axistight',  ...
@@ -716,11 +749,17 @@ switch lower(g.topoplot)
 end
 
 
-try, icadefs; set(gcf, 'color', BACKCOLOR); catch, end;
+try
+    icadefs
+    set(gcf, 'color', BACKCOLOR);
+catch err
+end;
 
 
+% turn off rotate3D tool
+rotate3d off;
 
-if (length(g.titleString) > 0) % plot titleString
+if (~isempty(g.titleString)) % plot titleString
     axes('Position',pos,'Visible','Off');
     h(13) = text(-.05,1.01,[g.titleString '   ']);
     set(h(13),'VerticalAlignment','bottom')
@@ -728,7 +767,7 @@ if (length(g.titleString) > 0) % plot titleString
     set(h(13),'FontSize',g.titleFontSize)
 end
 
-try, axcopy(gcf); catch, end;
+try axcopy(gcf); catch, end;
 
 
 

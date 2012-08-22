@@ -48,7 +48,7 @@ function flat = hlp_flattenStruct(s,depth,exclude)
         depth = Inf;
     end
     
-    if depth <= 0
+    if depth <= 0 || isempty(s)
         % we've reached maximum recursion depth
         flat = s;
         return;

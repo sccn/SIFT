@@ -1,30 +1,60 @@
-function params = arg_guidialog(func,varargin)
+function varargout = arg_guidialog(func,varargin)
 % Create an input dialog that displays input fields for a Function and Parameters.
 % Parameters = arg_guidialog(Function, Options...)
 %
-% The Parameters that are passed to the function can be used to override some of its defaults. 
-% The function must declare its arguments via arg_define. In addition, only a Subset of the function's specified arguments can be displayed.
+% The Parameters that are passed to the function can be used to override some of its defaults. The
+% function must declare its arguments via arg_define. In addition, only a Subset of the function's
+% specified arguments can be displayed.
 %
 % In:
 %   Function : the function for which to display arguments
 %
 %   Options... : optional name-value pairs; possible names are:
-%                 'Parameters' : cell array of parameters to the Function to override some of its defaults.
+%                 'Parameters' : cell array of parameters to the Function to override some of its 
+%                                defaults.
 %
-%                 'Subset' : Cell array of argument names to which the dialog shall be restricted; these arguments may contain . notation to index
-%                            into arg_sub and the selected branch(es) of arg_subswitch/arg_subtoggle specifiers.
-%                            Empty cells show up in the dialog as empty rows.
+%                 'Subset' : Cell array of argument names to which the dialog shall be restricted;
+%                            these arguments may contain . notation to index into arg_sub and the
+%                            selected branch(es) of arg_subswitch/arg_subtoggle specifiers. Empty
+%                            cells show up in the dialog as empty rows.
 %
-%                 'Title' : title of the dialog (by default: functionname())  
+%                 'Title' : title of the dialog (by default: functionname())
+%
+%                 'Invoke' : whether to invoke the function directly; in this case, the output
+%                            arguments are those of the function (default: true, unless called in 
+%                            the form g = arg_guidialog; e.g., from within some function)
 %
 % Out:
 %   Parameters : a struct that is a valid input to the Function.
 %
-%                               Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
-%                               2010-10-24
+% Examples:
+%   % bring up a configuration dialog for the given function
+%   settings = arg_guidialog(@myfunction)
+%
+%   % bring up a config dialog with some pre-specified defaults
+%   settings = arg_guidialog(@myfunction,'Parameters',{4,20,'test'})
+%
+%   % bring up a config dialog which displays only a subset of the function's arguments (in a particular order)
+%   settings = arg_guidialog(@myfunction,'Subset',{'blah','xyz',[],'flag'})
+%
+%   % bring up a dialog, and invoke the function with the selected settings after the user clicks OK
+%   settings = arg_guidialog(@myfunction,'Invoke',true)
+%
+% See also:
+%   arg_guidialog_ex, arg_guipanel, arg_define
+%
+%                                Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
+%                                2010-10-24
+
+if ~exist('func','var')
+    % called with no arguments, from inside a function: open function dialog
+    func = hlp_getcaller;
+    varargin = {'Parameters',evalin('caller','varargin'),'Invoke',nargout==0};
+end
 
 % parse arguments...
-hlp_varargin2struct(varargin,{'params','Parameters'},{}, {'subset','Subset'},{}, {'dialogtitle','title','Title'}, [char(func) '()'], {'buttons','Buttons'},[]);
+hlp_varargin2struct(varargin,{'params','Parameters','parameters'},{}, {'subset','Subset'},{}, {'dialogtitle','title','Title'}, [char(func) '()'], {'buttons','Buttons'},[],{'invoke','Invoke'},true);
+oldparams = params;
 
 % obtain the argument specification for the function
 rawspec = arg_report('rich', func, params); %#ok<*NODEF>
@@ -94,14 +124,25 @@ for k = 1:length(spec)
 end
 
 % invoke the GUI, obtaining a list of output values...
-[outs,dummy,okpressed] = inputgui('geometry',geometry, 'uilist',uilist,'helpcom','disp(''coming soon...'')', 'title',dialogtitle,'geomvert',geomvert);
+helptopic = char(func);
+try
+    if helptopic(1) == '@'
+        fn = functions(func);
+        tmp = struct2cell(fn.workspace{1});
+        helptopic = class(tmp{1});
+    end
+catch
+    disp('Cannot deduce help topic.');
+end
+[outs,dummy,okpressed] = inputgui('geometry',geometry, 'uilist',uilist,'helpcom',['env_doc ' helptopic], 'title',dialogtitle,'geomvert',geomvert); %#ok<ASGLU>
 
 if ~isempty(okpressed)
 
     % remove blanks from the spec
     spec = spec(~cellfun('isempty',spec));
     subset = subset(~cellfun('isempty',subset));
-    % turn the raw specification into a parameter struct (a non-direct one, since we will mess with it)
+    % turn the raw specification into a parameter struct (a non-direct one, since we will mess with
+    % it)
     params = arg_tovals(rawspec,false);
 
     % for each parameter produced by the GUI...
@@ -135,8 +176,16 @@ if ~isempty(okpressed)
     params = arg_report('rich',func,{params});
     params = arg_tovals(params,false);
 
+    % invoke the function, if so desired
+    if ischar(func)
+        func = str2func(func); end
+    if invoke
+        [varargout{1:nargout(func)}] = func(oldparams{:},params); 
+    else
+        varargout = {params};
+    end
 else
-    params = [];
+    varargout = {[]};
 end
 
 % obtain a cell array of spec entries by name from the given specification
@@ -147,7 +196,8 @@ items = {};
 ids = {};
 % determine what subset of (possibly nested) items is requested
 if isempty(requested)
-    % look for a special argument/property arg_dialogsel, which defines the standard dialog representation for the given specification
+    % look for a special argument/property arg_dialogsel, which defines the standard dialog
+    % representation for the given specification
     dialog_sel = find(cellfun(@(x)any(strcmp(x,'arg_dialogsel')),{rawspec.names}));
     if ~isempty(dialog_sel)
         requested = rawspec(dialog_sel).value; end
@@ -163,17 +213,18 @@ else
     for k=1:length(requested)
         if ~isempty(requested{k})
             try
-                items{k} = obtain(rawspec,requested{k});
+                [items{k},subid] = obtain(rawspec,requested{k});
             catch
                 error(['The specified identifier (' prefix requested{k} ') could not be found in the function''s declared arguments.']);
             end
-            ids{k} = [prefix requested{k}];
+            ids{k} = [prefix subid];
         end
     end    
 end
 % splice items that have children (recursively) into this list
 for k = length(items):-1:1
-    % special case: switch arguments are not spliced, but instead the argument that defines the option popupmenu will be retained
+    % special case: switch arguments are not spliced, but instead the argument that defines the
+    % option popupmenu will be retained
     if ~isempty(items{k}) && ~isempty(items{k}.children) && (~iscellstr(items{k}.range) || isempty(requested))
         [subitems, subids] = obtain_items(items{k}.children,{},[ids{k} '.']);
         if ~isempty(subitems)
@@ -197,7 +248,9 @@ ids(empties(1:end-1) & empties(2:end)) = [];
 
 
 % obtain a spec entry by name from the given specification
-function item = obtain(rawspec,identifier)
+function [item,id] = obtain(rawspec,identifier,prefix)
+if ~exist('prefix','var')
+    prefix = ''; end
 % parse the . notation
 dot = find(identifier=='.',1);
 if ~isempty(dot)
@@ -214,9 +267,10 @@ for k=1:length(names)
         if isempty(rest)
             % return it
             item = rawspec(k);
+            id = [prefix names{k}{1}];
         else
             % obtain the rest of the identifier
-            item = obtain(rawspec(k).children,rest);
+            [item,id] = obtain(rawspec(k).children,rest,[prefix names{k}{1} '.']);
         end
         return;
     end

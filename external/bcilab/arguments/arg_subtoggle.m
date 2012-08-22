@@ -79,6 +79,8 @@ function spec = invoke_argsubtoggle(reptype,names,defaults,source,help,varargin)
 % start with a base specification
 spec = arg_specifier('head',@arg_subtoggle, 'fmt',[], 'type','logical', 'shape','scalar', 'mapper',@map_argsubtoggle);
 
+suppressNames = {};
+
 % override properties
 if exist('names','var')
     spec.names = names; end
@@ -87,6 +89,8 @@ if exist('help','var')
 for k=1:2:length(varargin)
     if isfield(spec,varargin{k})
         spec.(varargin{k}) = varargin{k+1};
+    elseif strcmpi(varargin{k},'suppress')
+        suppressNames = varargin{k+1};
     else
         error('BCILAB:arg:no_new_fields','It is not allowed to introduce fields into a specifier that are not declared in arg_specifier.');
     end
@@ -133,17 +137,17 @@ spec = rmfield(spec,'fmt');
 [default_sel,default_val] = spec.mapper(defaults);
 
 % set up the regular assigner
-spec.assigner = @(spec,value) assign_argsubtoggle(spec,value,reptype,source,default_sel,default_val);
+spec.assigner = @(spec,value) assign_argsubtoggle(spec,value,reptype,source,default_sel,default_val,suppressNames);
 
 % assign the default
 if strcmp(reptype,'rich')
-    spec = assign_argsubtoggle(spec,defaults,'build',source,NaN,{});
+    spec = assign_argsubtoggle(spec,defaults,'build',source,NaN,{},suppressNames);
 else
-	spec = assign_argsubtoggle(spec,defaults,'lean',source,NaN,{});
+	spec = assign_argsubtoggle(spec,defaults,'lean',source,NaN,{},suppressNames);
 end
 
 
-function spec = assign_argsubtoggle(spec,value,reptype,source,default_sel,default_val)
+function spec = assign_argsubtoggle(spec,value,reptype,source,default_sel,default_val,suppressNames)
 persistent arg_sel arg_desel;
 if isempty(arg_sel) || isempty(arg_sel)
     arg_sel = arg_nogui('arg_selection',true); arg_sel = arg_sel{1}([],arg_sel{2}{:});
@@ -153,7 +157,7 @@ end
 % retrieve the values for the realized switch option...
 [selected,value] = spec.mapper(value);
 % build the complementary alternative, if requested
-if strcmp(reptype,'build')
+if strcmp(reptype,'build')    
     if selected
         spec.alternatives{1} = arg_desel;
     else
@@ -169,6 +173,28 @@ elseif spec.merge && (default_sel==true)
 else
     spec.children = [arg_report(reptype,source,value) arg_sel];
 end
+
+% toggle the displayable option for children which should be suppressed
+if ~isempty(suppressNames)
+    % identify which children we want to suppress display
+    hidden = find(cellfun(@any,cellfun(@(x,y) ismember(x,suppressNames),{spec.children.names},'UniformOutput',false)));
+    % set display flag to false
+    for k=hidden(:)'
+        spec.children(k).displayable = false;
+    end
+
+    % identify which alternatives we want to suppress display
+    for alt_idx = 1:length(spec.alternatives)
+        if isempty(spec.alternatives{alt_idx})
+            continue; end
+        hidden = find(cellfun(@any,cellfun(@(x,y) ismember(x,suppressNames),{spec.alternatives{alt_idx}.names},'UniformOutput',false)));
+        % set display flag to false
+        for k=hidden(:)'
+            spec.alternatives{alt_idx}(k).displayable = false;
+        end
+    end
+end
+
 spec.alternatives{selected+1} = spec.children;
 % and set the cell's value
 spec.value = selected;
@@ -183,10 +209,24 @@ if isequal(args,'on')
 elseif isequal(args,'off') || isequal(args,[])
     selected = false;
     args = [];
-elseif length(args) == 1 && isstruct(args) && isfield(args,'arg_selection')
+elseif length(args) == 1 && isfield(args,'arg_selection')
     selected = args.arg_selection;
 elseif length(args) == 1 && iscell(args) && isstruct(args{1}) && isfield(args{1},'arg_selection')
     selected = args{1}.arg_selection;
+elseif isequal(args,{'arg_selection',0})
+    selected = false;
+    args = {};
+elseif isequal(args,{'arg_selection',1})
+    selected = true;
+    args = {};
+elseif iscell(args)
+    % find the arg_selection in the cell array
+    pos = find(strcmp('arg_selection',args(1:end-1)),1,'last');
+    if isempty(pos)
+        selected = true;
+    else
+        [selected,args] = deal(args{pos+1},args([1:pos-1 pos+2:end]));
+    end
 else
     selected = true;
 end

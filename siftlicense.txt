@@ -231,6 +231,5 @@ POSSIBILITY OF SUCH DAMAGES.
 
 			   ADDITIONAL NOTE
 
-EEGLAB is designed and distributed for research purposes only.  EEGLAB should
-not be used for medical purposes. The authors accept no responsibility for its
-use in this manner.
+SIFT is designed and distributed for research purposes only.  SIFT should
+not be used for medical purposes. The authors accept no responsibility for its use in this manner.

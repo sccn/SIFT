@@ -1,4 +1,4 @@
-function Conn = hlp_absvalsq(Conn,methods,force,verb)
+function Conn = hlp_absvalsq(Conn,methods,force,verb,absonly)
 %
 % Compute the square of the absolute value of a complex number. If
 % 'force'=false then real-valued data is returned unmodified
@@ -49,6 +49,10 @@ function Conn = hlp_absvalsq(Conn,methods,force,verb)
     if nargin<4
         verb = 1;
     end
+    
+    if nargin<5
+        absonly = false;
+    end
 
     if ~iscell(methods)
         error('methods must be a cell matrix of strings');
@@ -65,7 +69,11 @@ function Conn = hlp_absvalsq(Conn,methods,force,verb)
                 continue;
             end
 
-            Conn(cnd).(methods{i}) = abs(Conn(cnd).(methods{i})).^2;
+            if absonly
+                Conn(cnd).(methods{i}) = abs(Conn(cnd).(methods{i}));
+            else
+                Conn(cnd).(methods{i}) = abs(Conn(cnd).(methods{i})).^2;
+            end
                         
 %             Conn(cnd).(methods{i}) = Conn(cnd).(methods{i}).*conj(Conn(cnd).(methods{i}));
         end

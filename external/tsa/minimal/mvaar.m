@@ -19,7 +19,7 @@ function [xout,Q2out,e,Kalman, Kout] = mvaar(y,p,UC,mode,Kalman,verb,downsampleF
 %		mode	 	update method of the process noise covariance matrix 0...7 ^
 %					correspond to S0...S7 (default 0)
 %       verb        verbosity
-%       downsampleFactor:   Starting from sample t=max(2,k), store only every k Kalman 
+%       downsampleFactor:   Starting from sample t=max(2,k), store only every k Kalman
 %                           coefficients (states, etc) where k=downsampleFactor.
 %       constraints structure with fields .D and .d containing constraints
 %                   of the form Dx = d (see [1] below)
@@ -27,7 +27,7 @@ function [xout,Q2out,e,Kalman, Kout] = mvaar(y,p,UC,mode,Kalman,verb,downsampleF
 %	Output Parameters
 %
 %		e			prediction error of dimension s
-%		x			state matrix of dimension [T x M*M*p] 
+%		x			state matrix of dimension [T x M*M*p]
 %                   where T = ceil((N-downsampleFactor+q)/downsampleFactor)
 %                   where q = (downsampleFactor>1 ? 1 : 0)
 %                   - note that we never store the coefficient matrix for t=1
@@ -45,13 +45,13 @@ function [xout,Q2out,e,Kalman, Kout] = mvaar(y,p,UC,mode,Kalman,verb,downsampleF
 %       Copyright (C) 2010-2011 Tim Mullen
 %
 %       Modified by Tim Mullen
-%       01/23/2011 -- Modified for downsampled storage 
+%       01/23/2011 -- Modified for downsampled storage
 %       04/13/2011 -- Optimized performance
 %       05/12/2011 -- Added projection onto constraint surface [1]
 %       05/20/2011 -- Added additional noise covariance update modes
-%       
-%       [1] Simon D (2010) Kalman Filtering with State Constraints: 
-%       A Survey of Linear and Nonlinear Algorithms. 
+%
+%       [1] Simon D (2010) Kalman Filtering with State Constraints:
+%       A Survey of Linear and Nonlinear Algorithms.
 %       Control Theory & Applications, IET 4:1303-€“1318
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -97,7 +97,7 @@ if ~any(mode==(0:8))
 end;
 
 
-[LEN, M] = size(y);		%number of channels, total signal length
+[LEN, M, NTR] = size(y)  % signal length, number of channels, number of trials
 L = M*M*p;
 
 if LEN<(p+1),
@@ -110,30 +110,29 @@ end
 % size of downsampled storage
 dslen = ceil((LEN-downsampleFactor+(downsampleFactor>1))/downsampleFactor);
 
-xout=zeros(L,dslen);
+xout=zeros(L,dslen,NTR);
 
 if nargout>1
-    Q2out=zeros(M,M,dslen);
+    Q2out=zeros(M,M,dslen,NTR);
 end
 if nargout>4
-    Kout = zeros(M,M,dslen);
-end;       
+    Kout = zeros(M,M,dslen,NTR);
+end;
 
 if verb==2
     h=waitbar(0,sprintf('fitting VAR[%d] model [mode=%s] ...', ...
-              p, 'Kalman')); 
+        p, 'Kalman'));
 end
 
-%Kalman Filter initialsiation (Kp (K predicted or a-priori) equals K(n+1,n) )
+%Kalman Filter initialization (Kp (K predicted or a-priori) equals K(n+1,n) )
 F   = eye(L);          % observation matrix
 G   = zeros(L,M);      % Kalman Gain
 x   = zeros(L,1);      % state vector
-Kp  = eye(L);        
+Kp  = eye(L);
 Q1  = eye(L);         % state noise covariance matrix
 Q2  = eye(M);         % measurement noise covariance matrix
 ye  = zeros(size(y)); % prediction of y
-    
-%     Kalman=struct('F',eye(L),'H',zeros(M,L),'G',zeros(L,M),'x',zeros(L,1),'Kp',eye(L),'Q1',eye(L)*UC,'Q2',eye(M),'ye',zeros(size(y)));
+
 if nargin>=4 && ~isempty(Kalman)
     
     if isfield(Kalman,'ye'), ye = Kalman.ye; end
@@ -175,101 +174,99 @@ end
 
 
 
-curval = 1;
-for n = 2:LEN
+for tr=1:NTR
     
-    if verb==2 && ~mod(n,100)
-        waitbar(n/LEN,h,...
-        sprintf('fitting VAR[%d] model [mode=%s] (%d/%d) ...', ...
-        p,'Kalman',n,LEN)); 
-    end
-
+    % TODO: add option to re-initialize the state variables here
     
-    if(n<=p)
-        Yr=[y(n-1:-1:1,:)' zeros(M,p-n+1)];	%vector of past observations
-        Yr=Yr(:)';
-    else
-        Yr=y(n-1:-1:n-p,:)';				%vector of past observations
-        Yr=Yr(:)';
-    end
+    curval = 1;
     
-    %Update of measurement matrix
-    H=kron(eye(M),Yr);
-    
-    
-    %calculate a-priori prediction error (1-step prediction error)
-    
-    ye(n,:)=(H*x)';
-    err=y(n,:)-ye(n,:);
-    
-    if ~any(isnan(err(:))),
-        %update of Q2 (measurement noise covariance matrix, V)) using the prediction error of the previous step
-        Q2=(1-UC)*Q2+UC*(err'*err);
+    for n = 2:LEN
         
-        
-        KpH=Kp*H';
-        HKp=H*Kp;
-        
-        %Kalman gain
-        G=KpH/(H*KpH+Q2);
-        
-        %calculation of the a-posteriori state error covariance matrix
-        %K=Kp-G*KpH'; Althouh PK is supposed to be symmetric, this operation makes the filter unstable
-        K=Kp-G*HKp;
-        
-        %mode==0 no update of Q1 (process noise covariance matrix, W)
-        %update of Q1 using the predicted state error cov matrix
-        if (mode==1)
-            Q1=diag(diag(K)).*UC;
-        elseif(mode==2)  % similar to mode a2 from thesis
-            Q1=upd*trace(K);
-        elseif(mode==3)
-            Q1=diag(sum((Block*diag(diag(K)))'))/(p*M)*UC;
-        elseif(mode==4)
-            avg=trace(K(index,index))/(p*M)*UC;
-            Q1=Block1*UC+Block0*avg;
+        if verb==2 && ~mod(n,100)
+            waitbar(n/LEN,h,...
+                {sprintf('Trial (%d/%d)',tr,NTR), ...
+                 sprintf('fitting VAR[%d] model [mode=%s] (%d/%d) ...',p,'Kalman',n,LEN)});
         end
         
-        %a-priori state error covariance matrix for the next time step
-        Kp=K+Q1;
         
-        %current estimation of state x
-        x=x+G*(err)';
-            
-        if doConstraints
-            KD = K*Constr_D';
-            
-            % project the solution onto the constraint surface
-            x = x - (KD/(Constr_D*KD))*(Constr_D*x - Constr_d);
-        end
-        
-    end; % isnan(err)
-    
-    if ~mod(n,downsampleFactor)
-        % store the current state
-        
-        if 0; doConstraints;
-            
-            KD = K*Constr_D';
-            
-            % project the solution onto the constraint surface
-            xout(:,curval) = x - (KD/(Constr_D*KD))*(Constr_D*x - Constr_d);
+        if(n<=p)
+            Yr=[y(n-1:-1:1,:,tr)' zeros(M,p-n+1)];	%vector of past observations
+            Yr=Yr(:)';
         else
+            Yr=y(n-1:-1:n-p,:,tr)';				%vector of past observations
+            Yr=Yr(:)';
+        end
+        
+        %Update of measurement matrix
+        H = blkdiageye(Yr,M);        
+        
+        %calculate a-priori prediction error (1-step prediction error)
+        ye(n,:,tr)=(H*x)';
+        err=y(n,:,tr)-ye(n,:,tr);
+        
+        if ~any(isnan(err(:))),
+            % update of Q2 (measurement noise covariance matrix, V)) 
+            % using the prediction error of the previous step
+            Q2=(1-UC)*Q2+UC*(err'*err);
             
-            xout(:,curval) = x;
-        end
-
-        if nargout>1
-            Q2out(:,:,curval)=Q2;
-        end;
+            
+            KpH=Kp*H';
+            HKp=H*Kp;
+            
+            % Kalman gain
+            G=KpH/(H*KpH+Q2);
+            
+            % calculation of the a-posteriori state error covariance matrix
+            % K=Kp-G*KpH'; Althouh PK is supposed to be symmetric, this operation makes the filter unstable
+            K=Kp-G*HKp;
+            
+            % mode==0 no update of Q1 (process noise covariance matrix, W)
+            % update of Q1 using the predicted state error cov matrix
+            if (mode==1)
+                Q1=diag(diag(K)).*UC;
+            elseif(mode==2)  % similar to mode a2 from thesis
+                Q1=upd*trace(K);
+            elseif(mode==3)
+                Q1=diag(sum((Block*diag(diag(K))),2)')/(p*M)*UC;
+            elseif(mode==4)
+                avg=trace(K(index,index))/(p*M)*UC;
+                Q1=Block1*UC+Block0*avg;
+            end
+            
+            %a-priori state error covariance matrix for the next time step
+            Kp=K+Q1;
+            
+            %current estimation of state x
+            x=x+G*(err)';
+            
+            % perform optional constraint projection
+            if doConstraints
+                KD = K*Constr_D';
+                
+                % project the solution onto the constraint surface
+                x = x - (KD/(Constr_D*KD))*(Constr_D*x - Constr_d);
+            end
+            
+        end; % isnan(err)
         
-        if nargout>4
-            Kout(:,:,curval) = K;
+        if ~mod(n,downsampleFactor)
+            
+            % store the current state
+            xout(:,curval,tr) = x;
+            
+            if nargout>1
+                Q2out(:,:,curval,tr)=Q2;
+            end
+            
+            if nargout>4
+                Kout(:,:,curval,tr) = K;
+            end
+            
+            curval = curval + 1;
         end
-        
-        curval = curval + 1;
-    end
-end;
+    end;
+    
+end
 
 if nargout > 2
     e = y - ye;
@@ -286,7 +283,6 @@ if nargout > 3
     Kalman.G = G;
 end
 
-xout = xout';
+xout = permute(xout,[2 1 3]);
 
 if verb==2, close(h); end
-

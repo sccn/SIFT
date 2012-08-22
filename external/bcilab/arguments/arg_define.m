@@ -375,6 +375,11 @@ for k=1:length(spec)
 % concatenate the structs to one big struct array
 spec = [spec{:}];
 
+if isempty(spec)
+    spec = arg_specifier;
+    spec = spec([]);
+end
+
 % obtain the argument names and the joined names
 all_names = {spec.names};
 joint_names = [all_names{:}];

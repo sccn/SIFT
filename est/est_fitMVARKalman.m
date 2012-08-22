@@ -1,9 +1,8 @@
-
 function [MODEL params] = est_fitMVARKalman(EEG,typeproc,varargin)
 %
-% Fit multivariate autoregressive model to EEG data using a 
+% Fit multivariate autoregressive model to EEG data using a
 % Kalman Filter. This function is a wrapper for the mvaar() function from
-% the TSA toolbox [2]. See [1] for additional details on VAR model fitting 
+% the TSA toolbox [2]. See [1] for additional details on VAR model fitting
 % and implementation.
 %
 % Input:
@@ -20,7 +19,7 @@ function [MODEL params] = est_fitMVARKalman(EEG,typeproc,varargin)
 %     'epochTimeLims'      time range to analyze (sec) where 0 = start of the epoch
 %     'verb'               verbosity level (0=no output, 1=text, 2=gui)
 %     'timer'              estimate time required to fit model
-%       downsampleFactor:   Starting from sample t=max(2,k), store only every k Kalman 
+%       downsampleFactor:   Starting from sample t=max(2,k), store only every k Kalman
 %                           coefficients (states, etc) where k=downsampleFactor.
 %
 % Output:
@@ -30,19 +29,20 @@ function [MODEL params] = est_fitMVARKalman(EEG,typeproc,varargin)
 %       .PE             (numvars x coeffs) prediction error (noise covariance) coefficients
 %       .algorithm      string denoting algorithm used for estimation
 %       .modelclass     string denoting model class (here, 'mvar')
+%       .Kalman         Kalman state object
 %
 % See Also: est_fitMVAR(), mvaar()
 %
-% References: 
-% 
+% References:
+%
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
-%     Theoretical Handbook and User Manual. Chapters 3,6. 
+%     Theoretical Handbook and User Manual. Chapters 3,6.
 %     Available at: http://www.sccn.ucsd.edu/wiki/Sift
-% [2] A. Schloegl. The time series analysis toolbox for octave and matlab, 
-%     available online at http://www.dpmi.tu-graz.ac. at/~schloegl/matlab/tsa/ 
+% [2] A. Schloegl. The time series analysis toolbox for octave and matlab,
+%     available online at http://www.dpmi.tu-graz.ac. at/~schloegl/matlab/tsa/
 %     and http://cvs.sourceforge.net/ viewcvs.py/octave/octave-forge/extra/tsa/.
-% 
-% Author: Tim Mullen 2010, SCCN/INC, UCSD. 
+%
+% Author: Tim Mullen 2010, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
@@ -68,11 +68,11 @@ end
 
 
 var = hlp_mergeVarargin(varargin{:});
-g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_fitMVAR','ignore');
+g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_fitMVAR','ignore','quiet');
 if ischar(g), error(g); end
-if isempty(g.epochTimeLims), g.epochTimeLims = [0 EEG.pnts/EEG.srate]; end
+if isempty(g.epochTimeLims), g.epochTimeLims = [0 EEG.CAT.pnts/EEG.srate]; end
 if isempty(g.morder) || length(g.morder)>2, error('invalid entry for field ''morder'''); end
- % combine structs, overwriting duplicates of g with 
+% combine structs, overwriting duplicates of g with
 if ~isfield(g,'updatecoeff'), g.updatecoeff = 0.001; end
 if ~isfield(g,'updatemode'), g.updatemode = 1; end
 if ~isfield(g,'downsampleFactor'), g.downsampleFactor = []; end;
@@ -103,51 +103,83 @@ else
 end
 if g.timer, tic; end
 
-if size(EEG.CAT.srcdata,3)>1
-    error('Kalman filtering cannot be used with multi-trial data');
-end
+% if size(EEG.CAT.srcdata,3)>1
+%     if g.verb,
+%         fprintf('Kalman filter must operate on single-trial data.\n');
+%         fprintf('Concatenating NaN-padded trials to form 2D data matrix.\n');
+%     end
+%
+%     % insert NaN boundary marker between trials and make [nchs x npnts]
+%     EEG.CAT.srcdata = nanpad(permute(EEG.CAT.srcdata,[2 1 3]),1);
+%     EEG.CAT.srcdata = permute(EEG.CAT.srcdata,[2 1]);
+% end
 
 MemoryLengthSamples = -1/log(1-g.updatecoeff);
 TimeConstant = MemoryLengthSamples/EEG.srate;
-if g.verb, 
-    fprintf('The effective window length is approximately %0.5f seconds (%d samples)\n',TimeConstant,MemoryLengthSamples); 
+if g.verb,
+    fprintf('The effective window length is approximately %0.5f seconds (%d samples)\n',TimeConstant,MemoryLengthSamples);
     fprintf('Your step size is %0.3f ms\n',g.winstep*1000);
     if ~isempty(g.constraints)
         fprintf('Using constraints\n');
     end
 end
-    
+
 
 % Fit MODEL model up to g.morder using Kalman filter
- 
-[nchs npnts] = size(EEG.CAT.srcdata);
+
+[nchs npnts ntr] = size(EEG.CAT.srcdata);
 
 if isempty(g.storage)
-    [VAR MODEL.Q2] = mvaar(permute(EEG.CAT.srcdata,[2 1]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
+    [VAR MODEL.Q2] = mvaar(permute(EEG.CAT.srcdata,[2 1 3]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
 elseif ismember('residuals',lower(g.storage))
-    [VAR,MODEL.Q2, MODEL.residuals] = mvaar(permute(EEG.CAT.srcdata,[2 1]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
+    [VAR MODEL.Q2, MODEL.residuals] = mvaar(permute(EEG.CAT.srcdata,[2 1 3]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
 elseif ismember('kalman',lower(g.storage));
-    [VAR,MODEL.Q2, MODEL.residuals] = mvaar(permute(EEG.CAT.srcdata,[2 1]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
+    [VAR MODEL.Q2, MODEL.residuals MODEL.Kalman] = mvaar(permute(EEG.CAT.srcdata,[2 1 3]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
 elseif ismember('state_covariance',lower(g.storage))
-    [VAR, MODEL.Q2,MODEL.residuals,MODEL.Kalman, MODEL.Q1] = mvaar(permute(EEG.CAT.srcdata,[2 1]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
+    [VAR MODEL.Q2,MODEL.residuals,MODEL.Kalman, MODEL.Q1] = mvaar(permute(EEG.CAT.srcdata,[2 1 3]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
 else
     error('unknown storage option %s',g.storage{1});
 end
 
-time = toc;
-
-for t=1:size(VAR,1)
-    % store VAR coefficients and noise covariance matrices
-    AR{t} = reshape(VAR(t,:),nchs*g.morder,nchs).';
-    PE{t}  = MODEL.Q2(:,:,t);
-    RC{t} = [];
-    if g.timer, timeElapsed(t) = time/npnts; end
+if g.timer
+    time = toc;
 end
 
+if g.verb
+    h=waitbar(0,'Storing VAR coefficients...');
+end
+
+q = 0;
+for tr=1:ntr
+    % for each trial
+    for t=1:size(VAR,1)
+        % concatenate VAR coefficients and noise covariance matrices for
+        % this trial to end of AR/PE/RC series
+        AR{q+t} = reshape(VAR(t,:,tr),nchs*g.morder,nchs).';
+        PE{q+t} = MODEL.Q2(:,:,t,tr);
+        RC{q+t} = [];
+        if g.timer, timeElapsed(t) = time/npnts; end
+    end
+    q = q + t;
+    
+    if g.verb
+        waitbar(tr/ntr,h);
+    end
+end
+
+if g.verb, close(h); end
 
 MODEL.AR = AR;
 MODEL.PE = PE;
 MODEL.RC = RC;
+
+if ntr>1
+    % concatenate winStartIdx for each trial into a continuous, increasing sequence
+    % e.g. If ntr = 2 and winStartIdx = [1 2 3 4] --> [1 2 3 4 1 2 3 4] --> [1 2 3 4 5 6 7 8]
+    g.winStartIdx = bsxfun(@plus,g.winStartIdx,(0:g.winStartIdx(end):ntr*g.winStartIdx(end)-1)')';
+    g.winStartIdx = g.winStartIdx(:)';
+end
+
 MODEL.winStartTimes = (g.winStartIdx-1)/EEG.srate;
 MODEL.winlen = 1/EEG.srate;
 MODEL.winstep = g.downsampleFactor/EEG.srate;
@@ -158,6 +190,7 @@ MODEL.timeelapsed = timeElapsed;
 MODEL.updatecoeff = g.updatecoeff;
 MODEL.updatemode = g.updatemode;
 MODEL.downsampleFactor = g.downsampleFactor;
+MODEL.modelapproach = 'State-Space Modeling';
 
 % MODEL.normalize = g.normalize;
 

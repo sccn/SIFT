@@ -349,8 +349,53 @@ classdef PropertyGrid < UIControl
         function OnPropertyChange(obj, event)
             self = PropertyGrid.FindPropertyGrid(obj, 'Model');
             name = get(event, 'PropertyName');  % JIDE automatically uses a hierarchical naming scheme
-            self.UpdateField(name);
 
+            % extra hack: allow assigning comma-separated lists to boolean multi-option fields
+%             try
+%                 
+%                 str = char(event.getNewValue());
+%                 field = self.Fields.FindByName(name);            
+%                 if iscell(field.PropertyData.Specification.range) && any(str==',')
+%                     str = hlp_split(str,',');
+%                     for c=1:length(str)
+%                         str(c) = strtrim(str(c)); end
+%                     prop = obj.getProperty(event.getPropertyName());
+%                     str = javaStringArray(str);
+% 
+%                     prop.setValue(str);
+%                     self.refresh();
+%                 end
+%             catch
+%             end
+
+            try
+                
+                str = char(event.getNewValue());
+%                 if str(end)==';'
+%                     str(end) = ' ';
+%                     prop = obj.getProperty(event.getPropertyName());
+%                     str = javaStringArray(str);
+% 
+%                     prop.setValue(str);
+%                     self.refresh();
+%                 end
+                field = self.Fields.FindByName(name);            
+                if iscell(field.PropertyData.Specification.range) ...
+                    && ~all(ismember(strtrim(str),[';' strtrim(field.PropertyData.Specification.range)]))
+                    
+                    str = {''};
+                    
+                    prop = obj.getProperty(event.getPropertyName());
+                    str = javaStringArray(str);
+
+                    prop.setValue(str);
+                    self.refresh();
+                end
+            catch
+            end
+            
+            self.UpdateField(name);
+            
             if 0  % debug mode
                 oldvalue = var2str(get(event, 'OldValue'));  % old value as a string
                 newvalue = var2str(get(event, 'NewValue'));  % new value as a string

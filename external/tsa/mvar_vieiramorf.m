@@ -1,12 +1,12 @@
-function [ARF,RCF,PE] = mvar_vieiramorf(Y, Pmax)
+function [ARF,RCF,PE] = mvar_vieiramorf(varargin)
 % MVAR estimates Multi-Variate AutoRegressive model parameters
 % Several estimation algorithms are implemented, all estimators 
 % can handle data with missing values encoded as NaNs.  
 %
-% 	[AR,RC,PE] = mvar(Y, p);
+% 	[AR,RC,PE] = mvar(Data, p);
 %
 % INPUT:
-%  Y	 Multivariate data series 
+%  Data	 Multivariate data series 
 %  p     Model order
 %  Mode	 determines estimation algorithm 
 %
@@ -27,13 +27,11 @@ function [ARF,RCF,PE] = mvar_vieiramorf(Y, Pmax)
 %       Signal processing, Elsevier B.V. (in press). 
 %       available at http://dx.doi.org/doi:10.1016/j.sigpro.2005.11.007
 %  [2] S.L. Marple "Digital Spectral Analysis with Applications" Prentice Hall, 1987.
-%  [3] Schneider and Neumaier)
-%  [4] Stijn de Waele, 2003
 %
 %
 % A multivariate inverse filter can be realized with 
-%   [AR,RC,PE] = mvar(Y,P);
-%   e = mvfilter([eye(size(AR,1)),-AR],eye(size(AR,1)),Y);
+%   [AR,RC,PE] = mvar(Data,P);
+%   e = mvfilter([eye(size(AR,1)),-AR],eye(size(AR,1)),Data);
 %  
 % see also: MVFILTER, MVFREQZ, COVM, SUMSKIPNAN, ARFIT2
 
@@ -62,32 +60,39 @@ function [ARF,RCF,PE] = mvar_vieiramorf(Y, Pmax)
 %                                         vieira-morf
 %                                       - optimized some computations
 
+g = arg_define([0 1],varargin, ...
+            arg_norep({'data','Data'},mandatory,[],'Data matrix. Format must be [time x channels]'), ...
+            arg_nogui({'morder','ModelOrder','Pmax','p'},10,[],'Maximum model order') ...
+            );
+        
+arg_toworkspace(g);
+
 % Inititialization
-[N,M] = size(Y);
+[N,M] = size(data);
 
-if nargin<2, 
-        Pmax=max([N,M])-1;
+if isempty(morder)
+        morder=max([N,M])-1;
 end;
 
-if iscell(Y)
-        Pmax = min(max(N ,M ),Pmax);
-end;
+% if iscell(data)
+%         morder = min(max(N ,M ),morder);
+% end;
 
 [C] = zeros(M,'double');
-[ARF ARB RCF RCB] = deal(zeros(M,M*Pmax,'double'));
-PE = zeros(M,M*Pmax+M,'double');
-[C(:,1:M),n] = covm(Y,'M');
+[ARF ARB RCF RCB] = deal(zeros(M,M*morder,'double'));
+PE = zeros(M,M*morder+M,'double');
+[C(:,1:M),n] = covm(data,'M');
 PE(:,1:M)  = C(:,1:M)./n;
 
 %%%%% Partial Correlation Estimation: Vieira-Morf Method [2] with unbiased covariance estimation
 %===== In [1] this algorithm is denoted "Nutall-Strand with unbiased covariance" =====%
 
-F = Y;
-B = Y;
+F = data;
+B = data;
 
 PEF = PE(:,1:M);
 PEB = PE(:,1:M);
-for K = 1:Pmax,
+for K = 1:morder,
         [D,n]	= covm(F(K+1:N,:),B(1:N-K,:),'M');
         D = D./n;
 
@@ -116,7 +121,6 @@ for K = 1:Pmax,
 
         PE(:,K*M+(1:M)) = PEF;        
 end;
-        
 
 if any(ARF(:)==inf),
     % Test for matrix division bug. 

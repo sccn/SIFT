@@ -23,7 +23,7 @@ function varargout = gui_causalBrainMovie3D(varargin)
 
 % Edit the above text to modify the response to help gui_causalBrainMovie3D
 
-% Last Modified by GUIDE v2.5 17-Nov-2010 14:48:48
+% Last Modified by GUIDE v2.5 21-Apr-2012 15:28:10
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -71,7 +71,15 @@ varargin([1 2]) = [];
 
 % set the default properties of the Real Time Visualization Panel
 if length(handles.ud.Conn(1).erWinCenterTimes)==1
-    set(handles.pnlRealTimeVis,'enable','false');
+%     set(get(handles.pnlRealTimeVis,'children'),'enable','off');
+    
+    erWinCenterTimes = handles.ud.Conn(1).erWinCenterTimes;
+    set(handles.txtMinTime,'String',erWinCenterTimes(1));
+    set(handles.txtMaxTime,'String',erWinCenterTimes(1));
+    set(handles.txtCurTime,'String',erWinCenterTimes(1));
+    set(handles.slideCurTime,'value',1);
+    set(handles.slideCurTime,'min',1,'max',1.1);
+    set(handles.slideCurTime,'sliderstep',[1 1]);
 else
     erWinCenterTimes = handles.ud.Conn(1).erWinCenterTimes;
     set(handles.txtMinTime,'String',erWinCenterTimes(1));
@@ -82,6 +90,8 @@ else
     set(handles.slideCurTime,'sliderstep',[1/length(erWinCenterTimes) 4/length(erWinCenterTimes)]);
 end
 
+
+    
 % set default EEGLAB background and text colors
 %-----------------------------------------------
 try, icadefs;
@@ -224,17 +234,23 @@ minTime = str2num(get(handles.txtMinTime,'String'));
 maxTime = str2num(get(handles.txtMaxTime,'String'));
 
 figh = handles.BrainMovieFigure; %findobj('tag','BrainMovieFigure');
-try figure(figh)
-catch
-    figh = [];
+% try figure(figh)
+% catch
+%     figh = [];
+% end
+if ishandle(figh)
+    curpos = get(findobj(figh,'tag','brain1'),'CameraPosition');
+else
+    curpos = [];
 end
-curpos = get(findobj(figh,'tag','brain'),'CameraPosition');
+
 % execute the brainmovie function to render this frame
-vis_causalBrainMovie3D('ALLEEG',handles.ud.ALLEEG,'Conn',handles.ud.Conn,cfg,'MovieTimeRange',[minTime maxTime],'BrainMovieOptions',{cfg.BMopts,'visible','off','FigureHandle',figh,'LatenciesToRender',[],'FramesToRender',curframe,'outputFormat',{'framefolder','','moviename',''}});
-figh = gcf;
-set(findobj(figh,'tag','brain'),'CameraPosition',curpos);
+[tmp bm_handles] = vis_causalBrainMovie3D('ALLEEG',handles.ud.ALLEEG,'Conn',handles.ud.Conn,cfg,'MovieTimeRange',[minTime maxTime],'BrainMovieOptions',{cfg.BMopts,'visible','off','FigureHandle',figh,'LatenciesToRender',[],'FramesToRender',curframe,'outputFormat',{'framefolder','','moviename',''}});
+handles.BrainMovieFigure = bm_handles.figurehandle;
+if ~isempty(curpos)
+    set(findobj(handles.BrainMovieFigure,'tag','brain1'),'CameraPosition',curpos);
+end
 set(gcf,'visible','on')
-handles.BrainMovieFigure = gcf;
 guidata(hObject,handles);
 
 
@@ -271,3 +287,34 @@ function cmdHelp_Callback(hObject, eventdata, handles)
 
 warndlg2('Coming soon!');
 
+
+% --- Executes on key press with focus on gui_BrainMovie3D and none of its controls.
+function gui_BrainMovie3D_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to gui_BrainMovie3D (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+if strcmpi(eventdata.Key,'s') ...
+        && (strcmpi(eventdata.Modifier,'control') ...
+        || strcmpi(eventdata.Modifier,'command'))
+    
+    varname = inputdlg2({'Enter name of variable in workspace to store configuration'}, ...
+                        'Save GUI configuration to workspace',1,{''});
+     
+    if isempty(varname)
+        return;
+    end
+    
+    % get the property specification
+    pg = handles.PropertyGridHandle;
+    ps = pg.GetPropertySpecification;
+    cfg = arg_tovals(ps,false);
+    
+    % save configuration structure to workspace
+    assignin('base',varname{1},cfg);
+
+end
+    

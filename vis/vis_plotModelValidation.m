@@ -4,30 +4,37 @@ function handles = vis_plotModelValidation(whitestats,PCstats,stabilitystats,var
 %
 % Inputs:
 %
-%       whitestats:     Cell array of structs each containing results of 
+%       whitestats:     Cell array of structs each containing results of
 %                       tests for whiteness of residuals for a single
 %                       dataset/condition
 %                       (as output by est_checkMVARWhiteness())
 %                       If not available, pass in an empty matrix to skip
 %                       plotting this result.
-%       PCstats:        Cell array of structs each containing results of 
+%       PCstats:        Cell array of structs each containing results of
 %                       tests for consistency of the model for a single
 %                       dataset/condition
 %                       (as output by est_checkMVARConsistency())
 %                       If not available, pass in an empty matrix to skip
 %                       plotting this result.
-%       stabilitystats: Cell array of structs each containing results of 
+%       stabilitystats: Cell array of structs each containing results of
 %                       tests for stability of the model for a single
 %                       dataset/condition
 %                       (as output by est_checkMVARStability())
 %                       If not available, pass in an empty matrix to skip
 %                       plotting this result.
-%       
+%
 %
 % Optional:
-%   
-%       conditions:     Cell array of condition labels
-%                       e.g. conditions = {ALLEEG.condition}
+%
+%       whitenessCriteria:   Cell array of whiteness criteria
+%       checkWhiteness:      (boolean) plot whiteness results
+%       checkConsistency:    (boolean) plot consistency results
+%       checkStability:      (boolean) plot stability results
+%       windowTimes:        Times (sec) of windows for x-axis labeling.
+%                           This MUST be the same length as number of
+%                           time windows (e.g.) whitestats{1}.winStartIdx
+%       conditions:         Cell array of condition labels
+%                           e.g. conditions = {ALLEEG.condition}
 %
 % Outputs:
 %
@@ -37,13 +44,13 @@ function handles = vis_plotModelValidation(whitestats,PCstats,stabilitystats,var
 % See Also: pop_est_validateMVAR(),est_checkMVARWhiteness(),
 %           est_checkMVARStability(), est_checkMVARConsistency()
 %
-% References: 
-% 
+% References:
+%
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
 %   Theoretical Handbook and User Manual. Chapter 6.
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift
-% 
-% Author: Tim Mullen, 2010, SCCN/INC, UCSD. 
+%
+% Author: Tim Mullen, 2010, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
@@ -70,7 +77,7 @@ function handles = vis_plotModelValidation(whitestats,PCstats,stabilitystats,var
 whitenessCriteria = {};
 
 % find the names of all whiteness tests stored in whitestats
-if ~isempty(whitestats{1}) 
+if ~isempty(whitestats{1})
     fn = fieldnames(whitestats{1});
     for i=1:length(fn)
         if isfield(whitestats{1}.(fn{i}),'fullname')
@@ -79,27 +86,29 @@ if ~isempty(whitestats{1})
     end
 end
 
+num_conds = max([length(whitestats),length(PCstats),length(stabilitystats)]);
+
+
 g = finputcheck(varargin, ...
     {'whitenessCriteria'   'cell'  whitenessCriteria   whitenessCriteria; ...
-      'checkWhiteness',     'boolean'   []          true; ...
-      'checkConsistency'    'boolean'   []          true; ...
-      'checkStability'      'boolean'   []          true; ...
-      'conditions'          'cell'      {}          {}; ...
-      },'mode','ignore','quiet');
-    
+    'checkWhiteness',     'boolean'   []          true; ...
+    'checkConsistency'    'boolean'   []          true; ...
+    'checkStability'      'boolean'   []          true; ...
+    'windowTimes'         'real'      []          [];   ...
+    'conditions'          'cell'      {}          {}; ...
+    },'mode','ignore','quiet');
 
-if isempty(whitestats),         g.checkWhiteness    = false;    end
-if isempty(PCstats),            g.checkConsistency  = false;    end
-if isempty(stabilitystats),     g.checkStability    = false;    end
-
-num_conds = max([length(whitestats),length(PCstats),length(stabilitystats)]);
+if isempty(whitestats{1}),         g.checkWhiteness    = false;    end
+if isempty(PCstats{1}),            g.checkConsistency  = false;    end
+if isempty(stabilitystats{1}),     g.checkStability    = false;    end
+if isempty(g.conditions),          g.conditions        = cell(1,num_conds); end
 
 numrows = sum([g.checkWhiteness g.checkConsistency g.checkStability]);
 numcols = 1;
 
 for cond = 1:num_conds
-
-    if isempty(g.conditions)
+    
+    if isempty(g.conditions{cond})
         g.conditions{cond} = sprintf('Condition %d',cond);
     end
     
@@ -108,89 +117,132 @@ for cond = 1:num_conds
     curplot=1;
     
     if g.checkWhiteness
-        
+        % Plot results of residual whiteness checks
         if ~iscell(whitestats), whitestats = {whitestats}; end
-
+        
         subplot(numrows,numcols,curplot);
         for i = 1:length(g.whitenessCriteria)
             wcstr = lower(hlp_variableize(g.whitenessCriteria{i}));
             wc = whitestats{cond}.(wcstr);
             pvals(i,:) = wc.pval;
-            lgnd{i} = sprintf('%s (%d/%d white)',wc.fullname, sum(wc.w),length(wc.w));
+            if size(pvals,2)>1
+                lgnd{i} = sprintf('%s (%d/%d white)',wc.fullname, sum(wc.w),length(wc.w));
+            else
+                lgnd{i} = sprintf('%s (%swhite)',wc.fullname, fastif(wc.w,'','not '));
+            end
         end
-
+        
         if size(pvals,2)>1
             % more than one window -- make lineplot
-            plot(1:length(whitestats{cond}.winStartIdx),pvals');
-            xlabel('Window number');
+            if ~isempty(g.windowTimes)
+                abscissa = g.windowTimes;
+            else
+                abscissa = 1:length(whitestats{cond}.winStartIdx);
+            end
+            plot(abscissa,pvals','Marker','.');
+            xlabel(fastif(isempty(g.windowTimes),'Window number','Time (sec)'));
+            
             legend(lgnd);
+            set(gca, ...
+                'Xlim',[abscissa(1)-abs(diff(abscissa(1:2))) abscissa(end)+abs(diff(abscissa(1:2)))], ...
+                'Ylim',[max(0,min(pvals(:))-0.5), min(1,max(pvals(:))+0.5)]);
         else
-            % single window -- make barplot
+            % single window -- create bar plots
             h = bar(pvals);
             ch = get(h,'Children');
-
+            
             set(gca,'xticklabel',lgnd);
             colors = [[1 0 0];[0 0 1];[0 1 0];[0 0 0];[1 0 1];[0 1 1]];
             colors = colors(1:length(pvals),:);
             set(ch,'FaceVertexCData',colors);
-
+            %             set(gca,'xlim',[0 length(length(g.whitenessCriteria))+1],'Ylim',[max(0,min(pvals(:))-0.5), min(1,max(pvals(:))+0.5)]);
         end
-
-        set(gca,'xlim',[0 length(whitestats{cond}.winStartIdx)+1],'Ylim',[max(0,min(pvals(:))-0.5), min(1,max(pvals(:))+0.5)]);
-        hl=hline(whitestats{cond}.alpha); 
+        
+        hl=hline(whitestats{cond}.alpha,'b','1-p_{port}',[1.01 -0.01]);
         set(hl,'linestyle','--','linewidth',2);
-        ylabel({'Significance of whiteness','(larger is better)'});
+        ylabel({'Whiteness Significance'});
         axcopy(gca);
-
+        
         curplot=curplot+1;
+        
+        if ismember('acf',lower(g.whitenessCriteria))
+            hl=hline(1-whitestats{cond}.alpha,'r','1-P_{acf}',[1.01 -0.01]);
+            set(hl,'linestyle','--','linewidth',2);
+        end
     end
-
+    
+    
+    
     if g.checkConsistency
+        % Plot results of consistency checks
         
         if ~iscell(PCstats), PCstats = {PCstats}; end
         
         ax=subplot(numrows,numcols,curplot);
-        if length(PCstats{cond}.PC)>2
-            % more than one window -- make lineplot       
-            plot(1:length(PCstats{cond}.winStartIdx),PCstats{cond}.PC);
+        if length(PCstats{cond}.PC)>1
+            % more than one window -- make lineplot
+            if ~isempty(g.windowTimes)
+                abscissa = g.windowTimes;
+            else
+                abscissa = 1:1:length(PCstats{cond}.winStartIdx);
+            end
+            plot(abscissa,PCstats{cond}.PC,'Marker','.');
             axes(ax);
             text(0.98,0.9,sprintf('Mean PC: %0.2f%%',mean(PCstats{cond}.PC)), ...
                 'units','normalized','horizontalalignment','right', ...
                 'edgecolor','k','backgroundcolor','w');
-            xlabel('Window number');
+            xlabel(fastif(isempty(g.windowTimes),'Window number','Time (sec)'));
+            
+            % make a small histogram on right side of plot
+            %             axpos = get(ax,'Position');
+            %             axhist = axesRelative(ax, 'Position',[1.01 0 0.1 1], 'Units','Normalized');   %axes('Position',[axpos(1)+axpos(3)+0.01 axpos(2) 0.05 axpos(4)]);
+            %             hist(axhist,PCstats{cond}.PC,10);
+            %             vline(mean(PCstats{cond}.PC),':r');
+            %             set(axhist,'View',[90 90]);
+            %             set(axhist,'xdir','rev');
         else
             % single window -- make barplot
             bar(PCstats{cond}.PC);
             legend(sprintf('(%0.2f%% Consistent)',PCstats{cond}.PC));
         end
-        set(gca,'xlim',[0 length(PCstats{cond}.winStartIdx)+1],'ylim',[min(PCstats{cond}.PC)-50 min(max(PCstats{cond}.PC)+50,100)]);
+        set(gca,...
+            'Xlim',[abscissa(1)-abs(diff(abscissa(1:2))) abscissa(end)+abs(diff(abscissa(1:2)))], ...
+            'Ylim',[min(PCstats{cond}.PC)-50 min(max(PCstats{cond}.PC)+50,100)]);
         ylabel('Percent Consistency');
         axcopy(gca);
         curplot = curplot+1;
     end
-
+    
     if g.checkStability
+        % Plot results of stability checks
         
         if ~iscell(stabilitystats), stabilitystats = {stabilitystats}; end
         
         % plot stability results
         subplot(numrows,numcols,curplot);
-        if length(stabilitystats{cond}.stability)>2
-            % more than one window -- make lineplot    
+        if length(stabilitystats{cond}.stability)>1
+            % more than one window -- make lineplot
             %boxplot(real(lambda)');
             maxlambda = max(real(stabilitystats{cond}.lambda),[],2);
-            plot(1:length(stabilitystats{cond}.winStartIdx),maxlambda);
-            xlabel('Window number')
+            if ~isempty(g.windowTimes)
+                abscissa = g.windowTimes;
+            else
+                abscissa = 1:length(stabilitystats{cond}.winStartIdx);
+            end
+            plot(abscissa,maxlambda,'Marker','.');
+            xlabel(fastif(isempty(g.windowTimes),'Window number','Time (sec)'));
+            
         else
             % single window -- make barplot
             maxlambda = max(real(stabilitystats{cond}.lambda(:)));
             bar(maxlambda);
         end
-
-
-    %     set(gca,'ylim',[max(0,0.7*min(abs(lambda(:)))) max(1.3,1.3*max(abs(lambda(:))))]);
-        set(gca,'xlim',[0 length(stabilitystats{cond}.winStartIdx)+1],'ylim',[1.2*min(maxlambda(:)) max(0.01,1.3*max(maxlambda(:)))]);
-    %     axis auto
+        
+        
+        %     set(gca,'ylim',[max(0,0.7*min(abs(lambda(:)))) max(1.3,1.3*max(abs(lambda(:))))]);
+        set(gca,'Xlim',[abscissa(1)-abs(diff(abscissa(1:2))) abscissa(end)+abs(diff(abscissa(1:2)))], ...
+                'Ylim',[1.2*min(maxlambda(:)) max(0.01,1.3*max(maxlambda(:)))]);
+        %     axis auto
         hl=hline(0);
         set(hl,'linestyle','--','linewidth',2);
         ylabel({'Stability Index','(should be < 0)'});
@@ -198,7 +250,10 @@ for cond = 1:num_conds
         legend(sprintf('(%d/%d stable)',numstable,length(stabilitystats{cond}.stability)));
         axcopy(gca);
     end
-
-    try, icadefs; set(gcf, 'color', BACKCOLOR); catch, end;
+    
+    try
+        icadefs; set(gcf, 'color', BACKCOLOR); 
+    catch
+    end;
     
 end
