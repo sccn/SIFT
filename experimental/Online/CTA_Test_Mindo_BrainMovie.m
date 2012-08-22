@@ -1,30 +1,61 @@
 % TestDataPath = '/Users/timmullen/Documents/WORK/SIFT/Code/SIFT_bitbucket/experimental/Online/Mindo/mindo_test.set/mindo_test.set';
-% TestDataPath = '/Users/timmullen/Documents/WORK/SIFT/Code/SIFT_bitbucket/experimental/Online/eb72_continuous.set';
-TestDataPath = '/Users/timmullen/Documents/WORK/SIFT/Code/SIFT_bitbucket/experimental/Online/MikeChi/MikeChi_TestData.set';
+% TestDataPath = 'C:\Users\tim\Documents\MainlyMozart\SIFT_bitbucket\experimental\Online\eb72_continuous.set';
+% TestDataPath = '/Users/timmullen/Documents/WORK/SIFT/Code/SIFT_bitbucket/experimental/Online/MikeChi/MikeChi_TestData.set';
+
+% USE THIS FOR LIVE EVENT:
+% this is the path to the 'calibration set'
+TestDataPath = 'C:\Users\christian\Documents\MainlyMozart\SIFT_bitbucket\experimental\Online\DataSets\newrecording3.set';  
+ % this is the path to the dataset with the pre-computed ica weight matrices, dipfit, etc  
+ICAOfflineDataPath = 'C:\Users\christian\Documents\MainlyMozart\SIFT_bitbucket\experimental\Online\DataSets\338_020212_Speech_tweaked.set';  %'C:\Users\tim\Documents\MainlyMozart\SIFT_bitbucket\experimental\Online\DATASET_WITH_ICA_TESTING.set'; 
+% This is the path to brainmovie configuration file with variable 'BMCFG'
+BMCONFIG_FILE = 'C:\Users\christian\Documents\MainlyMozart\SIFT_bitbucket\experimental\Online\MM_BMCFG.mat'; %'/Users/timmullen/Documents/WORK/SIFT/Code/SIFT_bitbucket/experimental/Online/BMConfigs/MINDO16_BMCFG.mat';
+
+%% load dataset and get ICA and dipole stuff
+tmp = pop_loadset(ICAOfflineDataPath);
+OfflineDataset.icawinv          = tmp.icawinv;
+OfflineDataset.icaweights       = tmp.icaweights;
+OfflineDataset.icasphere        = tmp.icasphere;
+OfflineDataset.icachansind      = tmp.icachansind;
+OfflineDataset.dipfit           = tmp.dipfit;
+
+% get fieldnames
+OfflineDatasetFieldnames = fieldnames(OfflineDataset);
+
+% clear the tmp dataset
+clear tmp;
 
 %% PARAMETERS
+UsingChristianBIOSEMI = true;                   % set this when we are loading datasets recorded from christian's biosemi interface
 
-MINDO16_channels = [2 5 6 8 11 16];  %[1:9 11 12 15 16]; %[2 3 8 9 16]; %[1:9 11 12 15 16];  %[2 5 6 8 11 16]; %[1:9 11 12 15 16]; % all good channels
+Components_Speech_Super = [4 7 11 16 23 25 31 35 38]; % 55 62 9 17 19 14];
+Components_Speech_Good = [10 21];
+Components_Speech_Questionable = [8 26 41 48 56 64];
 
 % -------- PARAMS -----------
-Channels = [2:16]; %MINDO16_channels; % [8 11 12 13 14 15]; % 19 23 %[2 4 7 8 10 11]; %[5 11 13 15 19 23 24];  %[2 3 4 5 7 10]; %[3:5 7]; [7:12]; [2 4 7 8 10 11];        % these are the components/channels to which we'll fit our multivariate model
-StreamViewerChannels = Channels; %Channels; %1:24; %Channels;
-WindowLengthSec = 2;                               % sliding window length in seconds
-WindowStepSizeSec = WindowLengthSec;               % sliding window step size in seconds (ignore for online)
+Channels = [Components_Speech_Super]; % Components_Speech_Good Components_Speech_Questionable];                  % these are the components/channels to which we'll fit our multivariate model  % eb72: [8 11 12 13 14 15]
+StreamViewerChannels = Channels;
+WindowLengthSec = 5;                            % sliding window length in seconds
+WindowStepSizeSec = WindowLengthSec;            % sliding window step size in seconds (ignore for online)
 Frequencies = 1:30;
 ModelOrder = 10;
-PowerChannels = Channels;                           % channel for which to plot power
-ConnectivityMeasures = {'nPDC','S'};              % see doc est_mvtransfer for a full list of codes
+PowerChannels = Channels;                       % channel for which to plot power
+ConnectivityMeasures = {'nPDC','S'};            % see doc est_mvtransfer for a full list of codes
 SamplingRate = 128;
 
 BENCHMARK = false;
 CHECK_WHITENESS = false;
 PLOTDATA = true;
 PLOTSPECTRA = false;
-USE_CHANNELS = true;
+USE_CHANNELS = false;
 REREF = false;
-ReferenceChannels = [];
-ReferenceExclusions = [];
+% ReferenceChannels = [];
+% ReferenceExclusions = [147:152];
+
+% Set up bad channels (detect this later...)
+ChansToSelect = 1:128;
+BadChannels = zeros(1,length(ChansToSelect)); % init
+ForceBadChannels = []; % Indices of channels to force to bad
+DataRejectStdevFactorThresholds = [1/5 5];
 
 % parameters for Edge/Node Size/Color limits adaptation
 ADAPT_LIMITS = true;
@@ -36,15 +67,30 @@ FilterParams = [1 2 40 50]; %[0.5 1]; %[0.5 1 6 10];
 FilterType = 'bandpass';
 % FilterType = 'lowpass';
 
+%% Set up the automatic artifact rejection system
+if ~isempty(DataRejectStdevFactorThresholds)
+    fprintf('Computing automatic artifact rejection thresholds...\n');
+    tmpEEG = pop_loadset(ICAOfflineDataPath);
+    % get the upper and lower percentiles of the variance distribution of the data, which we'll use for
+    % channel rejection.
+    stdevs = std(tmpEEG.data(ChansToSelect,:),0,2);  %
+    DataRejectionThresholds = [DataRejectStdevFactorThresholds(1)*min(stdevs) DataRejectStdevFactorThresholds(2)*max(stdevs)];
+%     DataRejectionThresholds = prctile(var(tmp.EEG.data(ChansToSelect,:),0,2),[DataRejectStdevFactorThresholds(1) DataRejectStdevFactorThresholds(2)]); 
+    clear tmpEEG;
+end
+
 %% SET UP FILTERS
 % load calibration set
-EEG = exp_eval(io_loadset(TestDataPath));
-
+EEG = exp_eval(io_loadset(ICAOfflineDataPath));   % TestDataPath
 processed = EEG;
-
 % re-reference
-if REREF
-    processed = exp_eval(flt_reref('Signal',processed,'ReferenceChannels',ReferenceChannels,'ExcludeChannels',ReferenceExclusions,'KeepReference',true));
+% if REREF
+%     processed = exp_eval(flt_reref('Signal',processed,'ReferenceChannels',ReferenceChannels,'ExcludeChannels',ReferenceExclusions,'KeepReference',true));
+% end
+
+if ~isempty(ChansToSelect)
+    labels = {EEG.chanlocs.labels};
+    processed = exp_eval(flt_selchans(processed,labels(ChansToSelect)));
 end
 
 % band-pass filter
@@ -52,54 +98,37 @@ if ~isempty(FilterParams)
     processed = exp_eval(flt_iir(processed,FilterParams,FilterType));
 end
 
+
 %% RUN PRE-RECORDED DATA
-% rawdata = io_loadset(TestDataPath);
-% run_readdataset('mystream',rawdata,25);
+rawdata = io_loadset(ICAOfflineDataPath);
+run_readdataset('mystream',rawdata,25);
 
-%% RUN MINDO SYSTEMS
-
-% % clear any previous stream
-% % if it still complains about re-connecting, re-start MATLAB...
-% 
-% % onl_clear;
-% pause(3);
-% 
-% % read from the black cap
-% % run_readmindo2('mystream','00:1a:ff:09:00:28',25,128,{'Fp1','Afz','Fp2','F3','Fz','F4','C3','Fcz','C4','Cz','P3','Pz','P4','Oz','O1','O2'});
-% % read from the white cap
-% % run_readmindo2('mystream','00:1a:ff:09:00:30',25,128,{'Fp2','Fp1','F4','Fz','F3','T4','C4','Cz','C3','T3','P4','Pz','P3','O2','Oz','O1'});
-% % read from the old SCCN version
-% run_readmindo('MatlabStream','mystream','DeviceUniqueIdentifier','00:18:00:32:06:f5','UpdateFrequency',25,'SamplingRate',128, ...
-%     'ChannelLabels',{'Fpz', 'Fz', 'F3', 'F4', 'F7', 'F8', 'AF3', 'Cz', 'C3', 'C4', 'Pz', 'P3', 'P4', 'TP7', 'TP8', 'Oz'}); 
-% %{'Afz','Fz','F3','F4','F7','F8','Fcz','Cz','C3','C4','Cpz','P3','P4','T5','T6'});
-
-%% RUN MIKE CHI's SYSTEM
-% % onl_clear;
-
-ChannelLabels = {'Synch','F9','T7','P9','O1','P7','FP2','F10','T10','P10','O2','F8','P3','PZ','P4','P8','C3','C1','F4','FZ','F3','F7','C4','C2'};
-
-run_readmikechi_new('MatlabStream','mystream','ChannelLabels',ChannelLabels);
-% 
+%% run biosemi system:
+% run_readlsl('MatlabStream','mystream','SelectionValue','EEG');
 
 %% Run this to write the current stream to file
-
 % run_writedataset('SourceStream','mystream');
 
 %% put a pipeline on top of the data stream that replicates the processing applied to processed and continues it on new data
 pipln = onl_newpipeline(processed,{'mystream'});
 
+%% clear temporary data
+% clear processed EEG
 
 %% -------------------------------------
 
-% ChannelIDs = strtrim(cellstr(num2str(Channels')))';  % convert list of components to cell array of strings
-ChannelIDs = {EEG.chanlocs(Channels).labels};
+pause(1);
+
+ChannelIDs = strtrim(cellstr(num2str(Channels')))';  % convert list of components to cell array of strings
+% ChannelIDs = {EEG.chanlocs(Channels).labels};
 PowerChannelsIdx = find(ismember(Channels,PowerChannels));
 
 % reset the state
 clear mvar_glADMM;
 %
 try 
-    load '/Users/timmullen/Documents/WORK/SIFT/Code/SIFT_bitbucket/experimental/Online/BMConfigs/MINDO16_BMCFG.mat';
+    tmp = load(BMCONFIG_FILE);
+    BMCFG = tmp.BMCFG;
     BMCFG.connmethod = ConnectivityMeasures{1};
     BMCFG.BMopts.bmopts_suppl = {'title',{'Multivariate ','Granger Causality  '}};
     BMCFG.BMopts.caption = true;
@@ -112,14 +141,13 @@ mode = 'init_and_render';
 
 
 if PLOTDATA
+    % note: replace 'basewsDatasetName','' to view all channels
     streamViewerHandle = vis_dataStreamViewer('streamname','mystream','basewsDatasetName','EEG','channelsToDisplay',StreamViewerChannels,'spacing',1, ...
         'closeRequestFcn','svtimer = timerfind(''Tag'',''StreamViewerTimer''); stop(svtimer); delete(svtimer); delete(gcbf);');
     dataTimer = timer('Tag','StreamViewerTimer','StartDelay',0.2, 'Period', 1, 'ExecutionMode','fixedRate', ...
         'TimerFcn',@(x,y) vis_dataStreamViewer('streamname','mystream','basewsDatasetName','EEG','axisHandle',streamViewerHandle,'draw',true,'channelsToDisplay',StreamViewerChannels));  %'StreamViewerTimer'
     start(dataTimer);
 end
-
-% 'basewsDatasetName','EEG'
 
 if PLOTSPECTRA
     hpower = figure('DeleteFcn',@(varargin)evalin('base','closed=true;'));
@@ -132,15 +160,51 @@ counter = 0;
 numberOfLimitsCalculationsSoFar = 0;
 numberOfRunsSofar = 0;
 
+BadChannels(ForceBadChannels) = 1;
+
 % poll the buffer periodically
 while ~closed
     
     % grab the last WindowLengthSec chunk of data from the stream
     [EEG,pipln] = onl_filtered(pipln, EEG.srate*WindowLengthSec);
 %     EEG = onl_peek('mystream',WindowLengthSec);
+
+    if EEG.pnts < EEG.srate*WindowLengthSec
+        disp('No Data!');
+        continue;
+    end
+
+    if ~isempty(DataRejectStdevFactorThresholds)
+        % reject channels with variance outside desired bounds
+        stdevs = std(EEG.data,0,2);
+        BadChannels = (stdevs < DataRejectionThresholds(1) | stdevs > DataRejectionThresholds(2));
+        
+        BadChannels(ForceBadChannels) = 1;
+        
+        if all(BadChannels)
+            disp('All channels are bad!');
+            continue;
+        end
+    end
+    goodchannels = ~BadChannels;
+        
+    if REREF
+        % do common average re-referencing
+        EEG = flt_comAvgReref(EEG,goodchannels);
+    end
+    
+    for fn = 1:length(OfflineDatasetFieldnames)
+        % insert the stuff from Offline dataset (icawinv, dipfit, etc)
+        EEG.(OfflineDatasetFieldnames{fn}) = OfflineDataset.(OfflineDatasetFieldnames{fn});
+    end
     
     % initialize the SIFT datastructures
-    EEG = onl_init_SIFT(EEG,Channels,ChannelIDs,USE_CHANNELS);
+    EEG = onl_init_SIFT(EEG,Channels,ChannelIDs,USE_CHANNELS,goodchannels);
+    
+    % just a minor fix
+    if UsingChristianBIOSEMI
+        EEG.chaninfo.nosedir = '+Y';
+    end
     
     tic
     
@@ -303,8 +367,8 @@ while ~closed
     
 end
 
-% delete(timerfind('Tag','StreamViewerTimer'));
-% close all force
+delete(timerfind('Tag','StreamViewerTimer'));
+close all force
 
 
 

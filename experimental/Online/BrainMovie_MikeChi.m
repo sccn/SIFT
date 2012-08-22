@@ -5,7 +5,7 @@ TestDataPath = '/Users/timmullen/Documents/WORK/SIFT/Code/SIFT_bitbucket/experim
 %% PARAMETERS
 
 MINDO16_channels = [2 5 6 8 11 16];  %[1:9 11 12 15 16]; %[2 3 8 9 16]; %[1:9 11 12 15 16];  %[2 5 6 8 11 16]; %[1:9 11 12 15 16]; % all good channels
-MikeChi_channels = [3 5 9 11 20 14]; %[10 3 2 9 12 14 21];
+MikeChi_channels = [10 3 2 9 12 14 21];
 
 % -------- PARAMS -----------
 Channels = MikeChi_channels; %MINDO16_channels; % [8 11 12 13 14 15]; % 19 23 %[2 4 7 8 10 11]; %[5 11 13 15 19 23 24];  %[2 3 4 5 7 10]; %[3:5 7]; [7:12]; [2 4 7 8 10 11];        % these are the components/channels to which we'll fit our multivariate model
@@ -16,7 +16,7 @@ Frequencies = 1:30;
 ModelOrder = 10;
 PowerChannels = Channels;                           % channel for which to plot power
 ConnectivityMeasures = {'nPDC','S'};              % see doc est_mvtransfer for a full list of codes
-SamplingRate = 125; %128;
+SamplingRate = 250; %128;
 
 BENCHMARK = false;
 CHECK_WHITENESS = false;
