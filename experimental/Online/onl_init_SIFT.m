@@ -1,4 +1,4 @@
-function EEG = onl_init_SIFT(EEG,curComps,curComponentNames,usechannels)
+function EEG = onl_init_SIFT(EEG,curComps,curComponentNames,usechannels,goodchannels)
 
     if nargin<4
         usechannels = false;
@@ -38,7 +38,14 @@ function EEG = onl_init_SIFT(EEG,curComps,curComponentNames,usechannels)
         end
     else
         
-        [EEG.CAT.srcdata EEG.icaact] = deal(EEG.icaweights(curComps,:)*EEG.data);
+         if ~all(goodchannels)
+             % recompute ica activations from only the good channels
+             icawinv = EEG.icawinv(goodchannels,:);
+             icaweights = pinv(icawinv);
+             [EEG.CAT.srcdata EEG.icaact] = deal(icaweights(curComps,:)*EEG.data(goodchannels,:));
+         end
+         
+        [EEG.CAT.srcdata EEG.icaact] = deal(EEG.icaweights(curComps,goodchannels)*EEG.data(goodchannels,:));
         
     end
    
