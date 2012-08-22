@@ -44,8 +44,9 @@
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-function V = est_calcInvCovMatFourierPDC(Rinv,E,foi,fs,N,p, verb)
+function V = est_calcInvCovMatFourierPDC(Rinv,E,foi,fs,N,p,verb,DEBUG)
 
+DEBUG = 0;
 
 %% extract the diagonal elements of H=Rinv
 % structure of Hd is (e.g., for p=2): 
@@ -61,11 +62,11 @@ for v=1:p
     end
 end
 
-%DEBUG
-% for j=1:N
-%     try chol(reshape(Hd(j,:),[p p])); catch; fprintf('Hj<0: j=%d - ',j); keyboard; end;
-% end
-%DEBUG
+if DEBUG
+    for j=1:N
+        try chol(reshape(Hd(j,:),[p p])); catch; fprintf('Hj<0: j=%d - ',j); keyboard; end;
+    end
+end
 
 %% create u,v index vectors
 % us = [1 2 ... p 1 2 ... p ... ]'   (p^2 length)
@@ -81,7 +82,7 @@ end
 %% construct the V matrix for all freqs
 fi=0;
 COS=zeros(p^2,1); 
-freqs=(2*pi*foi)/fs;  % is this correct??
+freqs=(2*pi*foi)/fs;
 V = zeros(length(freqs),N,N); % NOTE: V will end up (N,N,freqs)
 if verb, h=waitbar(0,'calculating V^-1...'); end
 for f=freqs
@@ -108,18 +109,11 @@ for f=freqs
     
     % now we multiply in the variances of the i's (E(i,i)) to generate the
     % full V matrix
-    Vm = kron(diag(E)',Vm);   % FIX? shouldn't Eii be multipled by each element of Vm p^2 times? e.g., Vm = kron(diag(p^2*E)',Vm);
+    Vm = kron(diag(E)',Vm);
     
     % next, reshape to desired structure (NxNx2x2)
-    V(fi,:,:) = Vm';  %permute(reshape(Vm',2,N,N),[3 4 1 2]);
+    V(fi,:,:) = Vm';
     
-%     I=eye(2);
-%     % and, finally, invert each submatrix
-%     for i=1:N
-%         for j=1:N
-%             V(fi,i,j,:,:)=squeeze(V(fi,i,j,:,:))\I;
-%         end
-%     end
     
     if verb, waitbar(fi/length(freqs),h); end
 end % for freqs
@@ -128,18 +122,3 @@ end % for freqs
 V = permute(V,[2 3 1]);
 if verb, close(h); end
 
-
-% -----------------------------------
-
-% function diags = getDiags(R,p,N,j)
-% % extract jjth diagonal element from each NxN submatrix of R
-% % result is a column vector.
-% 
-% I=repmat([0:(p-1)]'*N+j,p,1);
-% J = zeros(p,1);
-% for ii=1:p-1
-%     J=[J;ones(p,1)*ii*N];
-% end
-% J=J+j;
-% indx=sub2ind(size(R),I,J);
-% diags=R(indx);

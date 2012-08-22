@@ -1,5 +1,6 @@
 function y = normpdfg(x,scale,shape,center,max)
-
+% y = normpdfg(x,scale,shape,center,max)
+%
 % Evalute the generalized gaussian pdf at point(s) x
 % the pdf is defined by the given scale (2*variance) and shape and mean
 % (center)

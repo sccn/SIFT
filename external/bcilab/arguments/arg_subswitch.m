@@ -72,9 +72,10 @@ res = {@invoke_argsubswitch_cached,varargin};
 function spec = invoke_argsubswitch_cached(varargin)
 spec = hlp_microcache('arg',@invoke_argsubswitch,varargin{:});
 
-
 % the function that does the actual work of building the argument specifier
 function spec = invoke_argsubswitch(reptype,names,defaults,alternatives,help,varargin)
+
+suppressNames = {};
 
 % start with a base specification
 spec = arg_specifier('head',@arg_subswitch, 'type','char', 'shape','row', 'mapper',@map_argsubswitch);
@@ -87,6 +88,8 @@ if exist('help','var')
 for k=1:2:length(varargin)
     if isfield(spec,varargin{k})
         spec.(varargin{k}) = varargin{k+1}; 
+    elseif strcmpi(varargin{k},'suppress')
+        suppressNames = varargin{k+1};
     else
         error('BCILAB:arg:no_new_fields','It is not allowed to introduce fields into a specifier that are not declared in arg_specifier.');
     end
@@ -159,18 +162,18 @@ end
 default_idx = find(strcmp(default_sel,spec.range));
 
 % create the regular assigner...
-spec.assigner = @(spec,value) assign_argsubswitch(spec,value,reptype,sources,default_idx,default_val);
+spec.assigner = @(spec,value) assign_argsubswitch(spec,value,reptype,sources,default_idx,default_val,suppressNames);
 
 % and assign the default itself
 if strcmp(reptype,'rich')
-    spec = assign_argsubswitch(spec,defaults,'build',sources,0,{});
+    spec = assign_argsubswitch(spec,defaults,'build',sources,0,{},suppressNames);
 else
-    spec = assign_argsubswitch(spec,defaults,'lean',sources,0,{});
+    spec = assign_argsubswitch(spec,defaults,'lean',sources,0,{},suppressNames);
 end
 
 
 
-function spec = assign_argsubswitch(spec,value,reptype,sources,default_idx,default_val)
+function spec = assign_argsubswitch(spec,value,reptype,sources,default_idx,default_val,suppressNames)
 % for convenience (in scripts calling the function), also support values that are not cell arrays
 if ~iscell(value)
     if ~(isstruct(value) || ischar(value))
@@ -196,6 +199,28 @@ if spec.merge && idx == default_idx
 else
     spec.children = [arg_report(reptype,sources{idx},value) arg_sel{1}([],arg_sel{2}{:})];
 end
+
+% toggle the displayable option for children which should be suppressed
+if ~isempty(suppressNames)
+    % identify which children we want to suppress display
+    hidden = find(cellfun(@any,cellfun(@(x,y) ismember(x,suppressNames),{spec.children.names},'UniformOutput',false)));
+    % set display flag to false
+    for k=hidden(:)'
+        spec.children(k).displayable = false;
+    end
+
+    % identify which alternatives we want to suppress display
+    for alt_idx = 1:length(spec.alternatives)
+        if isempty(spec.alternatives{alt_idx})
+            continue; end
+        hidden = find(cellfun(@any,cellfun(@(x,y) ismember(x,suppressNames),{spec.alternatives{alt_idx}.names},'UniformOutput',false)));
+        % set display flag to false
+        for k=hidden(:)'
+            spec.alternatives{alt_idx}(k).displayable = false;
+        end
+    end
+end
+
 spec.alternatives{idx} = spec.children;
 % and set the value of the selector field itself to the current selection
 spec.value = selection;
@@ -208,8 +233,12 @@ if isempty(args)
     selection = selectors{1};
 elseif isfield(args{1},'arg_selection')
     selection = args{1}.arg_selection;
-else
+elseif any(strcmp(args{1},selectors))
     [selection,args] = deal(args{1},args(2:end));
+else
+    % find the arg_selection in the cell array
+    pos = find(strcmp('arg_selection',args(1:end-1)),1,'last');
+    [selection,args] = deal(args{pos+1},args([1:pos-1 pos+2:end]));
 end
 % Note: If this error is triggered, an value was passed for an argument which has a flexible structure (chosen out of a set of possibilities), but the possibility
 %       which was chosen according to the passed value does not match any of the specified ones. For a value that is a cell array of arguments, the choice is 

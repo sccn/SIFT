@@ -1,4 +1,4 @@
-function IC = pop_est_selModelOrder(ALLEEG,typeproc,varargin)
+function [ALLEEG cfg] = pop_est_selModelOrder(ALLEEG,typeproc,varargin)
 %
 % Fit a series of MVAR models up to a specified model order and compute the
 % model order selection (information) criteria. If the model fitting
@@ -15,7 +15,7 @@ function IC = pop_est_selModelOrder(ALLEEG,typeproc,varargin)
 %
 % Optional:            arguments to est_selModelOrder()
 %
-%     'icselector'         cell array of strings denoting which model order 
+%     'icselector'         cell array of strings denoting which model order
 %                          selection criteria to estimate
 %     'downdate'           [true, false] whether or not to use downdated noise
 %                          covariance matrices
@@ -31,7 +31,7 @@ function IC = pop_est_selModelOrder(ALLEEG,typeproc,varargin)
 %     'verb',              verbosity level (0=no output, 1=text, 2=gui)
 %     'normalize'          cell array containing one or more of
 %                           {'temporal', 'ensemble'}. This performs ensemble
-%                           normalization or temporal normalization (or both) 
+%                           normalization or temporal normalization (or both)
 %                           within each window
 %
 % Output:
@@ -49,11 +49,11 @@ function IC = pop_est_selModelOrder(ALLEEG,typeproc,varargin)
 %                           .minic      - the minimum of ic across model
 %                                         orders
 %                           .popt       - the model order that minimizes ic
-% 
+%
 % See Also: est_selModelOrder()
 %
-% References: 
-% 
+% References:
+%
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
 %   Theoretical Handbook and User Manual. Chapter 6.
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift
@@ -61,7 +61,7 @@ function IC = pop_est_selModelOrder(ALLEEG,typeproc,varargin)
 % [2] Lutkepohl, H. (2007) New Introduction to Time Series Analysis.
 %   Springer.
 %
-% Author: Tim Mullen, 2010, SCCN/INC, UCSD. 
+% Author: Tim Mullen, 2010, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
@@ -81,101 +81,71 @@ function IC = pop_est_selModelOrder(ALLEEG,typeproc,varargin)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-
-IC = {};
-
-% display help if not enough arguments
-% ------------------------------------
-if nargin < 2
-	help pop_est_selModelOrder;
-	return;
-end;	
-lastcom = [];
-
-var = hlp_mergeVarargin(varargin{:});
-g = finputcheck(var, hlp_getDefaultArglist('est'), 'pop_est_selModelOrder','ignore');
-if ischar(g), error(g); end
-if ~isfield(g,'icselector'), g.icselector = {'sbc','aic'}; end
-if ~isfield(g,'plot'), g.plot = 1; end
-
-% possible information criteria
-orderCriteria = {'AIC','FPE','SBC','HQ','RIS'};
-
-if ~isempty(g.morder) && length(g.morder) == 2
-    pmin = g.morder(1);
-    pmax = g.morder(2);
-else
-    pmin = 1;
-    pmax = 30;
+if nargin<2
+    typeproc = 0;
 end
 
-if nargin>2 && typeproc == 0
-    popup = 0;
-else
-    popup = 1;
+fcnName     = strrep(mfilename,'pop_','');
+fcnHandle   = str2func(fcnName);
+
+% check the dataset
+res = hlp_checkeegset(ALLEEG,{'cat'});
+if ~isempty(res)
+    error(['SIFT:' fcnName],res{1});
 end
 
-% pop up window
-% -------------
-if popup
-% 	[txt vars] = gethelpvar('pop_est_selModelOrder.m');
-	
-	geomhoriz = {1 1 1 1 [3 1 0.5 1] [3 2.5] };
-    uilist = { ...
-               { 'Style', 'text', 'string', 'Select order criteria to estimate' }...
-               { 'Style', 'text', 'string', '(hold Ctrl to select multiple)' }...
-               { 'Style', 'listbox', 'string', orderCriteria, 'tag', 'lstOrderCriteria','Value',1,'Min',1,'Max',20} ...
-               { 'Style', 'checkbox', 'string', 'Downdate model', 'value', fastif(any(ismember({'arfit','vieira-morf-cpp'},g.algorithm)),false,true),'tag', 'chkDowndate','enable',fastif(any(ismember({'arfit','vieira-morf-cpp'},g.algorithm)),'off','on')} ...
-               { 'Style', 'text', 'string', 'model order range: ' }...
-               { 'Style', 'edit', 'string', pmin, 'tag','edtMin'}...
-               { 'Style', 'text', 'string', '-'} ...
-               { 'Style', 'edit', 'string', pmax, 'tag', 'edtMax' }...
-               { 'Style', 'text', 'string', '% windows to sample'} ...
-               { 'Style', 'edit', 'string', 20, 'tag','prctWinToSample' } ...
-			 };
+if isfield(ALLEEG(1).CAT.configs,fcnName)
+    % get default configuration (from prior use) and merge with varargin
+    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
+end
 
-	[ tmp1 tmp2 strhalt result ] = inputgui( 'geometry', geomhoriz, 'geomvert',[1 1 3.5 1 1 1], ...
-                        'uilist',uilist, 'helpcom','pophelp(''pop_est_selModelOrder'');', ...
-					    'title','Plot Information Criteria');
-	if isempty( tmp1 ), return; end;
+if strcmpi(typeproc,'nogui')
+    % get the config from function
+    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG(1)},varargin]));
+else
+    % render the GUI
+    [PGh figh] = feval(['gui_' fcnName],ALLEEG(1),varargin{:});
     
-    if ~isempty(result.prctWinToSample)
-        g.prctWinToSample = str2num(result.prctWinToSample);
-    else
-        g.prctWinToSample = 100;
-    end
-    
-    if isempty(result.lstOrderCriteria)
-        errordlg2('You must select at least one order criterion','Model order selection');
+    if isempty(PGh)
+        % user chose to cancel
+        cfg = [];
         return;
     end
     
-    g.downdate   = result.chkDowndate;
-    g.icselector = lower(orderCriteria(result.lstOrderCriteria));
-    g.morder  = [str2num(result.edtMin) str2num(result.edtMax)];
-    
-    if length(g.morder)~=2
-        errordlg2('Model order range must be specified','Model order selection');
-        return;
-    end
-    
-    g.verb = 2;
+    % get the specification of the PropertyGrid
+    ps = PGh.GetPropertySpecification;
+    cfg = arg_tovals(ps,false);
 end
 
+drawnow;
 
-for cond=1:length(ALLEEG)
+if strcmpi(typeproc,'cfg_only')
+    return;
+end
+
+% Apply model selection
+for cnd=1:length(ALLEEG)
     % calculate the information criteria
-    IC{cond} = est_selModelOrder(ALLEEG(cond),g);
-
-    if g.plot
-        
-        vis_plotOrderCriteria(IC,{ALLEEG.condition},g.icselector);
-        
-    end
+    cfg.arg_direct = 0;
+    ALLEEG(cnd).CAT.IC = est_selModelOrder('EEG',ALLEEG(cnd),cfg);
     
+    if ~isempty(cfg)
+        % store the configuration structure
+        ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
+    end
 end
 
+% determine if we will proceed to model fitting using these options
+res=questdlg2(sprintf(['Do you want to proceed to model fitting?\n' ...
+                       'A Model-fitting GUI will be generated for you based on the options you selected above']), ...
+              'Model Order Selection Assistant', 'No', 'Yes', 'Yes');
+          
+if strcmpi(res,'yes')
+    % Open the model-fitting GUI for model fitting. 
+    % Once model is fit results will be return in EEG structure
+    modFuncName = ['pop_' ALLEEG(1).CAT.IC.modelFitting.modelingFuncName];
+    ALLEEG = feval(modFuncName, ALLEEG,0,ALLEEG(1).CAT.IC.modelFitting.modelingArguments);
 end
 
-   
+
 

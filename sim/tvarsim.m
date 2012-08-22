@@ -128,7 +128,7 @@ end
   
  if strcmpi(distribution,'hsec')
      % draw from hyperbolic secant distribution
-     randvec = alpha + beta*log(tan(pi*rand(ndisc+n,m)/2));  % beta = 2/pi
+     randvec = alpha + beta*log(tan(pi*rand(ndisc+n,m,ntr)/2));  % beta = 2/pi
  else
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       % These are the modifications performed by Germán Gómez-Herrero

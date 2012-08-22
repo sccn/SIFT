@@ -78,5 +78,6 @@ vecToLine = vecFromFirst - vecFromFirstParallel;
 distToLine = sqrt(sum(vecToLine.^2,2));
 
 % now all you need is to find the maximum
-[elbowVal,elbowIdx] = max(distToLine);
+[dummy,elbowIdx] = max(distToLine);
+elbowVal = curve(elbowIdx);
 

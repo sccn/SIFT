@@ -55,7 +55,7 @@ classdef PropertyGridField < hgsetget
                 'PropertyGridField:InvalidOperation', ...
                 'Setting type "%s" would invalidate current property value.', char(type)); %#ok<MCSUP>
             catch
-                1
+%                 1
             end
             self.Type = type;
             self.Value = type.ConvertFromMatLab(self.Value);  %#ok<MCSUP> % convert value type to match assigned type

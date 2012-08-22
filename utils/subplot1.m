@@ -1,4 +1,4 @@
-function subplot1(M,N,varargin);
+function h=subplot1(M,N,varargin)
 %-------------------------------------------------------------------------
 % subplot1 function         An mproved subplot function
 % Input  : - If more than one input argumenst are given,
@@ -138,6 +138,7 @@ switch MoveFoc
     end
 %     try
     set(gcf,'CurrentAxes',H(M));
+    h = H(M);
 %     catch, end;
  case 0
     %--- open subplots ---
@@ -162,6 +163,7 @@ switch MoveFoc
     Hgcf = gcf;
     clf;
     figure(Hgcf);
+    h = [];
     for Pi=1:1:Ptot,
        Row = ceil(Pi./N);
        Col = Pi - (Row - 1)*N;
@@ -171,7 +173,7 @@ switch MoveFoc
 
 %       subplot(M,N,Pi);
 %       hold on;
-       axes('position',[Xstart,Ystart,Xbox,Ybox]);
+       h(Pi)=axes('position',[Xstart,Ystart,Xbox,Ybox]);
        %set(gca,'position',[Xstart,Ystart,Xbox,Ybox]);
        set(gca,'FontSize',FontS); 
        set(gca,'tag','subplot1');

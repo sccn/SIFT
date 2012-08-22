@@ -4,8 +4,9 @@ function varstr = hlp_variableize(strname)
 % returns a 'variableized' version of strname with all leading numbers and
 % special characters removed
 % strname can be a string or a cell array of strings
-% 
-% Author: Tim Mullen 2010, SCCN/INC, UCSD. 
+% NOTE: if strname is a cell array of length 1 then varstr is a string
+%
+% Author: Tim Mullen 2010, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
@@ -24,23 +25,22 @@ function varstr = hlp_variableize(strname)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-    if isempty(strname)
-        varstr = [];
-        return;
-    end
+if isempty(strname)
+    varstr = [];
+    return;
+end
 
-    if ischar(strname)
-        strname = {strname};
-    end
-    
-    for i=1:length(strname)
-        goodchars = ismember(strname{i},num2str((0:9)')) | isletter(strname{i});
-        tmp = strname{i}(goodchars);
-        if ismember(tmp(1),num2str((0:9)')), tmp(1)=[]; end
-        varstr{i} = tmp;
-    end
-    
-    if length(varstr)==1
-        varstr = varstr{1};
-    end
-    
+if ischar(strname)
+    strname = {strname};
+end
+
+for i=1:length(strname)
+    goodchars = ismember(strname{i},num2str((0:9)')) | isletter(strname{i});
+    tmp = strname{i}(goodchars);
+    if ismember(tmp(1),num2str((0:9)')), tmp(1)=[]; end
+    varstr{i} = tmp;
+end
+
+if length(varstr)==1
+    varstr = varstr{1};
+end

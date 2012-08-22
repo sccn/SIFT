@@ -137,20 +137,23 @@ for i=1:length(rep)
     def   = rep(i).value;
     if isempty(def), def='n/a'; end
     
-    if ~isempty(range)
+    if ~strcmpi(def,'__arg_mandatory__') %~isempty(range)
+        
+        if isempty(range), range = 'Unrestricted'; end
+        
         if iscell(rep(i).range)
-            range = cell2str(rep(i).range); %['''' strrep(cell2str(rep(i).range),',',''',''') ''''];
+            if ~isempty(rep(i).range), range = cell2str(rep(i).range); end %['''' strrep(cell2str(rep(i).range),',',''',''') ''''];
             def = cell2str(def);
             helptext = [helptext; ...
                         sprintf('Possible values: %s', range); ...
                         sprintf('Default value  : %s', def)];
         elseif isnumeric(rep(i).range)
-            range = ['[' num2str(rep(i).range) ']'];
+            if ~isempty(rep(i).range), range = ['[' num2str(rep(i).range) ']']; end
             helptext = [helptext; ...
                         sprintf('Input Range  : %s', range); ...
                         sprintf('Default value: %s', fastif(ischar(def),def,num2str(def)))];
         else
-            range = char(rep(i).range);
+            if ~isempty(rep(i).range), range = char(rep(i).range); end
             helptext = [helptext; ...
                         sprintf('Possible values: %s', range); ...
                         sprintf('Default value  : ''%s''', def)];

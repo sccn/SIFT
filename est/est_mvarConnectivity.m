@@ -1,16 +1,18 @@
-
-function [Conn params] = est_mvarConnectivity(EEG,MODEL,varargin)
-% 
-% Calculate spectral, coherence, and connectivity measures from a fitted 
-% VAR model. See [1] for additional details on VAR model fitting and 
+function [Conn g] = est_mvarConnectivity(varargin)
+%
+% Calculate spectral, coherence, and connectivity measures from a fitted
+% VAR model. See [1] for additional details on VAR model fitting and
 % connectivity measures implemented here.
-% 
+%
 % Inputs:
 %
 %   EEG:        EEGLAB data structure
 %   MODEL:      VAR model returned by est_fitMVAR or other SIFT model-fitting
 %               routine
-% 
+%   connmethods: A cell array of connectivity method names compatible with
+%               the names in est_mvtransfer().
+%               
+%
 % Optional:
 %
 %   <Name,Value> pairs containing model fitting parameters. See
@@ -26,16 +28,16 @@ function [Conn params] = est_mvarConnectivity(EEG,MODEL,varargin)
 %       .erWinCenterTimes vector of window centers (seconds) relative to
 %                         event onset
 %   params                parameters used
-% 
-% See Also: pop_est_mvarConnectivity(), pop_est_fitMVAR(), 
+%
+% See Also: pop_est_mvarConnectivity(), pop_est_fitMVAR(), est_mvtransfer()
 %
 % References:
-% 
+%
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
 %     Theoretical Handbook and User Manual. Chapter 4
 %     Available at: http://www.sccn.ucsd.edu/wiki/Sift
-% 
-% Author: Tim Mullen 2010, SCCN/INC, UCSD. 
+%
+% Author: Tim Mullen 2010, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
@@ -54,68 +56,112 @@ function [Conn params] = est_mvarConnectivity(EEG,MODEL,varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-var = hlp_mergeVarargin(varargin{:});
-g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_mvarConnectivity','ignore');
-if ischar(g), error(g); end
-g.connmethods = unique(g.connmethods);
-if nargout > 1, params = g; end
+if ~isempty(varargin)
+    EEG = arg_extract(varargin,{'EEG', 'ALLEEG'},1);
+else
+    EEG = [];
+end
+
+if ~isempty(EEG) && isfield(EEG,'srate')
+    defreqs = ['1:' num2str(fix(EEG.srate/2)-1)];
+else
+    defreqs = [];
+end
+
+% arg_sub({'connmethods','ConnectivityMeasures','ConnectivityMethods'},[],@est_mvtransfer,'Select measures.','suppress',{'freqs'},'cat','Options'), ...
+
+g = arg_define([0 2],varargin, ...
+        arg_norep({'EEG','ALLEEG'},mandatory,[],'EEGLAB dataset','cat','Data Input'), ...
+        arg_norep({'MODEL','Model'},mandatory,[],'MVAR MODEL object','cat','Data Input'), ...
+        arg({'connmethods','ConnectivityMeasures','ConnectivityMethods'},{},hlp_getValidConnMethods, ...
+                    {'Select measures to estimate', ...
+                    sprintf(['\n' ...
+                             '\n' ...
+                             'Measures are categorized as follows:\n' ...
+                                '+ DIRECTED TRANSFER FUNCTION MEASURES\n', ...
+                                '     DTF:    Directed Tranfer Function\n',...
+                                '     nDTF:   Normalized DTF\n',...
+                                '     dDTF:   Direct DTF\n',...
+                                '     dDTF08: Direct DTF (with full causal normalization)\n',...
+                                '     ffDTF:  Full-frequency DTF\n',...
+                                '+ PARTIAL DIRECTED COHERENCE MEASURES\n', ...
+                                '     PDC:    Partial Directed Coherence\n',...
+                                '     nPDC:   Normalized PDC\n', ...
+                                '     GPDC:   Generalized Partial Directed Coherence\n', ...
+                                '     PDCF:   Partial Directed Coherence Factor\n',...
+                                '     RPDC:   Renormalized Partial Directed Coherence\n', ...
+                                '+ GRANGER-GEWEKE CAUSALITY MEASURES\n', ...
+                                '     GGC:    Granger-Geweke Causality\n', ...
+                                '+ SPECTRAL COHERENCE MEASURES\n',...
+                                '     Coh:    Complex Coherence\n', ...
+                                '     iCoh:   Imaginary Coherence\n', ...
+                                '     pCoh:   Partial Coherence\n', ...
+                                '     mCoh:   Multiple Coherence\n', ...
+                                '+ SPECTRAL DENSITY MEASURES\n', ...
+                                '     S:      Complex Spectral Density\n' ...
+                                ])}, ...
+                        'type','logical','cat','Connectivity Estimation'), ...
+        arg({'absvalsq','SquaredModulus','AbsValSquared'},true,[],'Square the modulus. Return the squared modulus (square of the absolute value) of complex measures.','cat','Options'), ...
+        arg({'spectraldecibels','ConvertSpectrumToDecibels'},false,[],'Return spectral power in decibels','cat','Options'), ...
+        arg({'freqs','Frequencies'},defreqs,[],'Frequencies. All measures will be estimated and returned for each of these frequencies','type','expression','shape','row','cat','Options'), ...
+        arg({'verb','VerbosityLevel'},2,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical') ...
+        );
+    
+% commit EEG and MODEL variables to workspace
+[data g] = hlp_splitstruct(g,{'EEG','MODEL'});
+arg_toworkspace(data);
+clear data;
+
+% do some input checking
+if isempty(MODEL)
+    error('SIFT:est_mvarConnectivity','You must fit an MVAR model before estimating connectivity. See pop_est_fitMVAR().');
+end
+if isempty(g.connmethods)
+    error('SIFT:est_mvarConnectivity','Please select at least one connectivity measure');
+end
+if any(g.freqs<1) || any(g.freqs>fix(EEG.srate/2)-1)
+    error('SIFT:est_mvarConnectivity','Frequencies must be within the range [%d %d] Hz',1,fix(EEG.srate/2)-1);
+end
+    
 g.winstep   = MODEL.winstep;
 g.winlen    = MODEL.winlen;
-params = g;
-if ~isfield(g,'freqs') || isempty(g.freqs), g.freqs = 1:floor(EEG.srate/2); end
+
+if isempty(g.freqs), g.freqs = 1:floor(EEG.srate/2); end
+
 Conn = [];
 
 numWins = length(MODEL.AR);
 nchs    = EEG.CAT.nbchan;
 
-
-% compute total amount of memory (bytes) required:
-bytesReq = 4*length(g.connmethods)*numWins*length(g.freqs)*nchs^2;
 if g.verb
-    ans = questdlg2(sprintf('This operation will require %4.4f MB of memory (per condition). \nMake sure you have enough memory available. \nDo you want to continue?',bytesReq/(1024^2)), 'Connectivity Estimation','OK','Cancel','OK');
-    if strcmpi(ans,'cancel');
-        return;
-    end
+    % inform user of total amount of memory (megabytes) required
+    bytesReq = 4*length(g.connmethods)*numWins*length(g.freqs)*nchs^2;
+    
+    fprintf('-------------------------------------------------------------------------\n');
+    fprintf(['Connectivity estimation will require %5.5g MB of memory (per condition).\n' ...
+             'Make sure you have enough memory available.\n'],bytesReq/(1024^2));
+    fprintf('-------------------------------------------------------------------------\n');
 end
-% try
-%     prealloc = 2*ones(1,length(g.connmethods)*numWins*length(g.freqs)*nchs^2,'single');
-% catch,
-%     errordlg2('Insuficient memory available to allocate variables');
-%     return;
-% end
-% clear prealloc;
-% pause(0.1);
 
 if g.verb
     h1=waitbar(0,sprintf('estimating connectivity %s...', ...
-        fastif(isempty(EEG.condition),'',['for ' EEG.condition]))); 
+        fastif(isempty(EEG.condition),'',['for ' EEG.condition])));
 end
-
-% initialize connectivity object
-% try
-%     for m=g.connmethods
-%         Conn.(m{1}) = zeros(nchs,nchs,length(g.freqs),numWins);
-%     end
-% catch
-%     errordlg2('Insuficient memory available to allocate variables');
-%     return;
-% end
 
 for t=1:numWins
     
-     if isempty(MODEL.AR{t})
+    if isempty(MODEL.AR{t})
         continue;
-     end
+    end
     
-%     MODEL.AR{t} = [eye(nchs),-MODEL.AR{t}];
     % extract noise covariance matrix
-    if size(MODEL.PE{t},2)>nchs  
+    if size(MODEL.PE{t},2)>nchs
         MODEL.PE{t} = MODEL.PE{t}(:,nchs*MODEL.morder+1:nchs*(MODEL.morder+1));
     end
     
     % estimate connectivity for this window
     ConnTmp = est_mvtransfer(MODEL.AR{t},MODEL.PE{t},g.freqs,EEG.srate,g.connmethods);
- 
+    
     for method=g.connmethods
         if t==1
             % on first run, preallocate memory for connectivity matrices
@@ -129,33 +175,32 @@ for t=1:numWins
         
         Conn.(method{1})(:,:,:,t) = ConnTmp.(method{1});
     end
-
+    
     if g.verb
         waitbar(t/numWins,h1,sprintf('estimating connectivity %s (%d/%d)...', ...
-            fastif(isempty(EEG.condition),'',['for ' EEG.condition]),t,numWins)); 
+            fastif(isempty(EEG.condition),'',['for ' EEG.condition]),t,numWins));
     end
 end
 
+% transform the connectivity as user requested
+if g.absvalsq
+    if g.verb
+        fprintf('Returning squared modulus of complex measures.\n'); 
+    end
+    Conn = hlp_absvalsq(Conn,g.connmethods,false,g.verb);
+end
+
+if g.spectraldecibels && isfield(Conn,'S')
+    if g.verb
+        fprintf('Returning spectrum in decibels.\n'); 
+    end
+    Conn.S = 10*log10(Conn.S);
+end
 
 if g.verb
     waitbar(t/numWins,h1,sprintf('Creating final connectivity object %s...', ...
-        fastif(isempty(EEG.condition),'',['for ' EEG.condition]))); 
+        fastif(isempty(EEG.condition),'',['for ' EEG.condition])));
 end
-
-% create final connectivity object
-% (nchs x <nchs> x <freq> x <time>)
-% for m=g.connmethods % init
-%     Conn.(m{1}) = [];
-% end
-% for method=g.connmethods
-%     m = method{1};
-%     Conn.(m) = [];
-%     dims = ndims(ConnTmp(1).(m));
-%     for t=1:numWins
-%         Conn.(m) = cat(dims+1,Conn.(m),ConnTmp(t).(m));
-%         ConnTmp(1).(m) = [];  % save memory
-%     end
-% end
 
 if ~strcmpi(MODEL.algorithm,'kalman')
     Conn.winCenterTimes = MODEL.winStartTimes+MODEL.winlen/2;
@@ -165,10 +210,6 @@ end
 
 Conn.erWinCenterTimes = Conn.winCenterTimes-abs(EEG.xmin);
 Conn.freqs = g.freqs;
-
+    
 if g.verb, close(h1); end
-
-
-% run statistics
-% Stats = struct('RPDC',chi2inv(0.95,2)/(winlen*EEG.trials));
 

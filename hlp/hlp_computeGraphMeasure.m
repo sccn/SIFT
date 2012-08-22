@@ -66,7 +66,7 @@ switch lower(graphMeasure)
         NodeValue = outflow - inflow;
     case 'outdegree'
         % Compute number of outgoing edges from ch1 in each freq
-        NodeValue = squeeze(sum(causality(othervars,ch1,:),1));
+        NodeValue = squeeze(sum(logical(causality(othervars,ch1,:)),1));
     case 'indegree'
         % number of incoming edges to ch1 in each freq
         NodeValue = squeeze(sum(logical(causality(ch1,othervars,:)),2));

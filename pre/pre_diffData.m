@@ -1,5 +1,5 @@
 
-function [EEG g] = pre_diffData(varargin)
+function [data g] = pre_diffData(varargin)
 %
 % Apply a difference filter to data. Differencing is a standard operation
 % to improve stationarity of a time series. A first-order difference filter
@@ -57,33 +57,45 @@ function [EEG g] = pre_diffData(varargin)
 
 
 g = arg_define([0 1], varargin, ...
-        arg_norep('EEG',mandatory), ...
-        arg_nogui({'verb','VerbosityLevel'},1,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical'), ...
+        arg_norep('data',mandatory), ...
+        arg({'verb','VerbosityLevel'},1,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical'), ...
         arg({'difforder','DifferencingOrder'},1,[0 10],'Differencing order. Number of times to difference data')); 
 
-% commit ALLEEG variable to workspace
-[data g] = hlp_splitstruct(g,{'EEG'});        
-arg_toworkspace(data);
-clear data;
+% commit data to workspace
+data = g.data;
+g = rmfield(g,'data');
+    
+[nchs npnt ntr] = size(data);
 
 if g.difforder==0
     return;
 end
 
-if g.verb, disp(['Differencing ' num2str(g.difforder) ' times']); end
+if g.verb
+    disp(['Differencing ' num2str(g.difforder) ' times...']); 
+end
 
-[nchs npnt ntr] = size(EEG.data);
+if g.verb==2
+    multiWaitbar('Differencing','Reset','Color',hlp_getNextUniqueColor);
+end
+    
 datmp = zeros(nchs,npnt-g.difforder,ntr);
 
 % difference each trial
-for tr=1:EEG.trials
-    datmp(:,:,tr) = diff(EEG.data(:,:,tr),g.difforder,2);
+for tr=1:ntr
+    if g.verb==2
+        multiWaitbar('Differencing',tr/ntr);
+    end
+    datmp(:,:,tr) = diff(data(:,:,tr),g.difforder,2);
 end
-EEG.data      = datmp;
-EEG.pnts      = EEG.pnts-g.difforder;
-EEG.times     = EEG.times(g.difforder+1:end);
-EEG.xmin      = EEG.times(1)/1000;
-EEG.xmax      = EEG.times(end)/1000;
 
-if g.verb, disp('Done!'); end
+% differencing reduces the number of datapoints by difforder
+% so here we insert difforder random samples at the beginning 
+% of each time-series
+noiseVar = 0.01*var(datmp(:));
+data      = cat(2,noiseVar*randn(nchs,g.difforder,ntr),datmp);
+
+if g.verb==2
+    multiWaitbar('Differencing','Close');
+end
 

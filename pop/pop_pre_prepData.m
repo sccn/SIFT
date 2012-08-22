@@ -1,4 +1,4 @@
-function [ALLEEG cfg] = pop_pre_prepData(ALLEEG,typeproc,varargin)
+function [ALLEEG_out cfg] = pop_pre_prepData(ALLEEG,typeproc,varargin)
 %
 % Preprocess EEG dataset(s) for connectivity analysis. See [1] for
 % mathematical details on preprocessing steps.
@@ -9,10 +9,10 @@ function [ALLEEG cfg] = pop_pre_prepData(ALLEEG,typeproc,varargin)
 %   ALLEEG:         Array of EEGLAB datasets to preprocess.
 %   typeproc:       Reserved for future use. Use 0
 %
-% Optional:         
+% Optional:
 %
 %   <'Name',value> pairs as defined in pre_prepData()
-%   
+%
 % Output:
 %
 %   ALLEEG:         Prepocessed EEG structure(s)
@@ -24,12 +24,12 @@ function [ALLEEG cfg] = pop_pre_prepData(ALLEEG,typeproc,varargin)
 % References:
 %
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
-%   Theoretical Handbook and User Manual. Section 6.5.1 
+%   Theoretical Handbook and User Manual. Section 6.5.1
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift
-% 
-% Author: Tim Mullen 2009, SCCN/INC, UCSD. 
+%
+% Author: Tim Mullen 2009, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
-% 
+%
 % Revised Jan 2010.
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
@@ -38,7 +38,7 @@ function [ALLEEG cfg] = pop_pre_prepData(ALLEEG,typeproc,varargin)
 % it under the terms of the GNU General Public License as published by
 % the Free Software Foundation; either version 3 of the License, or
 % (at your option) any later version.
-%
+% 
 % This program is distributed in the hope that it will be useful,
 % but WITHOUT ANY WARRANTY; without even the implied warranty of
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -48,56 +48,92 @@ function [ALLEEG cfg] = pop_pre_prepData(ALLEEG,typeproc,varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
-
-eeg_options;
-if ~option_computeica
-    fprintf('Enabling "computeica" option in EEGLAB prefs\n');
-    pop_editoptions( 'option_computeica', 1);
-%     error('Please enable the "computeica" option in eeg_options');
+if nargin<2
+    typeproc = 0;
 end
 
-for cond = 1:length(ALLEEG)
-    if ~isfield(ALLEEG(cond),'CAT') || ~isfield(ALLEEG(cond).CAT,'curComps')
-        ALLEEG(cond).CAT.curComps = 1:size(ALLEEG(cond).icaweights,1);
-    end
-    if  ~isfield(ALLEEG(cond),'CAT') || ~isfield(ALLEEG(cond).CAT,'MODEL')
-        ALLEEG(cond).CAT.MODEL = [];
-    end
+% set default output
+ALLEEG_out = ALLEEG;
+cfg = [];
+        
+% generate splash screen
+% initialize SIFT, etc
+StartSIFT(~strcmpi(typeproc,'nogui'));
+
+fcnName     = strrep(mfilename,'pop_','');
+fcnHandle   = str2func(fcnName);
+
+% check if we've applied SIFT to this dataset before
+res = hlp_checkeegset(ALLEEG,{'cat'});
+if isempty(res) && isfield(ALLEEG(1).CAT.configs,fcnName)
+    % get default configuration (from prior use) and merge with varargin
+    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
 end
 
-splashscreen;
-
-if isunix
-    SLASH = '/';
+if strcmpi(typeproc,'nogui')
+    % get the default config from function and overload supplied args
+    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG(1)},varargin]));
 else
-    SLASH = '\';
+    % render the GUI
+    [PGh figh] = feval(['gui_' fcnName],ALLEEG(1),varargin{:});
+    
+    if isempty(PGh)
+        % user chose to cancel
+        return;
+    end
+    
+    % get the specification of the PropertyGrid
+    ps = PGh.GetPropertySpecification;
+    cfg = arg_tovals(ps,false);
 end
 
-% [fnpath fnname] = fileparts(which('pop_pre_prepData'));
-% if isempty(varargin)
-%     if exist('preprep.cfg','file')
-%         load('preprep.cfg','-mat');
-%     else
-%         cfg = [];
-%     end
-%     varargin = {cfg};
-% end
+drawnow;
 
-% render the GUI
-[PGh figh] = gui_prepData(ALLEEG,varargin{:});
-
-if isempty(PGh)
-    % user chose to cancel
-    cfg = [];
+if strcmpi(typeproc,'cfg_only')
     return;
 end
 
-% get the specification of the PropertyGrid
-ps = PGh.GetPropertySpecification;
-cfg = arg_tovals(ps,false);
+% initialize progress bar
+if cfg.verb==2
+    multiWaitbar('Preprocessing datasets',...
+                 'Color', [0.8 0.0 0.1],  ...
+                 'CanCancel','on',        ...
+                 'CancelFcn',@(a,b)disp('[Cancel requested. Please wait...]'));
+end
 
-% save([fnpath SLASH '@configs' SLASH 'preprep.cfg'],'cfg');
+% re-initialize output
+clear ALLEEG_out;
 
-% execute the low-level function
-[ALLEEG cfg] = pre_prepData('ALLEEG',ALLEEG,cfg);
+% preprocess datasets
+for cnd=1:length(ALLEEG)
+    
+    % execute the low-level function
+    [ALLEEG_out(cnd)] = feval(fcnHandle,'EEG',ALLEEG(cnd),cfg);
+    
+    if ~isempty(cfg)
+        % store the configuration structure
+        ALLEEG_out(cnd).CAT.configs.(fcnName) = cfg;
+    end
+    
+    % update the progress bar
+    if cfg.verb==2
+        cancel=multiWaitbar('Preprocessing datasets',cnd/length(ALLEEG));
+        if cancel
+            if strcmpi('yes',questdlg2( ...
+                            'Are you sure you want to cancel preprocessing?', ...
+                            'Preprocessing','Yes','No','No'));
+                % restore original dataset
+                ALLEEG_out = ALLEEG;
+                break;
+            else
+                multiWaitbar('Preprocessing datasets','ResetCancel',true);
+            end
+        end
+    end
+end
+
+% cleanup progress bar
+if cfg.verb==2
+    multiWaitbar('CloseAll');
+end
+

@@ -1,4 +1,4 @@
-function [infostring warnstring errstring] = est_checkMVARParams(EEG, varargin)
+function [infostring warnstring errstring] = est_checkMVARParams(EEG, params)
 %
 % This function performs a series of sanity checks on the parameters chosen
 % for fitting a VAR model. The results are returned in cell vectors
@@ -8,6 +8,7 @@ function [infostring warnstring errstring] = est_checkMVARParams(EEG, varargin)
 % Inputs:
 %
 %   EEG:            EEG data structure
+%   params:         a parameter structure as output from est_fitMVAR
 %
 % Outputs:
 %
@@ -46,16 +47,10 @@ function [infostring warnstring errstring] = est_checkMVARParams(EEG, varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
-var = hlp_mergeVarargin(varargin{:});
-g = finputcheck(var, hlp_getDefaultArglist('est'), 'est_checkMVARParams','ignore');
-if ischar(g), error(g); end
-if isempty(g.epochTimeLims), g.epochTimeLims = [0 EEG.pnts/EEG.srate]; end
-
 srate = EEG.srate;
-wlen = srate*g.winlen;  % winlen in samples
-T = EEG.trials; 
-p = g.morder;
+wlen = srate*params.winlen;  % winlen in samples
+T = EEG.CAT.trials; 
+p = params.morder;
 M = EEG.CAT.nbchan;
 
 % addtional error checks and info
@@ -64,17 +59,17 @@ warnstring = {};
 errstring  = {};
 
 % critical error checks
-if g.winstep==0
+if params.winstep==0
     error('Step size must be greater than 0\n');
 end
 
-if floor(g.winlen*1000) > floor((EEG.xmax-EEG.xmin)*1000)
+if floor(params.winlen*1000) > floor((EEG.xmax-EEG.xmin+1)*1000)
     error('Winlen cannot be greater than the trial length (%0.1f sec)\n',EEG.xmax-EEG.xmin);
 end
 
 
-if round(g.winlen*EEG.srate) <= max(g.morder)
-    error('The window length must be greater than the model order. Increase your window to at least %0.2f sec\n',(g.morder(end)+1)/EEG.srate);
+if round(params.winlen*EEG.srate) <= max(params.morder)
+    error('The window length must be greater than the model order. Increase your window to at least %0.2f sec\n',(params.morder(end)+1)/EEG.srate);
 end
 
 

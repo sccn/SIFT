@@ -3,7 +3,7 @@ function Rinv = est_calcInvCovMat(AR,C,invCov,mode,MAXITER)
 %
 % For any M-variate VAR[p] process fit to data X = [X1, X2, ... Xn], 
 % this function returns the [(Mp)^2 x (Mp)^2] covariance (or inverse covariance) 
-% matrix of the process. This is a block-toeplitz, hermitian matrix with 
+% matrix of the parameters. This is a block-toeplitz, hermitian matrix with 
 % format as described in [2]. 
 % 
 % Briefly, let M=nvars, and Rhat be comprised of M x M submatrices 
@@ -78,6 +78,8 @@ if nargin<4
     MAXITER = 100;
 end
 
+% make sure the noise covariance matrix is valid
+C = covfixer(C);
 
 switch mode
     
@@ -150,8 +152,11 @@ switch mode
             warning('SIFT:est_calcInvCovMat', 'Anderson-Moore did not converge. Results may be innacurate.\n');
         end
         
-%         Rinv = L*N{2}*L';
+        % Rinv = L*N{2}*L';
 
+        % ensure that the covariance matrix is a valid covariance matrix
+        N{2} = covfixer(N{2});
+            
         if invCov
             Rinv = inverse(N{2});
         else
