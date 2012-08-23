@@ -101,7 +101,7 @@ end
 
 if strcmpi(typeproc,'nogui')
     % get the config from function
-    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG(1)},varargin]));
+    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG(1)},varargin]),false);
 else
     % render the GUI
     [PGh figh] = feval(['gui_' fcnName],ALLEEG(1),varargin{:});
@@ -126,7 +126,6 @@ end
 % Apply model selection
 for cnd=1:length(ALLEEG)
     % calculate the information criteria
-    cfg.arg_direct = 0;
     ALLEEG(cnd).CAT.IC = est_selModelOrder('EEG',ALLEEG(cnd),cfg);
     
     if ~isempty(cfg)

@@ -8,6 +8,7 @@ if nargin<1
     interactive = false;
 end
 
+fprintf('Initializing SIFT...\n');
     
 % temporary hack to remove measure projection toolbox from path 
 % (MPT interferes with SIFT)
@@ -61,4 +62,5 @@ end
 
 ok = true;
 
+fprintf('Start SIFTing!\n');
 

@@ -28,3 +28,7 @@ syntax: glob
 @resources.zip
 archive*
 scripts/ScriptingExample.m.orig
+experimental/Online/LONI
+experimental/Online/MikeChi
+experimental/Online/eb72_continuous.edf
+experimental/Online/eb72_continuous.set
