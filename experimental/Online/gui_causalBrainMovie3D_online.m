@@ -23,7 +23,7 @@ function varargout = gui_causalBrainMovie3D_online(varargin)
 
 % Edit the above text to modify the response to help gui_causalBrainMovie3D_online
 
-% Last Modified by GUIDE v2.5 02-May-2012 11:56:51
+% Last Modified by GUIDE v2.5 22-Aug-2012 18:37:53
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -164,7 +164,7 @@ else
     varargout = {[] handles.output};
 end
 
-evalin('base','closed=true;');
+evalin('base','opts.doBrainmovie=false;');
 
 try, close(handles.figurehandle);
 catch; end
@@ -180,8 +180,8 @@ pg = handles.PropertyGridHandle;
 ps = pg.GetPropertySpecification;
 cfg = arg_tovals(ps,false);
 assignin('base','BMCFG',cfg);
-assignin('base','bmoptschanged',true);
-set(handles.gcf,'UserData','init');
+assignin('base','BM_CFG_CHANGED',true);
+set(handles.gcf,'UserData','newBrainmovie');
 % guidata(hObject,handles);
 % uiresume(handles.gui_BrainMovie3D);
 
@@ -300,3 +300,13 @@ if strcmpi(eventdata.Key,'s') ...
     % save configuration structure to workspace
     assignin('base',varname{1},cfg);
 end
+
+
+% --- Executes on button press in cmdPause.
+function cmdPause_Callback(hObject, eventdata, handles)
+% hObject    handle to cmdPause (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% pause the brainmovie
+evalin('base','opts.doBrainMovie = false;');

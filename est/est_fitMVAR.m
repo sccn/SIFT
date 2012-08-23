@@ -237,8 +237,10 @@ for t=1:numWins
 end
 
 %% Do some cleanup
+try
 clear(algFcnName);
 clear('-regexp','mvar_*');
+catch; end
 if g.verb, close(h); end
 
 %% Construct MODEL object

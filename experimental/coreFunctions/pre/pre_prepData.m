@@ -236,6 +236,8 @@ if ~isempty(EEG)
     end
     
     clear EEG;
+else
+    defSigType = {'Channels'};
 end
 
 verb = arg_extract(varargin,{'verb','VerbosityLevel'},[],0);

@@ -100,7 +100,7 @@ end
 
 if strcmpi(typeproc,'nogui')
     % get the config from function
-    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG,'Conn',Conn},varargin]));
+    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG,'Conn',Conn},varargin]),false);
 else
     % render the GUI
     [PGh figh] = feval(['gui_' fcnName],ALLEEG,Conn,varargin{:});
