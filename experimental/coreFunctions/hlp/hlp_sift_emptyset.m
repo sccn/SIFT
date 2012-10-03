@@ -41,7 +41,8 @@ function names = getPopFcnSuffixes()
 
 siftroot = fileparts(which('StartSIFT.m'));
 fpath    = [siftroot filesep 'pop' filesep];
-popfns   = wildcardsearch(fpath,'pop_*.m',true,true);
+popfns   = wildcardsearch(fpath,'pop_*.m',true,false);
 popfns   = regexprep(popfns,'.*pop_','');
 names    = regexprep(popfns,'\.m','');
+names    = unique(names);
 

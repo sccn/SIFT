@@ -124,7 +124,8 @@ handles.PropertyGridHandle = arg_guipanel( ...
                 'params',{'ALLEEG',handles.ud.ALLEEG, 'Conn',handles.ud.Conn, varargin{:}});
 
 handles.BrainMovieFigure = [];
-            
+handles.figureHandle = hObject;
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -164,10 +165,13 @@ else
     varargout = {[] handles.output};
 end
 
-evalin('base','opts.doBrainmovie=false;');
+evalin('base','opts.doBrainMovie=false;');
+% evalin('base','if ishandle(figHandles.BMDisplay), close(figHandles.BMDisplay); end');
 
-try, close(handles.figurehandle);
-catch; end
+try
+    close(handles.figureHandle);
+catch
+end
 
 
 
@@ -309,4 +313,14 @@ function cmdPause_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % pause the brainmovie
-evalin('base','opts.doBrainMovie = false;');
+% pause the brainmovie
+if strcmpi(get(hObject,'String'),'pause');
+    doBrainMovie = false;
+    set(hObject,'String','Unpause');
+else
+    doBrainMovie = true;
+    set(hObject,'String','Pause');
+end
+
+evalin('base',sprintf('opts.doBrainMovie=%s;',fastif(doBrainMovie,'true','false')));
+guidata(hObject,handles);

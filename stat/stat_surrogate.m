@@ -184,11 +184,12 @@ g = arg_define([0 Inf],varargin, ...
         'PhaseRand', { ...
         arg({'nperms','NumPermutations'},200,[],'Number of resamples. This performs Theiler phase randomization'), ...
         }, ...
-        }, 'Resampling modes. Bootstrap (Efron Bootstrap resampling with replacement), Jacknife (leave-one-out cross-validation), Crossval (k-fold cross-validation), PhaseRand (Theiler phase randomization)', ...
         'CustomSchedule', { ...
         arg({'resampleTrialIdx','ResamplingSchedule'},[],[],'Resampling schedule matrix [num_iterations x sample_size]. Each row is a vector of trial indices which constitute the sample set for a single resampling iteration.','shape','matrix'), ...
-        }, ...
-        'cat','Resampling Options'), ...
+        }}, ...
+        'Resampling modes. Bootstrap (Efron Bootstrap resampling with replacement), Jacknife (leave-one-out cross-validation), Crossval (k-fold cross-validation), PhaseRand (Theiler phase randomization)', ...
+        'cat','Resampling Options' ...
+        ), ...
     arg_subtoggle({'autosave','AutoSave'},'off', ...
         { ...
         arg({'savefname','FileNamePrefix'},'SIFT_boostrap','','Prefix (including optional path) for autosave file. Data is saved in <FileNamePrefix>.part'), ...
@@ -223,7 +224,7 @@ switch mode.arg_selection
         cv = cvpartition(ALLEEG.CAT.trials,'leaveout');
     case 'SingleTrials'
         nperms = ALLEEG.CAT.trials;
-        cv = cvpartition(ALLEEG.CAT.trials,'leaveout');
+%         cv = cvpartition(ALLEEG.CAT.trials,'leaveout');
     case 'Crossval'
         nperms = mode.nfolds;
         cv = cvpartition(ALLEEG.CAT.trials,'kfold',nperms);
@@ -239,7 +240,7 @@ end
 if mode.saveTrialIdx
     switch mode.arg_selection
         case 'SingleTrials'
-            resampleTrialIdx = zeros(nperms,length(cv.test(1)),'int32');
+            resampleTrialIdx = zeros(nperms,nperms,'int32');
         case {'Bootstrap','Jacknife','Crossval'}
             resampleTrialIdx = zeros(nperms,length(cv.training(1)),'int32');
         case 'CustomSchedule'
@@ -277,7 +278,7 @@ for perm=1:nperms
     switch mode.arg_selection
         case 'SingleTrials'
             % fit model to each single trial
-            rsmpIdx = cv.test(perm);
+            rsmpIdx = perm; %cv.test(perm);
         case 'PhaseRand'
             % phase randomization
             rsmpIdx = [];
@@ -329,10 +330,10 @@ for perm=1:nperms
     modelingFuncName = hlp_getModelingApproaches('mfileNameOnly',g.modelingApproach.arg_selection);
    
     % fit model
-    MODEL = feval(modelingFuncName,'EEG',EEG,g.modelingApproach,'verb',g.verb);
+    MODEL = feval(modelingFuncName,'EEG',EEG,g.modelingApproach,'verb',0);
     
     % calculate connectivity
-    EEG.CAT.Conn = est_mvarConnectivity('EEG',EEG,'MODEL',MODEL,g.connectivityModeling,'verb',g.verb);
+    EEG.CAT.Conn = est_mvarConnectivity('EEG',EEG,'MODEL',MODEL,g.connectivityModeling,'verb',0);
 
     % append causal estimates to the last dimension of respective arrays in Conn
     connfields = hlp_getConnMethodNames(EEG.CAT.Conn);
@@ -387,16 +388,23 @@ for perm=1:nperms
 end
 
 % construct PConn object
-for m=1:length(connfields)
-    sz = size(PConn.(connfields{m}));
-    % put permutations in last dimension
-    PConn.(connfields{m}) = permute(PConn.(connfields{m}),circshift((1:length(sz))',-1));
-end
 PConn.winCenterTimes    = EEG.CAT.Conn.winCenterTimes;
 PConn.erWinCenterTimes  = EEG.CAT.Conn.erWinCenterTimes;
 PConn.freqs             = EEG.CAT.Conn.freqs;
 PConn.mode              = mode.arg_selection;
 PConn.resampleTrialIdx  = resampleTrialIdx;
+for m=1:length(connfields)
+    sz = size(PConn.(connfields{m}));
+    % put permutations in last dimension
+    PConn.(connfields{m}) = permute(PConn.(connfields{m}),circshift((1:length(sz))',-1));
+    % insert singleton dimensions if necessary
+    if length(PConn.winCenterTimes)==1
+        PConn.(connfields{m}) = hlp_insertSingletonDim(PConn.(connfields{m}),3);
+    end
+    if length(PConn.freqs)==1
+        PConn.(connfields{m}) = hlp_insertSingletonDim(PConn.(connfields{m}),4);
+    end
+end
 
 % clean up
 if verb==1

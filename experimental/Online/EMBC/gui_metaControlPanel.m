@@ -23,7 +23,7 @@ function varargout = gui_metaControlPanel(varargin)
 
 % Edit the above text to modify the response to help gui_metaControlPanel
 
-% Last Modified by GUIDE v2.5 22-Aug-2012 21:31:28
+% Last Modified by GUIDE v2.5 26-Aug-2012 23:07:50
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -77,7 +77,7 @@ catch,
 	GUITEXTCOLOR        = [0 0 0];
 end;
 
-allhandlers = hObject;
+allhandlers = [hObject handles.pnlMisc];
 
 hh = findobj(allhandlers,'style', 'text');
 %set(hh, 'BackgroundColor', get(hObject, 'color'), 'horizontalalignment', 'left');
@@ -89,49 +89,52 @@ set(hObject, 'color',GUIBACKCOLOR );
 hh = findobj(allhandlers, 'style', 'edit');
 set(hh, 'BackgroundColor', [1 1 1]); %, 'horizontalalignment', 'right');
 
-hh =findobj(allhandlers, 'parent', hObject, 'style', 'pushbutton');
+hh =findobj(allhandlers, 'style', 'pushbutton');
 if ~strcmpi(computer, 'MAC') && ~strcmpi(computer, 'MACI') % this puts the wrong background on macs
     set(hh, 'backgroundcolor', GUIPOPBUTTONCOLOR);
     set(hh, 'foregroundcolor', GUITEXTCOLOR);
 end;
-hh =findobj(allhandlers, 'parent', hObject, 'style', 'popupmenu');
+hh =findobj(allhandlers, 'style', 'popupmenu');
 set(hh, 'backgroundcolor', GUIPOPBUTTONCOLOR);
 set(hh, 'foregroundcolor', GUITEXTCOLOR);
-hh =findobj(allhandlers, 'parent', hObject, 'style', 'checkbox');
+hh =findobj(allhandlers, 'style', 'checkbox');
 set(hh, 'backgroundcolor', GUIBACKCOLOR);
 set(hh, 'foregroundcolor', GUITEXTCOLOR);
-hh =findobj(allhandlers, 'parent', hObject, 'style', 'listbox');
+hh =findobj(allhandlers, 'style', 'listbox');
 set(hh, 'backgroundcolor', GUIPOPBUTTONCOLOR);
 set(hh, 'foregroundcolor', GUITEXTCOLOR);
-hh =findobj(allhandlers, 'parent', hObject, 'style', 'radio');
+hh =findobj(allhandlers, 'style', 'radio');
 set(hh, 'foregroundcolor', GUITEXTCOLOR);
 set(hh, 'backgroundcolor', GUIPOPBUTTONCOLOR);
 set(hObject, 'visible', 'on');
 
-set(handles.pnlPropertyGridFltPip,'backgroundcolor', GUIBACKCOLOR);
-set(handles.pnlPropertyGridFltPip,'foregroundcolor', GUITEXTCOLOR);
-
-set(handles.pnlPropertyGridSiftPip,'backgroundcolor', GUIBACKCOLOR);
-set(handles.pnlPropertyGridSiftPip,'foregroundcolor', GUITEXTCOLOR);
+% set(handles.pnlPropertyGridFltPip,'backgroundcolor', GUIBACKCOLOR);
+% set(handles.pnlPropertyGridFltPip,'foregroundcolor', GUITEXTCOLOR);
+% 
+% set(handles.pnlPropertyGridSiftPip,'backgroundcolor', GUIBACKCOLOR);
+% set(handles.pnlPropertyGridSiftPip,'foregroundcolor', GUITEXTCOLOR);
 
 set(handles.pnlMisc,'backgroundcolor', GUIBACKCOLOR);
 set(handles.pnlMisc,'foregroundcolor', GUITEXTCOLOR);
 
 %-----------------------------------------------
 
+% store opts structure
+handles.opts = varargin{2};
+
 % render the PropertyGrids in the correct panels
 handles.SiftPipPropertyGridHandle = arg_guipanel( ...
                 handles.pnlPropertyGridSiftPip, ...
                 'Function',@onl_siftpipeline, ...
-                'Parameters',{'EEG',varargin{1}});
+                'Parameters',{'EEG',varargin{1},handles.opts.siftPipCfg});
     
 handles.FltPipPropertyGridHandle = arg_guipanel( ...
                  handles.pnlPropertyGridFltPip, ...
                 'Function',@flt_pipeline, ...
-                'Parameters',{'Signal',varargin{1}, 'DataCleaning', {'RetainPhases' true 'HaveBursts' false 'DataSetting' 'drycap'}});
+                'Parameters',{'Signal',varargin{1},handles.opts.fltPipCfg});
 
-% store opts structure
-handles.opts = varargin{2};
+% save figure handle
+handles.figureHandle = hObject;
 
 % initialize some control contents from opts input
 try set(handles.txtWindowLength,'String',num2str(handles.opts.winLenSec));
@@ -142,7 +145,8 @@ try set(handles.chkDispBrainMovie,'Value',handles.opts.doBrainMovie);
 catch; end
 try set(handles.chkDispSpectrum,'Value',handles.opts.dispSpectrum);
 catch; end
-
+try set(handles.chkAdaptBMLimits,'Value',handles.opts.adaptLimits);
+catch; end
 drawnow
 
 
@@ -190,8 +194,10 @@ handles.opts.exitPipeline = true;
 assignin('base','opts',handles.opts);
 guidata(hObject,handles);
 
-try, close(handles.figurehandle);
-catch; end
+try, 
+    close(handles.figureHandle);
+catch
+end
 
 
 
@@ -207,12 +213,13 @@ handles.opts.siftPipCfg = arg_tovals(handles.SiftPipPropertyGridHandle.GetProper
 
 % save pipeline configurations in base workspace and set new data flags
 assignin('base','opts',handles.opts);
+pause(0.1);
 assignin('base','newPipeline',true);
 set(handles.gcf,'UserData','initialized');
 % evalin('base','opts.fltpipeline  = evalin(''caller'',''fltcfg'')');
 % evalin('base','opts.siftpipeline = evalin(''caller'',''siftcfg'')');
 
-handles.opts.winLenSec = str2num(get(handles.txtWindowLength,'String'));
+handles.opts.winLenSec = str2double(get(handles.txtWindowLength,'String'));
 
 guidata(hObject,handles);
 % guidata(hObject,handles);
@@ -258,12 +265,12 @@ function cmdPause_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% pause the brainmovie
+% pause the pipeline
 if strcmpi(get(hObject,'String'),'pause');
-    handles.opts.holdPipeline = false;
+    handles.opts.holdPipeline = true;
     set(hObject,'String','Unpause');
 else
-    handles.opts.holdPipeline = true;
+    handles.opts.holdPipeline = false;
     set(hObject,'String','Pause');
 end
 
@@ -354,3 +361,26 @@ function txtWindowLength_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on key press with focus on gui_BrainMovie3D or any of its controls.
+function gui_BrainMovie3D_WindowKeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to gui_BrainMovie3D (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in chkAdaptBMLimits.
+function chkAdaptBMLimits_Callback(hObject, eventdata, handles)
+% hObject    handle to chkAdaptBMLimits (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of chkAdaptBMLimits
+
+handles.opts.adaptLimits = get(hObject,'Value');
+assignin('base','opts',handles.opts);
+guidata(hObject,handles);
