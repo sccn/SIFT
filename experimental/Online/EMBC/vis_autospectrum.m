@@ -1,20 +1,20 @@
-function [fig,ax,lines] = vis_autospectrum(varargin)
+function [fig opts] = vis_autospectrum(varargin)
 
-
-hpower = figure('DeleteFcn',@(varargin)evalin('base','opts.plotSpectrum=false;'));
-haxpwr = axes;
-pwr = zeros(length(PowerChannelsIdx),length(Frequencies));
-
-
-
-for ch=1:length(PowerChannelsIdx)
-    pwr(ch,:) = squeeze(EEG.CAT.Conn.S(PowerChannelsIdx(ch),PowerChannelsIdx(ch),:,:));
-end
-offset = 10*cumsum(ones(length(PowerChannelsIdx),1));
-h=plot(haxpwr,bsxfun(@plus,pwr,offset)');
-set(h,'xdata',EEG.CAT.Conn.freqs);
-axis(haxpwr,'tight');
-
+% 
+% hpower = figure('DeleteFcn',@(varargin)evalin('base','opts.plotSpectrum=false;'));
+% haxpwr = axes;
+% pwr = zeros(length(PowerChannelsIdx),length(Frequencies));
+% 
+% 
+% 
+% for ch=1:length(PowerChannelsIdx)
+%     pwr(ch,:) = squeeze(EEG.CAT.Conn.S(PowerChannelsIdx(ch),PowerChannelsIdx(ch),:,:));
+% end
+% offset = 10*cumsum(ones(length(PowerChannelsIdx),1));
+% h=plot(haxpwr,bsxfun(@plus,pwr,offset)');
+% set(h,'xdata',EEG.CAT.Conn.freqs);
+% axis(haxpwr,'tight');
+% 
 
 
 % Display spectrum
@@ -63,27 +63,49 @@ axis(haxpwr,'tight');
 
 % handle input arguments
 opts = arg_define(varargin, ...
-    arg_norep({'stream','EEG'},mandatory,[],'EEGLAB dataset. Must contain CAT.Conn'), ...
+    arg_norep({'stream','EEG'},[],[],'EEGLAB dataset. Must contain CAT.Conn. Can also the name of a variable in the workspace'), ...
     arg({'datascale','DataScale'},150,[],'Initial scale of the data. The scale of the data, in units between horizontal lines; can be changed with keyboard shortcuts (see help).'), ...
     arg({'freqrange','FrequencyRange'},[],[],'Frequency range. Default is all available freqs','shape','row'), ...
     arg({'channelrange','ChannelRange'},[],[],'Channels to display. The channel range to display. Default is all available channels','shape','row'), ...
-    arg_nogui({'pageoffset','PageOffset'},0,[],'Channel page offset. Allows to flip forward or backward pagewise through the displayed channels.'), ...
-    arg_nogui({'position','Position'},[],[],'Figure position. Allows to script the position at which the figures should appear.'));
+    arg({'pageoffset','PageOffset'},0,[],'Channel page offset. Allows to flip forward or backward pagewise through the displayed channels.'), ...
+    arg({'position','Position'},[],[],'Figure position. Allows to script the position at which the figures should appear.'), ...
+    arg_nogui({'figHandle','FigureHandle'},[],[],'Handle to existing figure to update. Otherwise new figure is created'));
+
+fig = [];
 
 if isempty(varargin)
     % bring up GUI dialog if no arguments were passed
     arg_guidialog;
-else
-    
-    % init shared handles
-    [fig,ax,lines] = deal([]);
-    
-    % create the figure
-    create_figure(opts);
-    
 end
 
-stream = opts.EEG;
+if isempty(opts.stream)
+    return;
+end
+
+if ischar(opts.stream)
+    % grab stream from base
+    try
+        opts.stream = evalin('base',opts.stream);
+    catch err
+        hlp_handleerror(err);
+        return;
+    end
+end
+    
+if isempty(opts.figHandle) || ~ishandle(opts.figHandle)
+    % init shared handles
+    [fig,ax,lines] = deal([]);
+
+    % create the figure
+    create_figure(opts);
+else
+    fig = opts.figHandle;
+    ax = findobj(fig,'type','axes');
+    lines = findobj(ax,'tag','lines');
+end
+    
+
+stream = opts.stream;
 
 % make sure dataset is consistent
 res = hlp_checkeegset(stream,{'conn'});
@@ -97,20 +119,21 @@ if ~isfield(stream.CAT.Conn,'S')
 end
 
 if isempty(opts.channelrange)
-    opts.channelrange = stream.CAT.Conn;
+    opts.channelrange = 1:size(stream.CAT.Conn.S,1);
 end
 
 
 % === nested functions (sharing some handles with each other) ===
 
 % create a new figure and axes
-    function create_figure(opts)
-        fig = figure('Tag','Fig_SpecViewer','Name',['Spectrum Viewer''' opts.streamname ''''],'CloseRequestFcn','delete(gcbf)', ...
-            'KeyPressFcn',@(varargin)on_key(varargin{2}.Key));
-        if ~isempty(opts.position)
-            set(fig,'Position',opts.position); end
-        ax = axes('Parent',fig, 'Tag','SpecViewer', 'YDir','reverse');
-    end
+function create_figure(opts)
+    fig = figure('Tag','Fig_SpecViewer','Name','Spectrum Viewer','CloseRequestFcn','delete(gcbf)', ...
+        'KeyPressFcn',@(varargin)on_key(varargin{2}.Key));
+    if ~isempty(opts.position)
+        set(fig,'Position',opts.position); end
+    ax = axes('Parent',fig, 'Tag','SpecViewer', 'YDir','reverse');
+end
+
 
 
 try
@@ -151,10 +174,10 @@ try
     % === actual drawing ===
     
     % draw the block contents...
-    if ~isempty(plotpwr)
-        if ~exist('lines','var') || isempty(lines)
-            lines = plot(ax,plotfreq,plotpwr);
-            title(ax,opts.streamname);
+    if ~isempty(plotpwr) 
+        if ~exist('lines','var') || isempty(lines) || length(lines) ~= size(plotpwr,1);
+            lines = plot(ax,plotfreq,plotpwr,'tag','lines');
+            title(ax,'VAR Autospectra');
             xlabel(ax,'Frequency (Hz)','FontSize',12);
             ylabel(ax,'Power','FontSize',12);
         else
@@ -179,29 +202,32 @@ catch e
         hlp_handleerror(e);
     end
 end
-end
+
 
 function on_key(key)
-stream = evalin('base',buffername);
+specOpts = evalin('base','specOpts');
 switch lower(key)
     case 'uparrow'
         % decrease datascale
-        opts.datascale = opts.datascale*0.9;
+        specOpts.datascale = specOpts.datascale*0.9;
     case 'downarrow'
         % increase datascale
-        opts.datascale = opts.datascale*1.1;
+        specOpts.datascale = specOpts.datascale*1.1;
     case 'rightarrow'
         % increase timerange
-        opts.timerange = opts.timerange*1.1;
+%         specOpts.timerange = specOpts.timerange*1.1;
     case 'leftarrow'
         % decrease timerange
-        opts.timerange = opts.timerange*0.9;
+%         specOpts.timerange = specOpts.timerange*0.9;
     case 'pagedown'
         % shift display page offset down
-        opts.pageoffset = opts.pageoffset+1;
+        specOpts.pageoffset = specOpts.pageoffset+1;
     case 'pageup'
         % shift display page offset up
-        opts.pageoffset = opts.pageoffset-1;
+        specOpts.pageoffset = specOpts.pageoffset-1;
 end
-assignin('base',buffername,stream);
+assignin('base','specOpts',specOpts);
 end
+
+end
+

@@ -134,6 +134,9 @@ elseif isempty(initAR)
 end
 if size(initAR,1) ~= p*nchs^2
     % dimensions have changed, reset state
+%     if g.verb
+        fprintf('mvar_glADMM: model dimensions changed -- resetting state\n');
+%     end
     initAR = zeros(p*nchs^2,1);
 end
 
