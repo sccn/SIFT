@@ -109,23 +109,23 @@ g = arg_define([0 1],varargin, ...
         );
 
 % commit EEG variable to workspace
-[data g] = hlp_splitstruct(g,{'EEG'});
-arg_toworkspace(data);
-clear data;
+% [data g] = hlp_splitstruct(g,{'g.EEG'});
+% arg_toworkspace(data);
+% clear data;
 
 % initialize default output
 [whitestats PCstats stabilitystats] = deal([]);
 
-if ~isfield(EEG.CAT,'MODEL')
-    error('SIFT:est_validateMVAR:NoModel','EEG.CAT.MODEL must be present in the dataset');
+if ~isfield(g.EEG.CAT,'MODEL')
+    error('SIFT:est_validateMVAR:NoModel','g.EEG.CAT.MODEL must be present in the dataset');
 else
-    MODEL = EEG.CAT.MODEL;
+    MODEL = g.EEG.CAT.MODEL;
 end
 
 % determine which windows to use
 if isempty(g.winStartIdx)
     % starting point of each window (points)
-    g.winStartIdx  = round(MODEL.winStartTimes*EEG.srate)+1;
+    g.winStartIdx  = round(MODEL.winStartTimes*g.EEG.srate)+1;
 end
 
 if g.prctWinToSample<100
@@ -137,24 +137,73 @@ if g.prctWinToSample<100
 end
 
 % if g.verb
-%     fprintf('checking condition %s...\n',EEG.condition);
+%     fprintf('checking condition %s...\n',g.EEG.condition);
 % end
 
+if g.verb==2
+    % create waitbar
+    waitbarTitle = sprintf('Validating Model %s...', ...
+        fastif(isempty(g.EEG.condition),'',['for ' g.EEG.condition]));
+    
+    multiWaitbar(waitbarTitle,'Reset');
+    multiWaitbar(waitbarTitle,'ResetCancel',true);
+    multiWaitbar(waitbarTitle, ...
+                 'Color', hlp_getNextUniqueColor('reset'), ...
+                 'CanCancel','on', ...
+                 'CancelFcn',@(a,b) disp('[Cancel requested. Please wait...]'));
+end
+
+% determine number of checks we'll do (for progbar)
+numchecks = sum([g.checkConsistency.arg_selection  ...
+                 g.checkWhiteness.arg_selection    ...
+                 g.checkStability.arg_selection]);
+curcheck  = 0;
+
+% check residual whiteness 
+% -------------------------------------------------------------------------
 if g.checkWhiteness.arg_selection
-    whitestats = est_checkMVARWhiteness(EEG,MODEL,g.checkWhiteness,'winStartIdx',g.winStartIdx,'prctWinToSample',g.prctWinToSample,'verb',g.verb);
-    winTimes = whitestats.winStartTimes;
+    whitestats = est_checkMVARWhiteness(g.EEG,MODEL,g.checkWhiteness,'winStartIdx',g.winStartIdx,'prctWinToSample',g.prctWinToSample,'verb',g.verb);
+    if isempty(whitestats)
+        % whiteness checks cancelled
+        g.checkWhiteness.arg_selection = false;
+        numchecks = numchecks - 1;
+    else
+        winTimes = whitestats.winStartTimes;
+        if g.verb==2, updateWaitbar; end
+    end
 end
 
+% check model consistency
+% -------------------------------------------------------------------------
 if g.checkConsistency.arg_selection
-    PCstats = est_checkMVARConsistency(EEG,MODEL,g.checkConsistency,'winStartIdx',g.winStartIdx,'prctWinToSample',g.prctWinToSample,'verb',g.verb);
-    winTimes = PCstats.winStartTimes;
+    PCstats = est_checkMVARConsistency(g.EEG,MODEL,g.checkConsistency,'winStartIdx',g.winStartIdx,'prctWinToSample',g.prctWinToSample,'verb',g.verb);
+    if isempty(PCstats)
+        % consistency checks cancelled
+        g.checkConsistency.arg_selection = false;
+        numchecks = numchecks - 1;
+    else
+        winTimes = PCstats.winStartTimes;
+        if g.verb==2, updateWaitbar; end
+    end
 end
 
+% check model stability 
+% -------------------------------------------------------------------------
 if g.checkStability.arg_selection
-    stabilitystats = est_checkMVARStability(EEG,MODEL,g.checkStability,'winStartIdx',g.winStartIdx,'prctWinToSample',g.prctWinToSample,'verb',g.verb);
-    winTimes = stabilitystats.winStartTimes;
+    stabilitystats = est_checkMVARStability(g.EEG,MODEL,g.checkStability,'winStartIdx',g.winStartIdx,'prctWinToSample',g.prctWinToSample,'verb',g.verb);
+    if isempty(stabilitystats)
+        % consistency checks cancelled
+        g.checkStability.arg_selection = false;
+        numchecks = numchecks - 1;
+    else
+        winTimes = stabilitystats.winStartTimes;
+        if g.verb==2, updateWaitbar; end
+    end
 end
 
+
+% plot results
+% -------------------------------------------------------------------------
 if g.plot
     if g.checkWhiteness.arg_selection
         whitenessCriteria = g.checkWhiteness.whitenessCriteria;
@@ -166,9 +215,24 @@ if g.plot
         'checkWhiteness',g.checkWhiteness.arg_selection, ...
         'checkConsistency',g.checkConsistency.arg_selection, ...
         'checkStability',g.checkStability.arg_selection, ...
-        'conditions',{EEG.condition}, ...
+        'conditions',{g.EEG.condition}, ...
         'windowTimes',winTimes);
 end
 
+% clean up
+if g.verb==2
+    multiWaitbar(waitbarTitle,'Close'); 
+end
 
 
+% subfunction updateWaitbar
+function updateWaitbar()
+    curcheck = curcheck + 1;
+    drawnow;
+    cancel = multiWaitbar(waitbarTitle,curcheck/numchecks);
+    if cancel && hlp_confirmWaitbarCancel(waitbarTitle)
+        return;
+    end
+end
+
+end

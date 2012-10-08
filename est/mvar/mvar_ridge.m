@@ -1,4 +1,4 @@
-function [AR PE] = mvar_ridge(varargin)
+function [AR PE lambdaOpt] = mvar_ridge(varargin)
 % Algorithm: Ridge Regression
 %
 % Description:
@@ -82,10 +82,19 @@ verb = arg_extract(varargin,{'verb','Verbosity'},[],0);
 g = arg_define([0 1],varargin, ...
                 arg_norep({'data','Data'},mandatory,[],'Data Matrix. Dimensions are [nchs x npnts].'), ...
                 arg({'p','ModelOrder','morder'},10,[],'VAR Model order'), ...
-                arg({'lambda','RegularizationParam'},1,[0 Inf],'Regularization parameter'), ...
-                arg({'scaled','UseScaling'},true,[],'Scaling option. If set, coefficient estimates are restored to the scale of the original data'), ...
-                arg_nogui({'verb','Verbosity'},verb,[],'Verbose output') ...
+                arg_subswitch({'lambdaSelMode','LambdaSelectionMode'},'automatic', ...
+                {'manual',{ ...
+                    arg({'lambda','RegularizationParam'},1,[0 Inf],'Regularization parameter (lambda)','type','denserealdouble') ...
+                    }, ...
+                 'automatic',{ ...
+                    arg({'lambdaGridSize','LambdaGridSize'},100,[0 Inf],'Grid size for regularization param search. This is used to automatically select the regularization parameter which minimizes the GCV criteria.') ...
+                    } ...
+                 },'Selection mode for lambda. Automatic (GCV grid search) or Manual (must provide lambda)'), ...
+                arg({'varPrior','VariancePrior'},1,[0 Inf],'Parameter covariance prior (sigma). If sigma a scalar, the parameter covariance prior is taken to be a diagonal matrix with sigma (variance) on diagonals. Otherwise, sigma can be a full prior covariance matrix. A sparse matrix is advised if covariance matrix is not dense.'), ...
+                arg({'verb','Verbosity'},verb,[],'Verbose output','type','logical') ...
                 );
+
+% arg({'scaled','UseScaling'},true,[],'Scaling option. If set, coefficient estimates are restored to the scale of the original data'), ...
 
 arg_toworkspace(g);
 
@@ -106,10 +115,23 @@ for itr = 1:ntr
 end
 
 Y = vec(Y);
-X = blkdiageye(sparse(X),nchs);
+X = blkdiageye(X,nchs);
 
+switch g.lambdaSelMode.arg_selection
+    case 'manual'
+        lambdaOpt = g.lambdaSelMode.lambda;
+        gridSize  = 0;
+    case 'automatic'
+        gridSize  = g.lambdaSelMode.lambdaGridSize;
+        lambdaOpt = [];
+end
+       
+if isscalar(g.varPrior)
+    g.varPrior=g.varPrior*speye(size(X,2));
+end
 
-H2 = ridge(Y,X,lambda,scaled);
+[H2 lambdaOpt] = ridgeGCV(Y,X,g.varPrior,lambdaOpt,gridSize,false,verb);
+% H2 = ridge(Y,X,lambda,scaled);
 % H2(end) = [];
 H2 = reshape(H2,[p,nchs,nchs]);
 
@@ -130,12 +152,3 @@ end
 
 function v = vec(x)
 v = x(:);
-
-% 
-% function C = blkdiageye(X,k)
-% % construct blockdiagonal matrix with k copies of X on diagonal
-% % Equivalent to C = kron(eye(k),X) but much faster
-% 
-% ss = repmat('X,',1,k); ss(end)=[];
-% eval(sprintf('C = blkdiag(%s);',ss));
-

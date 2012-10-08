@@ -143,11 +143,20 @@ if g.verb
     fprintf('-------------------------------------------------------------------------\n');
 end
 
-if g.verb
-    h1=waitbar(0,sprintf('estimating connectivity %s...', ...
-        fastif(isempty(EEG.condition),'',['for ' EEG.condition])));
-end
 
+if g.verb==2
+    % create waitbar
+    waitbarTitle = sprintf('Estimating connectivity %s...', ...
+        fastif(isempty(EEG.condition),'',['for ' EEG.condition]));
+    
+    multiWaitbar(waitbarTitle,'Reset');
+    multiWaitbar(waitbarTitle, ...
+                 'Color', hlp_getNextUniqueColor, ...
+                 'CanCancel','on', ...
+                 'CancelFcn',@(a,b) disp('[Cancel requested. Please wait...]'));
+end
+    
+    
 for t=1:numWins
     
     if isempty(MODEL.AR{t})
@@ -176,10 +185,16 @@ for t=1:numWins
         Conn.(method{1})(:,:,:,t) = ConnTmp.(method{1});
     end
     
-    if g.verb
-        waitbar(t/numWins,h1,sprintf('estimating connectivity %s (%d/%d)...', ...
-            fastif(isempty(EEG.condition),'',['for ' EEG.condition]),t,numWins));
+    
+    if g.verb==2
+        % graphical waitbar
+        drawnow;
+        cancel = multiWaitbar(waitbarTitle,t/numWins);
+        if cancel && hlp_confirmWaitbarCancel(waitbarTitle)
+            return;
+        end
     end
+    
 end
 
 % transform the connectivity as user requested
@@ -198,8 +213,8 @@ if g.spectraldecibels && isfield(Conn,'S')
 end
 
 if g.verb
-    waitbar(t/numWins,h1,sprintf('Creating final connectivity object %s...', ...
-        fastif(isempty(EEG.condition),'',['for ' EEG.condition])));
+    fprintf('Creating final connectivity object %s...\n', ...
+            fastif(isempty(EEG.condition),'',['for ' EEG.condition]));
 end
 
 if ~strcmpi(MODEL.algorithm,'kalman')
@@ -211,5 +226,7 @@ end
 Conn.erWinCenterTimes = Conn.winCenterTimes-abs(EEG.xmin);
 Conn.freqs = g.freqs;
     
-if g.verb, close(h1); end
+if g.verb==2
+    multiWaitbar(waitbarTitle,'Close'); 
+end
 

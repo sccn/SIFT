@@ -86,11 +86,11 @@ winrat = ((M^2)*p)/(wlen*T);
 infostring = [infostring sprintf('Ratio of number of parameters to datapoints is %0.3f.\n',winrat)];
 if winrat > 1
     reclen = ((M^2)*p/T)/srate;
-    warnstring = [warnstring {''}];
-    errstring  = [errstring sprintf('\tThe ratio of number of parameters to datapoints must be <= 1.\n\tYour window length must be at least %0.3f sec\n',reclen)];
+    warnstring = [warnstring sprintf('\tIf using an unconstrained (unregularized) model fitting apprach: The ratio of number of parameters to datapoints must be <= 1.\n\tYour window length must be at least %0.3f sec\n',reclen)];
+    errstring  = [errstring {''}];
 elseif winrat > 0.1
     reclen = (10*(M^2)*p/T)/srate;
-    warnstring = [warnstring sprintf('\tFor best results, ratio of number of parameters to datapoints should be < 0.1.\n\tI recommend using window length of at least %0.3f sec\n',reclen)];
+    warnstring = [warnstring sprintf('\tIf using an unconstrained (unregularized) model fitting apprach: For best results, ratio of number of parameters to datapoints should be < 0.1.\n\tI recommend using window length of at least %0.3f sec\n',reclen)];
     errstring  = [errstring {''}];
 else
     warnstring = [warnstring {''}];

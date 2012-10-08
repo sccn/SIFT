@@ -85,7 +85,18 @@ end
 % get the array indices of the windows we are working with
 g.winArrayIndex = getindex(MODEL.winStartTimes,(g.winStartIdx-1)/EEG.srate);
 
-if g.verb, h=waitbar(0,sprintf('checking stability...\nCondition: %s',EEG.condition)); end
+% initialize waitbar
+if g.verb==2
+    waitbarTitle = sprintf('Checking stability %s...', ...
+        fastif(isempty(EEG.condition),'',['for ' EEG.condition]));
+    
+    multiWaitbar(waitbarTitle,'Reset');
+    multiWaitbar(waitbarTitle,'ResetCancel',true);
+    multiWaitbar(waitbarTitle, ...
+                 'Color', hlp_getNextUniqueColor, ...
+                 'CanCancel','on', ...
+                 'CancelFcn',@(a,b) disp('[Cancel requested. Please wait...]'));
+end
 
 numWins = length(g.winStartIdx);
 
@@ -103,15 +114,26 @@ for t=1:numWins
     A = [MODEL.AR{winArrIdx} ; [I O]];
     stats.lambda(t,:) = log(abs(eig(A)));
     stats.stability(t) = all(stats.lambda(t,:)<0);
-    if g.verb,
-        waitbar(t/numWins,h,sprintf('checking stability (%d/%d)...\nCondition: %s',t,numWins,EEG.condition));
+    
+    if g.verb==2
+        % update waitbar
+        drawnow;
+        cancel = multiWaitbar(waitbarTitle,t/numWins);
+        if cancel && hlp_confirmWaitbarCancel(waitbarTitle)
+            stats = [];
+            return;
+        end
     end
+    
 end
 
 stats.winStartIdx = g.winStartIdx;
 stats.winStartTimes = MODEL.winStartTimes(g.winArrayIndex);
 stats.winArrayIndex = g.winArrayIndex;
 
-if g.verb, close(h); end
+% clean up
+if g.verb==2
+    multiWaitbar(waitbarTitle,'Close'); 
+end
 
 

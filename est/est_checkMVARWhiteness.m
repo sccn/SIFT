@@ -94,10 +94,10 @@ clear data;
 minLagAcf = MODEL.morder;
 maxLagAcf = floor(MODEL.winlen*EEG.srate)-MODEL.morder-1;
 if (g.numAcfLags < minLagAcf)
-    fprintf('WARNING: Number of autocorrelation lags is less than mininum allowed (%d lags). Will use minimum for checks.\n',minLagAcf);
+    fprintf('WARNING: Number of autocorrelation lags is less than mininum allowed (%d lags). Will use %d lags for checks.\n',minLagAcf,minLagAcf);
     g.numAcfLags = minLagAcf;
 elseif (g.numAcfLags > maxLagAcf)
-    fprintf('WARNING: Number of autocorrelation lags exceeds maximum allowed (%d lags). Will use minimum for checks.\n',maxLagAcf);
+    fprintf('WARNING: Number of autocorrelation lags exceeds maximum allowed (%d lags). Will use %d lags for checks.\n',maxLagAcf,maxLagAcf);
     g.numAcfLags = maxLagAcf;
 end
 
@@ -140,12 +140,17 @@ g.winArrayIndex = getindex(MODEL.winStartTimes,(g.winStartIdx-1)/EEG.srate);
 
 numWins = length(g.winStartIdx);
 
-% correct alpha-significance for multiple comparisons
-
-% verbose outputs
-% if g.verb, fprintf('Using %d lags for covariance estimation.\n',g.numAcfLags); end
-if g.verb, 
-    h=waitbar(0,sprintf('checking whiteness...\nCondition: %s',EEG.condition)); 
+% initialize waitbar
+if g.verb==2
+    waitbarTitle = sprintf('Checking whiteness %s...', ...
+        fastif(isempty(EEG.condition),'',['for ' EEG.condition]));
+    
+    multiWaitbar(waitbarTitle,'Reset');
+    multiWaitbar(waitbarTitle,'ResetCancel',true);
+    multiWaitbar(waitbarTitle, ...
+                 'Color', hlp_getNextUniqueColor, ...
+                 'CanCancel','on', ...
+                 'CancelFcn',@(a,b) disp('[Cancel requested. Please wait...]'));
 end
 
 for t=1:numWins
@@ -251,8 +256,14 @@ for t=1:numWins
         end
     end
     
-    if g.verb
-        waitbar(t/numWins,h,sprintf('checking whiteness (%d/%d)...\nCondition: %s',t,numWins,EEG.condition)); 
+    if g.verb==2
+        % update waitbar
+        drawnow;
+        cancel = multiWaitbar(waitbarTitle,t/numWins);
+        if cancel && hlp_confirmWaitbarCancel(waitbarTitle)
+            [stats acv] = deal([]);
+            return;
+        end
     end
                 
 end
@@ -262,5 +273,8 @@ stats.winStartTimes = MODEL.winStartTimes(g.winArrayIndex);
 stats.winArrayIndex = g.winArrayIndex;
 stats.alpha = g.alpha;
 
-if g.verb, close(h); end
+% clean up
+if g.verb==2
+    multiWaitbar(waitbarTitle,'Close'); 
+end
 
