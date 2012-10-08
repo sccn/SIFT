@@ -87,7 +87,7 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     Connectivity_callback   = [finalcmd catchstrs.store_and_hist];
     
-    cmd = 'EEG = pop_vis_TimeFreqGrid(EEG)';
+    cmd = 'EEG = pop_vis_TimeFreqGrid(EEG);';
     finalcmd = [ trystrs.no_check cmd ];
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     TFGrid_callback         = [finalcmd catchstrs.store_and_hist];

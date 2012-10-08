@@ -1,6 +1,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% SCRIPTING EXAMPLE FOR THE SOURCE INFORMATION FLOW TOOLBOX (SIFT)    %%%
-%%% SIFT Version: 0.5-alpha                                             %%%
+%%% SIFT Version: 0.7-alpha                                             %%%
 %%%                                                                     %%%
 %%% This example demonstrates how to use SIFT from the command-line or  %%%
 %%% in a script. This example applies to SIFT 0.7-alpha.                %%%
