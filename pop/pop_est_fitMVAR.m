@@ -88,6 +88,19 @@ if strcmpi(typeproc,'cfg_only')
     return;
 end
 
+
+% initialize progress bar
+if cfg.verb==2 && length(ALLEEG)>1
+    waitbarTitle = 'Fitting VAR Models';
+    
+    multiWaitbar(waitbarTitle,'Reset');
+    multiWaitbar(waitbarTitle,'ResetCancel',true);
+    multiWaitbar(waitbarTitle,...
+                 'Color', [0.8 0.0 0.1],  ...
+                 'CanCancel','on',        ...
+                 'CancelFcn',@(a,b)disp('[Cancel requested. Please wait...]'));
+end
+
 % execute the low-level function
 for cnd=1:length(ALLEEG)
     [ALLEEG(cnd).CAT.MODEL] = feval(fcnHandle,'EEG',ALLEEG(cnd),cfg);
@@ -96,4 +109,19 @@ for cnd=1:length(ALLEEG)
         % store the configuration structure
         ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
     end
+    
+    if cfg.verb==2 && length(ALLEEG)>1
+        % update waitbar
+        drawnow;
+        cancel = multiWaitbar(waitbarTitle,cnd/length(ALLEEG));
+        if cancel && hlp_confirmWaitbarCancel(waitbarTitle)
+            break;
+        end
+    end
+    
+end
+
+% cleanup progress bar
+if cfg.verb==2 && length(ALLEEG)>1
+    multiWaitbar(waitbarTitle,'Close');
 end

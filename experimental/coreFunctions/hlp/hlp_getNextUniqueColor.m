@@ -39,7 +39,8 @@ persistent cmap;
 doReset = false;
 colorMap = cmap;
 
-if nargin==0 && isempty(colorMap)
+if (nargin==0 || (nargin==1 && any(strcmpi(varargin,'reset')))) ...
+    && isempty(colorMap)
     % initialize with a default colormap
     colorMap = hsv(10);
 end

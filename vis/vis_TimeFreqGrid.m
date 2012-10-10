@@ -279,7 +279,7 @@ if ~isempty(ALLEEG)
         MyChannelNames = strtrim(cellstr(num2str((1:ALLEEG(1).nbchan)'))');
     end
     
-    % set default range for marginal plots
+    % set allowable options for marginal plots
     sourceMarginOptions = {'none'};
     if isfield(ALLEEG(1),'chanlocs') && isfield(ALLEEG(1).chanlocs,'X')
         sourceMarginOptions = [sourceMarginOptions 'topoplot'];
@@ -287,6 +287,7 @@ if ~isempty(ALLEEG)
     if isfield(ALLEEG(1),'dipfit') && ~isempty(ALLEEG(1).dipfit)
         sourceMarginOptions = [sourceMarginOptions 'dipole'];
     end
+    sourceMarginOptions = [sourceMarginOptions 'customtopo'];
     
     % get the condition names
     for cnd=1:length(ALLEEG)
@@ -336,7 +337,7 @@ if ~isempty(ALLEEG)
     clear ALLEEG
     
 else
-    sourceMarginOptions = {'none','topoplot','dipole'};
+    sourceMarginOptions = {'none','topoplot','dipole','customtopo'};
 end
 
 
@@ -418,6 +419,7 @@ g = arg_define([0 2],varargin, ...
     arg_norep({'channels','VariablesToKeep'},[],[],'List of indices of channels to keep. Can be [vector], a subset of [1:nbchan]'), ...
     arg({'plotorder','PlottingOrder'},[],[],'Specify index order. Subset of [1:nbchan] in which to arrange columns/rows. Useful for grouping channels.','cat','DisplayProperties'), ...
     arg({'topoplot','SourceMarginPlot'},sourceMarginOptions{end},sourceMarginOptions,'What to plot on margins. Options: ''Topoplot'': plot source scalp projection. ''Dipole'': plot dipole','cat','DisplayProperties'), ...
+    arg_nogui({'customTopoMatrix','CustomTopoMatrix'},[],[],'Custom topoplot matrix. For N channels/sources, this is a 1 X N cell array of symmetric matrices comprised the topoplot *surface* (not a component vector) for each channel/source. This is provided as input to toporeplot() if ''SourceMarginPlot'' is chosen to be ''customtopo''.','shape','row','cat','DisplayProperties'), ...
     arg_sub({'dipplot','DipolePlottingOptions'},[], ...
     { ...
     arg_nogui({'mri'},'',[],'Dipplot MRI structure. Can be the name of matlab variable (in the base workspace) containing MRI structure. May also be a path to a Matlab file containing MRI structure. Default uses MNI brain.','type','char','shape','row'), ...
@@ -427,7 +429,6 @@ g = arg_define([0 2],varargin, ...
     arg({'nodelabels','NodeLabels'},MyComponentNames,{},'List of labels for each node. e.g., {''Node1'',''Node2'',...}. Leave blank to use defaults.','shape','row','type','cellstr','cat','DisplayProperties'),...
     arg({'foilines','FrequencyMarkers'},[],[],'Vector of frequencies (Hz) at which to draw horizontal lines','cat','FrequencyMarkers'), ...
     arg({'foilinecolor','FrequencyMarkerColor'},[],[],'Coloring for frequency markers. If an [1 x 3] array of RBG values, then color all lines using this color. If an [N x 3] matrix of RBG values, then color the kth line with the colorspec from the kth row. If empty then cycle through colorlist','shape','matrix','cat','FrequencyMarkers'), ...
-    arg_nogui({'clustmaps','ClusterMaps'},[],[],'Cell matrix of mean cluster maps to topoplot','shape','row','cat','DisplayProperties'), ...
     arg({'events','EventMarkers'},{{0 'r' ':' 2}},[],'Event marker time and style. Specify event markers with a cell array of {time linecolor linestyle linewidth} cell arrays. Ex. { { 0.2 ''y'' '':'' 2} { 1.5 ''r'' '':'' 2}} will render two dotted-line event makers, yellow at 200 ms and red at 1500 ms','type','expression','shape','row','cat','DisplayProperties'), ...
     arg({'freqscale','FrequencyScale'},'linear',{'linear','log'},'Make the y-scale logarithmic or linear','cat','DisplayProperties'), ...
     arg_nogui({'transform','Transform'},'linear',{'log','linear',''},'transform the data (logarithmically or other)'), ...
@@ -449,7 +450,7 @@ g = arg_define([0 2],varargin, ...
 [data g] = hlp_splitstruct(g,{'ALLEEG','Conn'});
 arg_toworkspace(data);
 clear data;
-
+    
 % initialize default variables
 gridmargin_bot_left  = [0.1 0.1];     % [0.05 0.05];     % margin (normalized units) around grid of subplots [horiz vert]
 gridmargin_top_right =  1-gridmargin_bot_left;
@@ -691,6 +692,12 @@ end
 
 % determine whether or not we will plot sources on row-col margins
 g.PlotSourceOnMargin = true; %~strcmpi(g.topoplot,'none');
+
+% some more input error checking
+if strcmpi(g.topoplot,'customtopo') && isempty(g.customTopoMatrix) ...
+        || ~ iscell(g.customTopoMatrix) || length(g.customTopoMatrix) ~= ALLEEG(1).CAT.nbchan
+    error('If ''SourceMarginPlot'' is chosen to be ''customtopo'', a cell array of topographic surfaces must be provided in argument ''CustomTopoMatrix''');
+end
 
 % extract some variables for convenience
 nch   = ALLEEG(1).CAT.nbchan;
@@ -1198,7 +1205,7 @@ for ch_i=1:nch
             
             % Prepare the arguments for vis_TimeFreqCell()
             % This function will be called when user clicks on subplot
-            if ~strcmpi(g.topoplot,'none')
+            if strcmpi(g.topoplot,'topoplot')
                 subargs.topovec     = squeeze(ALLEEG(1).icawinv(:,ALLEEG(1).CAT.curComps([j i])))';
             else
                 subargs.topovec = [];
@@ -1662,6 +1669,7 @@ rotate3d off;
 % -----------------------------------------------------------------------------
 function h = plotmarginal(ALLEEG,curch,g,varargin)
 
+if strcmpi(g.msubset,'diag'), return; end
 
 dipplotdefs ={'color',{'r'},'verbose','off','dipolelength',0.01,...
     'dipolesize',20,'view',[1 0 0],'projimg', 'off',  ...
@@ -1670,27 +1678,29 @@ dipplotdefs ={'color',{'r'},'verbose','off','dipolelength',0.01,...
 
 dipplotargs = [hlp_struct2varargin(hlp_varargin2struct(varargin,dipplotdefs{:})) g.dipplot.dipplotopt];
 
-if strcmpi(g.topoplot,'dipole') && ~strcmpi(g.msubset,'diag')
-    % plot dipole locations
-    cbstr=pop_dipplot(ALLEEG(1),ALLEEG(1).CAT.curComps(curch), ...
-        dipplotargs{:});
-    set(gca,'buttondownfcn',['figure;' cbstr]);
-end
+switch lower(g.topoplot)
+    case 'dipole'
+        % plot dipole locations
+        
+        cbstr=pop_dipplot(ALLEEG(1),ALLEEG(1).CAT.curComps(curch), ...
+            dipplotargs{:});
+        set(gca,'buttondownfcn',['figure;' cbstr]);
 
-if strcmpi(g.topoplot,'topoplot') && ~strcmpi(g.msubset,'diag')
-    % plot topoplots
-    color = get(gcf,'color');
-    topoplot(squeeze(ALLEEG(1).icawinv(:,ALLEEG(1).CAT.curComps(curch))), ...
-        ALLEEG(1).chanlocs,'electrodes','off');
-    set(gcf,'color',color)
-    set(findobj(gca,'type','patch'),'facecolor',color);
-    %                 ylabel(g.nodelabels(curch),'color','w');
-    %     cbstr = 'topoplot(squeeze(ALLEEG(1).icawinv(:,ALLEEG(1).CAT.curComps(curch))),fastif(isfield(ALLEEG(1),''chanlocs''),ALLEEG(1).chanlocs,ALLEEG(1).chanlocs),''electrodes'',''off'');';
-end
-
-if strcmpi(g.topoplot,'clustmaps') && ~strcmpi(g.msubset,'diag')
-    % plot mean cluster topoplots
-    toporeplot(g.clustmaps{curch},'plotrad',.75,'intrad',.75);
+    case 'topoplot'
+        % plot topoplots
+        
+        color = get(gcf,'color');
+        topoplot(squeeze(ALLEEG(1).icawinv(:,ALLEEG(1).CAT.curComps(curch))), ...
+            ALLEEG(1).chanlocs,'electrodes','off');
+        set(gcf,'color',color)
+        set(findobj(gca,'type','patch'),'facecolor',color);
+        %                 ylabel(g.nodelabels(curch),'color','w');
+        %     cbstr = 'topoplot(squeeze(ALLEEG(1).icawinv(:,ALLEEG(1).CAT.curComps(curch))),fastif(isfield(ALLEEG(1),''chanlocs''),ALLEEG(1).chanlocs,ALLEEG(1).chanlocs),''electrodes'',''off'');';
+        
+    case 'customtopo'
+        % plot custom topographic surface
+        
+        toporeplot(g.customTopoMatrix{curch},'plotrad',.75,'intrad',.75);
 end
 
 set(gca,'tag','topo');

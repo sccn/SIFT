@@ -94,12 +94,17 @@ if strcmpi(typeproc,'cfg_only')
 end
 
 % initialize progress bar
-if cfg.verb==2
-    multiWaitbar('Preprocessing datasets',...
+if cfg.verb==2 && length(ALLEEG)>1
+    waitbarTitle = 'Preprocessing datasets';
+    
+    multiWaitbar(waitbarTitle,'Reset');
+    multiWaitbar(waitbarTitle,'ResetCancel',true);
+    multiWaitbar(waitbarTitle,...
                  'Color', [0.8 0.0 0.1],  ...
                  'CanCancel','on',        ...
                  'CancelFcn',@(a,b)disp('[Cancel requested. Please wait...]'));
 end
+
 
 % re-initialize output
 clear ALLEEG_out;
@@ -114,26 +119,24 @@ for cnd=1:length(ALLEEG)
         % store the configuration structure
         ALLEEG_out(cnd).CAT.configs.(fcnName) = cfg;
     end
+
     
-    % update the progress bar
-    if cfg.verb==2
-        cancel=multiWaitbar('Preprocessing datasets',cnd/length(ALLEEG));
-        if cancel
-            if strcmpi('yes',questdlg2( ...
-                            'Are you sure you want to cancel preprocessing?', ...
-                            'Preprocessing','Yes','No','No'));
-                % restore original dataset
-                ALLEEG_out = ALLEEG;
-                break;
-            else
-                multiWaitbar('Preprocessing datasets','ResetCancel',true);
-            end
+    if cfg.verb==2 && length(ALLEEG)>1
+        % update waitbar
+        drawnow;
+        cancel = multiWaitbar(waitbarTitle,cnd/length(ALLEEG));
+        if cancel && hlp_confirmWaitbarCancel(waitbarTitle)
+            % restore original dataset
+            ALLEEG_out = ALLEEG;
+            break;
         end
     end
+    
+        
 end
 
 % cleanup progress bar
-if cfg.verb==2
-    multiWaitbar('CloseAll');
+if cfg.verb==2 && length(ALLEEG)>1
+    multiWaitbar(waitbarTitle,'Close');
 end
 
