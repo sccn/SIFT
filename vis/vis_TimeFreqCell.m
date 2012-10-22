@@ -271,8 +271,8 @@ if strcmpi(g.topoplot,'topoplot') && isempty(g.topovec)
         'Argument ''topovec'' must contain a valid matrix of topographic maps');
 end
 
-if strcmpi(g.topoplot,'customtopo') && isempty(g.customTopoMatrix) ...
-        || ~ iscell(g.customTopoMatrix) || length(g.customTopoMatrix) ~= ALLEEG(1).CAT.nbchan
+if strcmpi(g.topoplot,'customtopo') && (isempty(g.customTopoMatrix) ...
+        || ~ iscell(g.customTopoMatrix) || length(g.customTopoMatrix) < fastif(g.bidir,2,1))
     error('If ''SourceMarginPlot'' is chosen to be ''customtopo'', a cell array of topographic surfaces must be provided in argument ''CustomTopoMatrix''');
 end
 
@@ -402,11 +402,16 @@ for dir=1:numdirs
     h(6) = axes('Units','Normalized', 'Position',[.1 ordinate(dir) .8 height].*s+q);
     colormap(map);
     
-    if ~strcmpi(g.freqscale, 'log')
-        try     imagesc(g.alltimes,g.allfreqs,Conn,max(Conn(:))*[-1 1]);
-        catch,  imagesc(g.alltimes,g.allfreqs,Conn,[-1 1]); end
+    if g.smooth
+        pcolor(g.alltimes,g.allfreqs,double(Conn));
+        shading interp
         IntegrConn  = ConnOrig;
         IntegrFreqs = g.allfreqs';
+    elseif ~strcmpi(g.freqscale, 'log')
+            try     imagesc(g.alltimes,g.allfreqs,Conn,max(Conn(:))*[-1 1]);
+            catch,  imagesc(g.alltimes,g.allfreqs,Conn,[-1 1]); end
+            IntegrConn  = ConnOrig;
+            IntegrFreqs = g.allfreqs';
     else
         
         [IntegrFreqs IntegrConn] = logimagesc(g.alltimes,origFreqs,Conn);
@@ -654,11 +659,14 @@ ToSourcePlotPos     = [.9 .43 .2 .14];
 SingleSourcePlotPos = [-.1 -.1 .2 .14];
 switch lower(g.topoplot)
     
-    case 'topoplot'
+    case {'topoplot' 'customtopo'}
         
         if g.bidir
             h(15) = subplot('Position',FromSourcePlotPos.*s+q);
-            if size(g.topovec,2) <= 2
+            if strcmpi(g.topoplot,'customtopo')
+                % toporeplot
+                toporeplot(g.customTopoMatrix{1},'plotrad',.75,'intrad',.75);
+            elseif size(g.topovec,2) <= 2
                 topoplot(g.topovec(1),g.elocs,'electrodes','off', ...
                     'style', 'blank', 'emarkersize1chan', 10, 'chaninfo', g.chaninfo);
             else
@@ -681,7 +689,10 @@ switch lower(g.topoplot)
             h(16) = subplot('Position',SingleSourcePlotPos.*s+q);
         end
         
-        if size(g.topovec,2) <= 2
+        if strcmpi(g.topoplot,'customtopo')
+                % toporeplot
+                toporeplot(g.customTopoMatrix{2},'plotrad',.75,'intrad',.75);
+        elseif size(g.topovec,2) <= 2
             topoplot(g.topovec(2),g.elocs,'electrodes','off', ...
                 'style', 'blank', 'emarkersize1chan', 10, 'chaninfo', g.chaninfo);
         else
@@ -710,7 +721,7 @@ switch lower(g.topoplot)
             % view [1 0 0] % saggital
             % view [0 -0.99 0.01] for zeynep model
             pop_dipplot(struct('dipfit',g.dipfitstruct),1,'color',{'r'},'verbose','off','dipolelength',0.01,...
-                'dipolesize',20,'view',[1 0 0],'projimg', 'off',  ...
+                'dipolesize',20,'view',[0 0 1],'projimg', 'off',  ...
                 'projlines', 'on', 'axistight', 'on',            ...
                 'cornermri', 'on', 'normlen', 'on','gui','off','mri',g.dipplot.mri,'coordformat',g.dipplot.coordformat);
             
@@ -738,7 +749,7 @@ switch lower(g.topoplot)
         %             'projimg', 'off', 'projlines', 'on', 'axistight',  ...
         %             'on', 'cornermri', 'on', 'normlen', 'on','gui','off');
         pop_dipplot(struct('dipfit',g.dipfitstruct),2,'color',{'r'},'verbose','off','dipolelength',0.01,...
-            'dipolesize',20,'view',[1 0 0],'projimg', 'off',  ...
+            'dipolesize',20,'view',[0 0 1],'projimg', 'off',  ...
             'projlines', 'on', 'axistight', 'on',            ...
             'cornermri', 'on', 'normlen', 'on','gui','off','mri',g.dipplot.mri,'coordformat',g.dipplot.coordformat);
         

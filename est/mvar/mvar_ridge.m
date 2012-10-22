@@ -4,7 +4,9 @@ function [AR PE lambdaOpt] = mvar_ridge(varargin)
 % Description:
 %
 % This method infers a fully connected multivariate
-% autoregressive (VAR) model using L2 regularization.
+% autoregressive (VAR) model using L2 regularization,
+% otherwise known as "ridge-regression", "Tikhonov 
+% regularization" or "minimum-L2-norm" [2]
 %
 % VAR[p] coefficients inferred using ridge regression
 % (L2 regularization). We assume most VAR coefficients
@@ -27,7 +29,9 @@ function [AR PE lambdaOpt] = mvar_ridge(varargin)
 %
 % A_hat = argmin_A{0.5||Y-XA||_2^2 + L*||A||_2}
 %
-% where L is the regularization parameter.
+% where L is the regularization parameter. 
+% L can be determined automatically using Generalized 
+% Cross Validation (GCV) [3].
 %
 % This algorithm is a good choice if you have few 
 % data samples and a fairly large number of sources
@@ -36,7 +40,7 @@ function [AR PE lambdaOpt] = mvar_ridge(varargin)
 % graph (all VAR coefficients are non-zero). Follow up
 % with statistical thresholding.
 %
-% Dependencies: ridge()
+% Dependencies: ridgeGCV()
 %
 % ------------------------------------------------------------------------
 % INPUTS:
@@ -57,6 +61,11 @@ function [AR PE lambdaOpt] = mvar_ridge(varargin)
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
 %     Theoretical Handbook and User Manual.
 %     Available at: http://www.sccn.ucsd.edu/wiki/SIFT
+% [2] Hoerl, A.E.; R.W. Kennard (1970). Ridge regression: Biased estimation 
+%     for nonorthogonal problems. Technometrics 42(1):80?86. JSTOR 1271436.
+% [3] Golub G, Heath M, Wahba G. (1979) Generalized Cross-validation as a  
+%     method for choosing a good ridge parameter. Technometrics. 
+%     doi: 10.1080/00401706.1979.10489751
 %
 % Author: Tim Mullen 2012, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
@@ -87,7 +96,7 @@ g = arg_define([0 1],varargin, ...
                     arg({'lambda','RegularizationParam'},1,[0 Inf],'Regularization parameter (lambda)','type','denserealdouble') ...
                     }, ...
                  'automatic',{ ...
-                    arg({'lambdaGridSize','LambdaGridSize'},100,[0 Inf],'Grid size for regularization param search. This is used to automatically select the regularization parameter which minimizes the GCV criteria.') ...
+                    arg({'lambdaGridSize','LambdaGridSize'},100,[0 Inf],'Grid size for regularization param search. This is used to automatically select the regularization parameter which minimizes the Generalized Cross-Validation (GCV) criteria.') ...
                     } ...
                  },'Selection mode for lambda. Automatic (GCV grid search) or Manual (must provide lambda)'), ...
                 arg({'varPrior','VariancePrior'},1,[0 Inf],'Parameter covariance prior (sigma). If sigma a scalar, the parameter covariance prior is taken to be a diagonal matrix with sigma (variance) on diagonals. Otherwise, sigma can be a full prior covariance matrix. A sparse matrix is advised if covariance matrix is not dense.'), ...
@@ -131,13 +140,8 @@ if isscalar(g.varPrior)
 end
 
 [H2 lambdaOpt] = ridgeGCV(Y,X,g.varPrior,lambdaOpt,gridSize,false,verb);
-% H2 = ridge(Y,X,lambda,scaled);
-% H2(end) = [];
-H2 = reshape(H2,[p,nchs,nchs]);
 
-% H2 = zeros(p,nchs,nchs);
-% H2(offDiagIdx) = vec(initAR(1:(p*nchs*(nchs-1))));          % non-diagonal elements
-% H2(diagIdx) = vec(initAR(((p*nchs*(nchs-1))+1):end));       % diagonal elements
+H2 = reshape(H2,[p,nchs,nchs]);
 
 AR = permute(full(H2), [3 2 1]);   % the recovered (nchs x nchs x p) connectivity matrix
 AR = reshape(AR,[nchs nchs*p]);

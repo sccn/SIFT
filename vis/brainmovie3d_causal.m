@@ -1729,9 +1729,10 @@ for indeximage = g.vars.alltimepoints
             set(cl,'tag','brain_camlight','parent',g.vars.hbrainax);
         end
         
-        % reset text fontcolor to white
-        set(findobj(g.vars.hlgnd,'type','text'),'color',[0.99 0.99 0.99]);
-        
+        if g.caption
+            % reset text fontcolor to white
+            set(findobj(g.vars.hlgnd,'type','text'),'color',[0.99 0.99 0.99]);
+        end
         
     end  % LOOP OVER CONDITIONS
     

@@ -67,10 +67,10 @@ end
   nchs  = size(X,1);                    % number of variables
   n     = size(X,2);                    % number of observations
   ntr   = size(X,3);                    % number of realizations (trials)
-  p     = size(AR{1},2)/nchs;              % order of model
+  p     = size(AR{1},2)/nchs;           % order of model
   tvar  = length(AR)>1;                 % boolean determining whether VAR is time-varying
   if ~tvar
-        nres  = n-p;                          % number of residuals
+        nres  = n-p;                    % number of residuals
   else
         nres  = length(AR);
   end
@@ -78,7 +78,7 @@ end
   if nargin<3 || isempty(mu)
     mu = zeros(nchs,1);
   else
-    mu     = mu(:);                       % force mu to be column vector
+    mu     = mu(:);                     % force mu to be column vector
   end
   
   if nargin<4
@@ -91,10 +91,11 @@ end
  res = nan*ones(nchs,nres,ntr);
 
  if ~tvar
-      mu     = mu*ones(1,nres);             % construct matrix
+      mu     = mu*ones(1,nres);          % construct matrix
 
       % Get time series of residuals 
-      l = 1:nres;                           % vectorized loop l=1,...,nres 
+      l = 1:nres; 
+      % vectorized loop l=1,...,nres 
       for tr=1:ntr
           res(:,l,tr) = X(:,l+p,tr) - mu;
           for k=1:p
@@ -119,7 +120,7 @@ end
                  
              z = AR{ceil((t-1)/downsampleFactor)}.';
              
-             H = kron(eye(nchs),Y(:)');
+             H = blkdiageye(Y(:)',nchs);
              res(:,idx,tr) = X(:,t)-mu-H*z(:);
              idx = idx+1;
          end

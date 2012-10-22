@@ -694,8 +694,8 @@ end
 g.PlotSourceOnMargin = true; %~strcmpi(g.topoplot,'none');
 
 % some more input error checking
-if strcmpi(g.topoplot,'customtopo') && isempty(g.customTopoMatrix) ...
-        || ~ iscell(g.customTopoMatrix) || length(g.customTopoMatrix) ~= ALLEEG(1).CAT.nbchan
+if strcmpi(g.topoplot,'customtopo') && (isempty(g.customTopoMatrix) ...
+        || ~ iscell(g.customTopoMatrix) || length(g.customTopoMatrix) ~= ALLEEG(1).CAT.nbchan)
     error('If ''SourceMarginPlot'' is chosen to be ''customtopo'', a cell array of topographic surfaces must be provided in argument ''CustomTopoMatrix''');
 end
 
@@ -1207,9 +1207,13 @@ for ch_i=1:nch
             % This function will be called when user clicks on subplot
             if strcmpi(g.topoplot,'topoplot')
                 subargs.topovec     = squeeze(ALLEEG(1).icawinv(:,ALLEEG(1).CAT.curComps([j i])))';
+            elseif strcmpi(g.topoplot,'customtopo')
+                subargs.customTopoMatrix = g.customTopoMatrix([j i]);
             else
                 subargs.topovec = [];
+                subargs.customTopoMatrix = {};
             end
+            
             if ~isempty(ALLEEG(1).dipfit)
                 subargs.dipfitstruct = ALLEEG(1).dipfit;
                 subargs.dipfitstruct.model = subargs.dipfitstruct.model(ALLEEG(1).CAT.curComps([j i]));
@@ -1247,6 +1251,7 @@ for ch_i=1:nch
             subargs.dipplot         = g.dipplot;
             subargs.foilines        = g.foilines;
             subargs.foilinecolor    = g.foilinecolor;
+            subargs.smooth          = g.smooth;
             
             set(gca,'userdata',subargs)
             set([gca h],'buttondownfcn','vis_TimeFreqCell(get(gca,''UserData''));');
@@ -1566,7 +1571,7 @@ end
 
 % create legend
 subplot1(1);
-if isempty(findobj(gcf,'tag','legendborder'))
+if isempty(findall(gcf,'tag','legendborder'))
     % create border around legend
     pos = get(gca,'position');
     annotation('rectangle',pos,'edgecolor',[1 0 0],'tag','legendborder');
@@ -1606,58 +1611,63 @@ switch GridType
         BotLabelString   = 'Time (sec)';
 end
 
-% top label
-pos = [0.5 0.5 0.5 0.01];
-hlabel(1)=annotation('textbox',pos,'string','FROM', ...
-                     'color',g.textColor,'FontSize',g.titleFontSize, ...
-                     'FontWeight','bold','HorizontalAlignment','Center', ...
-                     'Margin', 0,'LineStyle','none','FitHeightToText','on');
-renderpos = get(hlabel(1),'Position');
-px = gridmargin_bot_left(1) + (1-gridmargin_bot_left(1))/2 - renderpos(3)/2;
-py = gridmargin_top_right(2) + (1-gridmargin_top_right(2))/2 - renderpos(4)/2;
-set(hlabel(1),'Position',[px py renderpos(3) renderpos(4)], ...
-              'tag','tlabel');
+% plot labels
+% ------------------------------------------------------------------------------------------------
+
+if isempty(findall(gcf,'tag','tlabel'))
+    % top label
+    pos = [0.5 0.5 0.5 0.01];
+    hlabel(1)=annotation('textbox',pos,'string','FROM', ...
+                         'color',g.textColor,'FontSize',g.titleFontSize, ...
+                         'FontWeight','bold','HorizontalAlignment','Center', ...
+                         'Margin', 0,'LineStyle','none','FitHeightToText','on');
+    renderpos = get(hlabel(1),'Position');
+    px = gridmargin_bot_left(1) + (1-gridmargin_bot_left(1))/2 - renderpos(3)/2;
+    py = gridmargin_top_right(2) + (1-gridmargin_top_right(2))/2 - renderpos(4)/2;
+    set(hlabel(1),'Position',[px py renderpos(3) renderpos(4)], ...
+                  'tag','tlabel');
 
 
-% left label
-pos = [0.5 0.5];
-hlabel(2)=annotation('textarrow',pos,pos,'string','TO', ...
-                     'HeadStyle','none','LineStyle','none', ...
-                     'color',g.textColor,'FontSize',g.titleFontSize, ...
-                     'FontWeight','bold','TextRotation',90, ...
-                     'HorizontalAlignment','Center');
-renderpos = get(hlabel(2),'Position');
-px = gridmargin_bot_left(1)/1.5;
-py = gridmargin_bot_left(2) + (1-gridmargin_bot_left(2))/2 - renderpos(4)/2;
-set(hlabel(2),'X',[px px], ...
-              'Y',[py py], ...
-              'tag','tlabel');
+    % left label
+    pos = [0.5 0.5];
+    hlabel(2)=annotation('textarrow',pos,pos,'string','TO', ...
+                         'HeadStyle','none','LineStyle','none', ...
+                         'color',g.textColor,'FontSize',g.titleFontSize, ...
+                         'FontWeight','bold','TextRotation',90, ...
+                         'HorizontalAlignment','Center');
+    renderpos = get(hlabel(2),'Position');
+    px = gridmargin_bot_left(1)/1.5;
+    py = gridmargin_bot_left(2) + (1-gridmargin_bot_left(2))/2 - renderpos(4)/2;
+    set(hlabel(2),'X',[px px], ...
+                  'Y',[py py], ...
+                  'tag','tlabel');
 
-% right label
-pos = [0.5 0.5];
-hlabel(3)=annotation('textarrow',pos,pos,'string',RightLabelString, ...
-                     'HeadStyle','none','LineStyle','none', ...
-                     'color',g.textColor,'FontSize',g.titleFontSize, ...
-                     'FontWeight','bold','TextRotation',-90, ...
-                     'HorizontalAlignment','Center');
-renderpos = get(hlabel(3),'Position');
-px = 0.99;
-py = gridmargin_bot_left(2) + (1-gridmargin_bot_left(2))/2 - renderpos(4)/2;
-set(hlabel(3),'X',[px px], ...
-              'Y',[py py], ...
-              'tag','tlabel');
+    % right label
+    pos = [0.5 0.5];
+    hlabel(3)=annotation('textarrow',pos,pos,'string',RightLabelString, ...
+                         'HeadStyle','none','LineStyle','none', ...
+                         'color',g.textColor,'FontSize',g.titleFontSize, ...
+                         'FontWeight','bold','TextRotation',-90, ...
+                         'HorizontalAlignment','Center');
+    renderpos = get(hlabel(3),'Position');
+    px = 0.99;
+    py = gridmargin_bot_left(2) + (1-gridmargin_bot_left(2))/2 - renderpos(4)/2;
+    set(hlabel(3),'X',[px px], ...
+                  'Y',[py py], ...
+                  'tag','tlabel');
 
-% bottom label
-pos = [0.5 0.5 0.5 0.01];
-hlabel(4)=annotation('textbox',pos,'string',BotLabelString, ...
-                     'color',g.textColor,'FontSize',g.titleFontSize, ...
-                     'FontWeight','bold','HorizontalAlignment','Center', ...
-                     'Margin', 0,'LineStyle','none','FitHeightToText','on');
-renderpos = get(hlabel(4),'Position');
-px = gridmargin_bot_left(1) + (1-gridmargin_bot_left(1))/2 - renderpos(3)/2;
-py = 0.016; %gridmargin_bot_left(2)/2 - renderpos(4)/2;
-set(hlabel(4),'Position',[px py renderpos(3) renderpos(4)], ...
-              'tag','tlabel');
+    % bottom label
+    pos = [0.5 0.5 0.5 0.01];
+    hlabel(4)=annotation('textbox',pos,'string',BotLabelString, ...
+                         'color',g.textColor,'FontSize',g.titleFontSize, ...
+                         'FontWeight','bold','HorizontalAlignment','Center', ...
+                         'Margin', 0,'LineStyle','none','FitHeightToText','on');
+    renderpos = get(hlabel(4),'Position');
+    px = gridmargin_bot_left(1) + (1-gridmargin_bot_left(1))/2 - renderpos(3)/2;
+    py = 0.016; %gridmargin_bot_left(2)/2 - renderpos(4)/2;
+    set(hlabel(4),'Position',[px py renderpos(3) renderpos(4)], ...
+                  'tag','tlabel');
+end
 
 % turn off rotate3D tool
 rotate3d off;

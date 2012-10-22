@@ -40,7 +40,7 @@ for m=1:length(connmethods)
             % zero out any connections with amplitude less than
             % stat threshold
             
-            Conn.(connmethods{m})(Conn.(connmethods{m}) < (Stat.(connmethods{m}).(ThreshMethod))) = 0;
+            Conn.(connmethods{m})( Conn.(connmethods{m}) < (Stat.(connmethods{m}).(ThreshMethod)) ) = 0;
             
         otherwise
             error('ThreshMethod must be ''pval'' or ''thresh''');
