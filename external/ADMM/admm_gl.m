@@ -1,4 +1,4 @@
-function [z, history] = admm_gl(varargin)  %A, b, lambda, p, rho, alpha, z_init, verb, max_iter
+function [z, history] = admm_gl(varargin)
 
 % group_lasso  Solve group lasso problem via ADMM
 %
@@ -25,20 +25,21 @@ function [z, history] = admm_gl(varargin)  %A, b, lambda, p, rho, alpha, z_init,
 %
 % More information can be found in the papers found in [1-2]
 %
-% Based on example code by Boyd et al [1-2].
-% Author: Tim Mullen, 2012, SCCN/INC/UCSD
+% 
+% Author: Based on example code by Boyd et al [1-2]. 
+%         Tim Mullen, 2012, SCCN/INC/UCSD
 %
 % References:
 % [1] http://www.stanford.edu/~boyd/papers/distr_opt_stat_learning_admm.html
 % [2] http://www.stanford.edu/~boyd/papers/admm/group_lasso/group_lasso_example.html
 
 g = arg_define(3,varargin, ...
-                arg_norep({'A','DesignMatrix'},mandatory,[],'The design matrix'), ...
+                arg_norep({'A','DesignMatrix'},mandatory,[],'The design matrix. This is the data matrix.'), ...
                 arg_norep({'b','TargetVector'},mandatory,[],'The target vector'), ...
                 arg_norep({'blks','Blocks'},mandatory,[],'Array containing the lengths of each block'), ...
                 arg({'lambda','RegularizationParam'},[],[0 Inf],'Regularization parameter (lambda)'), ...
                 arg({'rho','AugmentedLagrangianParam'},1.0,[0 Inf],'Initial value of augmented Lagrangian parameter (rho)'), ...
-                arg({'Alpha','OverRelaxationParam','alpha'},1.7,[0 Inf],'Over-relaxation parameter (alpha). Typical values are between 1.5 and 1.8'), ...
+                arg({'alpha','OverRelaxationParam','Alpha'},1.7,[0 Inf],'Over-relaxation parameter (alpha). Typical values are between 1.5 and 1.8'), ...
                 arg({'z_init','InitialState','initAR'},[],[],'Initial state vector','shape','matrix'), ...
                 arg({'verb','Verbosity'},false,[],'Verbose output'), ...
                 arg({'max_iter','MaxIterations'},1000,[],'Maximum number of iterations'), ...
@@ -50,7 +51,17 @@ g = arg_define(3,varargin, ...
                 arg({'lambda_update','LambdaUpdate'},false,[],'Update Lambda. Whether to decrease lambda (regularization) dynamically if convergence is slow.'), ...
                 arg({'lambda_update_thresh','LambdaUpdateThreshold'},10^-5,[],'Update lambda if the change in r_norm is less than this','type','denserealdouble'), ...
                 arg({'lambda_update_count','LambdaUpdateCount'},10,[],'Number of iterations before updating lambda. Update lambda if r_norm has not significantly changed after this many iterations.'), ...
-                arg({'lambda_update_factor','LambdaUpdateFactor'},10,[],'Update factor by which to divide lambda.') ...
+                arg({'lambda_update_factor','LambdaUpdateFactor'},10,[],'Update factor by which to divide lambda.'), ...
+                arg({'abstol','AbsoluteTolerance'},1e-4,[0 Inf],'Primal/Dual absolute tolerance'), ...
+                arg({'reltol','RelativeTolerance'},1e-2,[0 Inf],'Primal/Dual relative tolerance'), ...
+                arg_subswitch({'x_update','SolverMethod'},'direct',...
+                    {'direct' {}, ...
+                    'iterative' ...
+                        { ...
+                            arg({'max_iters','MaxIterations'},[],[],'Number of iterations. If unspecified, a suitable number is automatically determined by lsqr()'), ...
+                            arg({'tol','Tolerance'},1e-6,[],'Stopping tolerance. Iteration terminates when residual norm is smaller than this value. Default value is 1e-6. However, this can be relaxed substantially as described in section 4.3 of [1].'), ...
+                        }, ...
+                    },{'Method used to update parameters x.', sprintf('\n\nIf ''direct'' then a cholesky factorization of A (data/design matrix) is pre-cached and used to update x directly. This is usually a good choice, unless A is very large.\n\nIf ''iterative'', then x is updated using an iterative method (lsqr.m)')}) ...
                 );
                 
 arg_toworkspace(g);
@@ -60,10 +71,8 @@ if verb
     t_start = tic;
 end
 
-%% Global constants and defaults
-compute_objval = nargout > 1 || compute_objval;
-ABSTOL   = 1e-4;
-RELTOL   = 1e-2;
+%% defaults
+g.compute_objval = nargout > 1 || g.compute_objval;
 
 %% select lambda using heuristic
 % example based on [2]
@@ -127,8 +136,10 @@ history = struct(...
             'objval'  ,   nan(max_iter,1)  ...
             );
             
-% pre-factor
-[L U] = factor(A, rho);
+if strcmp(x_update.arg_selection,'direct')
+    % pre-factor
+    [L U] = factor(A, rho);
+end
 
 if verb
     fprintf('%3s\t%10s\t%10s\t%10s\t%10s\t%10s\n', 'iter', ...
@@ -139,18 +150,25 @@ lambda_counter = 0;
 
 for k = 1:max_iter
 
-    % x-update
-    q = Atb + rho*(z - u);    % temporary value
-    if( m >= n )    % if skinny
-       x = U \ (L \ q);
-    else            % if fat
-       x = q/rho - (A'*(U \ ( L \ (A*q) )))/rho^2;
+    if strcmp(x_update.arg_selection,'direct')
+        % x-update using direct method
+        q = Atb + rho*(z - u);    % temporary value
+        if( m >= n )    % if skinny
+           x = U \ (L \ q);
+        else            % if fat
+           x = q/rho - (A'*(U \ ( L \ (A*q) )))/rho^2;
+        end
+    else
+        % x-update using iterative method
+        % this uses Matlab's lsqr(); uses previous x to warm start
+        [x, flag, relres, iters] = lsqr([A; sqrt(rho)*speye(n)], ...
+            [b; sqrt(rho)*(z-u)],x_update.tol,x_update.max_iters,[],[],x);
     end
 
     % z-update
     zold = z;
     start_ind = 1;
-    x_hat = Alpha*x + (1-Alpha)*zold;
+    x_hat = alpha*x + (1-alpha)*zold;
     for i = 1:length(blks),
         sel = start_ind:cum_part(i);
         z(sel) = shrinkage(x_hat(sel) + u(sel), lambda/rho);
@@ -158,13 +176,16 @@ for k = 1:max_iter
     end
           
     % diagnostics, reporting, termination checks
+    if strcmp(x_update.arg_selection,'iterative')
+        history.lsqr_iters = iters;
+    end
     history.r_norm(k)  = norm(x - z);
     history.s_norm(k)  = norm(-rho*(z - zold));
     
-    history.eps_pri(k) = sqrt(n)*ABSTOL + RELTOL*max(norm(x), norm(-z));
-    history.eps_dual(k)= sqrt(n)*ABSTOL + RELTOL*norm(rho*u);
+    history.eps_pri(k) = sqrt(n)*g.abstol + g.reltol*max(norm(x), norm(-z));
+    history.eps_dual(k)= sqrt(n)*g.abstol + g.reltol*norm(rho*u);
 
-    if compute_objval
+    if g.compute_objval
         history.objval(k)  = objective(A, b, lambda, cum_part, x, z);
     end
     
@@ -181,14 +202,25 @@ for k = 1:max_iter
 
     % update rho              
     if rho_update
+        refactor = false;
         if history.r_norm(k) > rho_cutoff * history.s_norm(k)
-            if verb, disp('  incrementing rho.'); end
             rho = rho .* rho_incr;
-%             u = u ./ rho_incr;
+            u   = u ./ rho_incr;
+            refactor = true;
+            if verb, fprintf('  incrementing rho to %5.5g.\n',rho); end
         elseif history.s_norm(k) > rho_cutoff * history.r_norm(k)
-            if verb, disp('  decrementing rho.'); end
             rho = rho ./ rho_incr;
-%             u = u .* rho_incr;
+            u   = u .* rho_incr;
+            refactor = true;
+            if verb, fprintf('  decrementing rho to %5.5g.\n',rho); end
+        end
+        
+        % update cholesky factorization using new rho
+        if refactor && strcmp(x_update.arg_selection,'direct')
+            if verb, fprintf('  refactoring A...'); end
+            % pre-factor
+            [L U] = factor(A, rho);
+            if verb, fprintf('  done.'); end
         end
     end
     
@@ -220,6 +252,7 @@ end
 
 end
 
+%% objective function
 function p = objective(A, b, lambda, cum_part, x, z)
     obj = 0;
     start_ind = 1;
@@ -231,10 +264,12 @@ function p = objective(A, b, lambda, cum_part, x, z)
     p = ( 1/2*sum((A*x - b).^2) + lambda*obj );
 end
 
+%% shrinkage function
 function z = shrinkage(x, kappa)
-    z = pos(1 - kappa/norm(x))*x;  % note: need function pos()
+    z = pos(1 - kappa/norm(x))*x;
 end
 
+%% cholesky factorization
 function [L U] = factor(A, rho)
     [m, n] = size(A);
     if ( m >= n )    % if skinny
@@ -248,6 +283,7 @@ function [L U] = factor(A, rho)
     U = sparse(L');
 end
 
+%% pos helper
 function q = pos(x)
     q = max(x,0);
 end

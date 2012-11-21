@@ -3,5 +3,5 @@
 % Copyright(c) 2009-2011 Ryota Tomioka
 % This software is distributed under the MIT license. See license.txt
 function V=vec(M)
-sz=size(M);
-V=reshape(M, [prod(sz), 1]);
+% V=reshape(M, [numel(M), 1]);
+V = M(:);
