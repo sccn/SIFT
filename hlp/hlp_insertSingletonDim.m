@@ -3,5 +3,5 @@ function X = hlp_insertSingletonDim(X,dim)
 % author: Tim Mullen, 2011
 
     nd = ndims(X);
-    X = permute(X,[1:dim-1 nd+1 dim:nd]);
+    X = permute(X,unique([1:dim-1 nd+1 dim:nd]));
     

@@ -47,12 +47,9 @@ function [AR PE lambdaOpt] = mvar_ridge(varargin)
 %   data:       the data (nchs x npnts)
 %   p:          the model order
 %   lambda:     regularization coefficient
-%   scaled:     if 1 then scale coefficients to scale of original data
 % OUTPUTS:
 %   AR:         [nchs x nchs*p] VAR coefficient matrix
 %   PE:         [nchs x nchs] estimated noise covariance matrix
-%
-% Requires: Matlab Statistics Toolbox
 %
 % See Also: est_fitMVAR(), mvar_dalSCSA(), est_fitMVARKalman()
 %

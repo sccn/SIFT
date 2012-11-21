@@ -1,4 +1,4 @@
-function [Stats g] = stat_analyticStats(varargin)
+function [Stats PConn g] = stat_analyticStats(varargin)
 %
 % Compute analytic alpha-significance thresholds, p-values, and confidence
 % intervals for select connectivity estimators (RPDC, nPDC, nDTF, DTF)
@@ -86,7 +86,8 @@ function [Stats g] = stat_analyticStats(varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA     
 
-
+% initialization
+PConn = [];
 
 % extract some stuff from inputs for arg defaults
 EEG = arg_extract(varargin,{'EEG','ALLEEG'},1);
@@ -115,15 +116,17 @@ clear EEG Conn;
 g = arg_define([0 Inf],varargin, ...
     arg_norep({'EEG','ALLEEG'},mandatory,[],'EEG structure.'), ...
     arg({'estimator','Estimator'},conndef,ConnNames,'Estimator for which to compute stats.','type','logical'), ...
-    arg({'statistic','Statistic'},{'P-value','Threshold','ConfidenceInterval'},{'P-value','Threshold','ConfidenceInterval'},'Statistical quantities to return.','type','logical'), ...
-    arg({'alpha','Alpha'},0.05,[0 1],'Significance level. This is used for significance thresholds (single-sided) and confidence intervals (two-sided). For example, a value of alpha=0.05 will produce p < alpha=0.05 p-value thresholds and (1-alpha)*100 = 95% confidence intervals.'), ...
+    arg({'statistic','Statistic'},{'P-value','Threshold','ConfidenceInterval'},{'P-value','Threshold','ConfidenceInterval'},'Statistical quantities to return.','type','logical','cat','Statistic'), ...
+    arg({'alpha','Alpha'},0.05,[0 1],'Significance level. This is used for significance thresholds (single-sided) and confidence intervals (two-sided). For example, a value of alpha=0.05 will produce p < alpha=0.05 p-value thresholds and (1-alpha)*100 = 95% confidence intervals.','cat','Statistic'), ...
+    arg_subtoggle({'genpdf','ComputePDF'},[],...
+        {arg({'numSamples','NumSamples'},250,[10 10000],'Number of samples from distribution')} ...
+    ,'Generate samples from analytic PDF. This can be treated as a surrogate distribution for statistical comparisons','cat','Statistic'), ...
     arg({'verb','VerbosityLevel'},1,{int32(0) int32(1)},'Verbosity level. I.E., 0 = no command-line output, 1 = verbose output') ...
     );
 
 if isempty(g.estimator), error('You must supply an estimator!'); end
 try b=isempty(g.EEG.CAT.Conn); catch, b=1; end
 if b, error('EEG must contain a CAT.Conn structure!'); end
-
 
 for m=1:length(g.estimator)
     estimator = g.estimator{m};
@@ -150,6 +153,25 @@ for m=1:length(g.estimator)
             if ismember('ConfidenceInterval',g.statistic)
                 Stats.RPDC.ci(1,:,:,:,:) = ncx2inv(g.alpha/2,df,g.EEG.CAT.Conn.RPDC*N)/N;    % lower bound
                 Stats.RPDC.ci(2,:,:,:,:) = ncx2inv(1-g.alpha/2,df,g.EEG.CAT.Conn.RPDC*N)/N;  % upper bound
+            end
+            
+            if g.genpdf.arg_selection && nargout > 1
+               
+                % check if we are likely to exceed available memory and
+                % notify user.
+                bytesAvail = hlp_getAvailableMemory('bytes');
+                bytesReq   = 4*(2*numel(g.EEG.CAT.Conn.RPDC)*g.genpdf.numSamples);
+                
+                if bytesReq > bytesAvail
+                    res = questdlg2(sprintf('This operation will require at least %5.5g MiB. It appears you may not have sufficient memory to carry out this operation. Do you want to continue?',bytesReq/(1024^2)),'Memory check','Yes','No','No');
+                    if strcmpi(res,'no')
+                        return;
+                    end
+                end
+
+                % generate data from analytic PDF
+                nd = ndims(g.EEG.CAT.Conn.RPDC);
+                PConn.RPDC = ncx2rnd(df,repmat(g.EEG.CAT.Conn.RPDC*N,[ones(1,nd) g.genpdf.numSamples]))/N;
             end
             
         case 'nPDC'
@@ -262,3 +284,30 @@ for m=1:length(g.estimator)
     Stats.alpha = g.alpha;
 end
 
+% construct PConn object
+if ~isempty(PConn) || nargout > 2
+    PConn.winCenterTimes    = g.EEG.CAT.Conn.winCenterTimes;
+    PConn.erWinCenterTimes  = g.EEG.CAT.Conn.erWinCenterTimes;
+    PConn.freqs             = g.EEG.CAT.Conn.freqs;
+    PConn.mode              = 'analytic';
+    PConn.resampleTrialIdx  = [];
+    connfields = hlp_getConnMethodNames(PConn);
+    for m=1:length(connfields)
+%         % check dimensions
+%         szp = size(PConn.(connfields{m}));
+%         szs = size(g.EEG.CAT.Conn.(connfields{m}));
+%         [dummy dimidx] = setdiff(szp(1:end-1),szs);
+%         if ~isempty(dimidx)
+%             % a singleton dimension was squeezed out, restore it
+%             PConn.(connfields{m}) = hlp_insertSingletonDim(PConn.(connfields{m}),dimidx+1);
+%         end
+
+        % insert singleton dimensions if necessary
+        if length(PConn.winCenterTimes)==1
+            PConn.(connfields{m}) = hlp_insertSingletonDim(PConn.(connfields{m}),4);
+        end
+        if length(PConn.freqs)==1
+            PConn.(connfields{m}) = hlp_insertSingletonDim(PConn.(connfields{m}),3);
+        end
+    end
+end

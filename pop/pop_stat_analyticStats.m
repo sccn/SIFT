@@ -97,7 +97,12 @@ end
 
 % execute the low-level function
 for cnd=1:length(ALLEEG)
-    [ALLEEG(cnd).CAT.Stats] = feval(fcnHandle,'EEG',ALLEEG(cnd),cfg);
+    [ALLEEG(cnd).CAT.Stats PConn] = feval(fcnHandle,'EEG',ALLEEG(cnd),cfg);
+    
+    if ~isempty(PConn)
+        % save the analytic PDFs as well
+        ALLEEG(cnd).CAT.PConn = PConn;
+    end
     
     if ~isempty(cfg)
         % store the configuration structure

@@ -328,7 +328,7 @@ for m=1:length(g.connmethods)
     
     % check pval
     if isfield(Stats.(g.connmethods{m}),'pval')
-        szp = size(g.PConn.(g.connmethods{m}));
+        szp = size(g.PConn(1).(g.connmethods{m}));
         szs = size(Stats.(g.connmethods{m}).pval);
         [dummy dimidx] = setdiff(szp(1:end-1),szs);
         if ~isempty(dimidx)
@@ -339,7 +339,7 @@ for m=1:length(g.connmethods)
     
     % check ci
     if isfield(Stats.(g.connmethods{m}),'ci')
-        szp = size(g.PConn.(g.connmethods{m}));
+        szp = size(g.PConn(1).(g.connmethods{m}));
         szs = size(Stats.(g.connmethods{m}).ci);
         [dummy dimidx] = setdiff(szp(1:end-1),szs(2:end));
         if ~isempty(dimidx)
@@ -350,7 +350,7 @@ for m=1:length(g.connmethods)
     
     % check thresh
     if isfield(Stats.(g.connmethods{m}),'thresh')
-        szp = size(g.PConn.(g.connmethods{m}));
+        szp = size(g.PConn(1).(g.connmethods{m}));
         szs = size(Stats.(g.connmethods{m}).thresh);
         [dummy dimidx] = setdiff(szp(1:end-1),szs);
         if ~isempty(dimidx)

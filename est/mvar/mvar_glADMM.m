@@ -199,6 +199,7 @@ blks = [p*ones(1,nchs*(nchs-1)),p*nchs];
 % Apply the ADMM method for group lasso estimation:
 % group penalize AR coefficients with different time-lags
 % between sources (nchs*(nchs-1) groups of size p). 
+keyboard;
 [initAR] = admm_gl(X, Y, blks, g.admm_args,'InitialState',initAR);  %,'InitialState',initAR
 
 % assemble coefficient matrices

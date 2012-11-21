@@ -143,6 +143,14 @@ if g.verb
     fprintf('-------------------------------------------------------------------------\n');
 end
 
+% check if we are likely to exceed memory capacity and notify user
+bytesAvail = hlp_getAvailableMemory('bytes');
+if bytesReq > bytesAvail
+    res = questdlg2('It appears you may not have sufficient memory to carry out this operation. Do you want to continue?','est_mvarConnectivity: Memory check','Yes','No','No');
+    if strcmpi(res,'no')
+        return;
+    end
+end
 
 if g.verb==2
     % create waitbar

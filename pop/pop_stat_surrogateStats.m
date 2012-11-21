@@ -62,47 +62,48 @@ if ~isempty(res)
     error(['SIFT:' fcnName],res{1});
 end
 
-if isfield(ALLEEG(1).CAT.configs,fcnName)
-    % get default configuration (from prior use) and merge with varargin
-    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
-end
-
-if strcmpi(typeproc,'nogui')
-    % get the config from function
-    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG(1)},varargin]),false);
-else
-    % render the GUI
-    [PGh figh] = feval(['gui_' fcnName],ALLEEG(1),varargin{:});
-    
-    if isempty(PGh)
-        % user chose to cancel
-        cfg = [];
-        return;
-    end
-    
-    % get the specification of the PropertyGrid
-    ps = PGh.GetPropertySpecification;
-    cfg = arg_tovals(ps,false);
-end
-
-drawnow;
-
-if strcmpi(typeproc,'cfg_only')
-    return;
-end
-
-% execute the low-level function
-for cnd=1:length(ALLEEG)
-    [ALLEEG(cnd).CAT.Stats] = feval(fcnHandle,'EEG',ALLEEG(cnd),cfg);
-    
-    if ~isempty(cfg)
-        % store the configuration structure
-        ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
-    end
-end
-
-
-
+% if isfield(ALLEEG(1).CAT.configs,fcnName)
+%     % get default configuration (from prior use) and merge with varargin
+%     varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
+% end
+% 
+% % construct pointer to the PConn array
+% CAT   = [ALLEEG.CAT];
+% PConn = [CAT.PConn];
+% 
+% if strcmpi(typeproc,'nogui')
+%     % get the config from function
+%     cfg = arg_tovals(arg_report('rich',fcnHandle,[{'PConn',PConn},varargin]),false);
+% else
+%     % render the GUI
+%     [PGh figh] = feval(['gui_' fcnName],PConn,varargin{:});
+%     
+%     if isempty(PGh)
+%         % user chose to cancel
+%         cfg = [];
+%         return;
+%     end
+%     
+%     % get the specification of the PropertyGrid
+%     ps = PGh.GetPropertySpecification;
+%     cfg = arg_tovals(ps,false);
+% end
+% 
+% drawnow;
+% 
+% if strcmpi(typeproc,'cfg_only')
+%     return;
+% end
+% 
+% % execute the low-level function
+% for cnd=1:length(ALLEEG)
+%     [ALLEEG(cnd).CAT.Stats] = feval(fcnHandle,'EEG',ALLEEG(cnd),cfg);
+%     
+%     if ~isempty(cfg)
+%         % store the configuration structure
+%         ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
+%     end
+% end
 
 
 
