@@ -283,7 +283,8 @@ end
 %% reconstruct times vector, if needed
 % this will create EEG.pnts linearly spaced between EEG.xmin and EEG.xmax
 % timepoints are converted to ms
-if isempty(EEG.times)
+if length(EEG.times) ~= EEG.pnts
+    fprintf('The length of EEG.times appears to be inconsistent with the number of time points (EEG.pnts). I will reconstruct the times vector using linear increments from EEG.xmin to EEG.xmax, converted to ms...\n');
     EEG.times = linspace(EEG.xmin*1000,EEG.xmax*1000,EEG.pnts); % ms
 end
 
