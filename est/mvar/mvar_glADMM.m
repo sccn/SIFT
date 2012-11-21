@@ -114,7 +114,12 @@ persistent initAR;
 g = arg_define([0 1],varargin, ...
                 arg_norep({'data','Data'},mandatory,[],'Data Matrix. Dimensions are [nchs x npnts].'), ...
                 arg({'morder','ModelOrder'},10,[],'VAR Model order'), ...
-                arg_nogui({'AR0','InitialState'},[],[],'Initial VAR coefficient matrix','shape','matrix','type','expression'), ...
+                arg_subtoggle({'warmStart','WarmStart'},[], ...
+                {...
+                    arg({'initState','InitialState'},[],[],'Initial ADMM state vector. The dimension is [morder*(nchs^2) x 1]. If empty, the first state is initialized to zeros.') ...
+                },'Warm start. The previously estimated state will be used as a starting estimate for successive operations. Alternately, you may provide an non-empty initial state structure via the ''InitialState'' argument.'), ...
+                arg({'normcols','NormCols'},'none',{'none','norm','zscore'},'Normalize columns of dictionary'), ...
+                arg_norep({'AR0','InitialState'},[],[],'DEPRECATED. Initial VAR coefficient matrix','shape','matrix','type','expression'), ...
                 arg_sub({'admm_args','ADMM_Options'},[],@admm_gl,'Options for ADMM algorithm') ...
                 );
                 
@@ -124,18 +129,22 @@ g = arg_define([0 1],varargin, ...
 p = g.morder;
 
 % initialize state
-if ~isempty(g.AR0)
-    initAR = g.AR0;
-elseif isempty(initAR)
+if g.warmStart.arg_selection && ~isempty(g.warmStart.initState)
+    initAR = g.warmStart.initState;
+elseif ~g.warmStart.arg_selection
+    % reset initAR
     initAR = zeros(p*nchs^2,1);
 end
 if size(initAR,1) ~= p*nchs^2
     % dimensions have changed, reset state
-%     if g.verb
-        fprintf('mvar_glADMM: model dimensions changed -- resetting state\n');
-%     end
+    fprintf('mvar_glADMM: model dimensions changed -- resetting state\n');
     initAR = zeros(p*nchs^2,1);
 end
+
+% Indices for the diagonal elements (self connection)
+diagIdx = vec(repmat((1:p*(nchs+1):p*nchs^2), p, 1) + repmat((0:(p-1))', 1, nchs))';
+% Indices for the off-diagonal elements (connection to others)
+offDiagIdx = setdiff(1:p*nchs^2, diagIdx);
 
 % Reshape the design matrix into VAR[1]
 X = [];
@@ -149,13 +158,21 @@ for itr = 1:ntr
     Y = cat(1,Y,g.data(:, p+1:end,itr)');
 end
 
-% Indices for the diagonal elements (self connection)
-diagIdx = vec(repmat((1:p*(nchs+1):p*nchs^2), p, 1) + repmat((0:(p-1))', 1, nchs))';
-% Indices for the off-diagonal elements (connection to others)
-offDiagIdx = setdiff(1:p*nchs^2, diagIdx);
-
 % target vector
 Y = vec(Y);
+
+% normalization
+switch lower(g.normcols)
+    case 'zscore'
+        % standardize columns of X (unit variance)
+        X = zscore(X,1,1);
+        Y = zscore(Y);
+    case 'norm'
+        % normalize columns of X (unit norm)
+        X     = bsxfun(@rdivide,X,sqrt(sum(X.^2)));
+        Y     = Y./norm(Y);
+end
+
 % predictor design matrix
 X = blkdiageye(sparse(X),nchs);
 X = [X(:, offDiagIdx) X(:, diagIdx)];
