@@ -203,11 +203,12 @@ end
 
 if g.normalize.arg_selection
     % normalize each window separately
-    if g.verb, fprintf('Normalizing each window across %s...\n',g.normalize.method{:}); end
+    if g.verb, fprintf('Normalizing each window across %s...',g.normalize.method{:}); end
     for t=1:numWins
         winpnts = g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1;
         EEG.CAT.srcdata(:,winpnts,:) = pre_normData(EEG.CAT.srcdata(:,winpnts,:),'Method',g.normalize.method,'verb',0);
     end
+    if g.verb, fprintf('done.\n'); end
 end
 
 if g.detrend.arg_selection
@@ -217,6 +218,7 @@ if g.detrend.arg_selection
         EEG.CAT.srcdata(ch,:,:) = locdetrend_siftmod(squeeze(EEG.CAT.srcdata(ch,:,:)), ...
             EEG.srate,[g.winlen g.winstep],g.detrend.method);
     end
+    if g.verb, fprintf('done.\n'); end
 end
 
 if g.timer
