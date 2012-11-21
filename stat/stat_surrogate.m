@@ -397,14 +397,28 @@ for m=1:length(connfields)
     sz = size(PConn.(connfields{m}));
     % put permutations in last dimension
     PConn.(connfields{m}) = permute(PConn.(connfields{m}),circshift((1:length(sz))',-1));
+    
+%     % check dimensions
+%     szp = size(PConn.(connfields{m}));
+%     szs = size(EEG.CAT.Conn.(connfields{m}));
+%     [dummy dimidx] = setdiff(szp(1:end-1),szs);
+%     if ~isempty(dimidx)
+%         % a singleton dimension was squeezed out, restore it
+%         PConn.(connfields{m}) = hlp_insertSingletonDim(PConn.(connfields{m}),dimidx+1);
+%     end
+    
     % insert singleton dimensions if necessary
     if length(PConn.winCenterTimes)==1
-        PConn.(connfields{m}) = hlp_insertSingletonDim(PConn.(connfields{m}),3);
-    end
-    if length(PConn.freqs)==1
         PConn.(connfields{m}) = hlp_insertSingletonDim(PConn.(connfields{m}),4);
     end
+    if length(PConn.freqs)==1
+        PConn.(connfields{m}) = hlp_insertSingletonDim(PConn.(connfields{m}),3);
+    end
 end
+
+    
+    
+    
 
 % clean up
 if verb==1

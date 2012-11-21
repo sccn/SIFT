@@ -97,7 +97,7 @@ if ~any(mode==(0:8))
 end;
 
 
-[LEN, M, NTR] = size(y)  % signal length, number of channels, number of trials
+[LEN, M, NTR] = size(y);  % signal length, number of channels, number of trials
 L = M*M*p;
 
 if LEN<(p+1),

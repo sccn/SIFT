@@ -26,7 +26,7 @@ function [z, history] = admm_gl(varargin)  %A, b, lambda, p, rho, alpha, z_init,
 % More information can be found in the papers found in [1-2]
 %
 % Based on example code by Boyd et al [1-2].
-% Modified by: Tim Mullen, 2012, SCCN/INC/UCSD
+% Author: Tim Mullen, 2012, SCCN/INC/UCSD
 %
 % References:
 % [1] http://www.stanford.edu/~boyd/papers/distr_opt_stat_learning_admm.html
