@@ -88,6 +88,7 @@ zs = zeros(m,N);
 Aixi = zeros(m,N);
 
 % extract blocks for fast parallel computation
+Ai = cell(1,N);
 for i=1:N
     Ai{i} = A(:,(i-1)*blks+1:i*blks);
 end
@@ -97,10 +98,21 @@ if verb
       'r norm', 'eps pri', 's norm', 'eps dual', 'objective');
 end
 
+history = struct(...
+            'r_norm'  ,   nan(max_iter,1), ...
+            's_norm'  ,   nan(max_iter,1), ...
+            'eps_pri' ,   nan(max_iter,1), ...
+            'eps_dual',   nan(max_iter,1), ...
+            'objval'  ,   nan(max_iter,1), ...
+            'xup_iter',   nan(max_iter,1)  ...
+            );
+        
 %% ADMM solver
+lambda_counter = 0;
 
-% pre-factor
-parfor i = 1:N,
+% pre-factor (in parallel)
+[V D] = deal(cell(1,N));
+parfor i = 1:N
     [Vi,Di] = eig(Ai{i}'*Ai{i});
     V{i} = Vi;
     D{i} = diag(Di);
@@ -111,6 +123,7 @@ parfor i = 1:N,
 end   
 
 for k = 1:max_iter
+    
     % x-update (to be done in parallel)
     LAMBDA = lambda;
     RHO    = rho;
@@ -146,7 +159,9 @@ for k = 1:max_iter
     end
 
     % diagnostics, reporting, termination checks
-    history.objval(k)  = objective(A, b, lambda, N, x, z);
+    if g.compute_objval
+        history.objval(k)  = objective(A, b, lambda, N, x, z);
+    end
     history.r_norm(k)  = sqrt(N)*norm(z - Axbar);
     history.s_norm(k)  = sqrt(s);
     
@@ -193,6 +208,12 @@ for k = 1:max_iter
         end
     end
     
+    if verb && mod(k,15)
+    	fprintf('\n%3s\t%10s\t%10s\t%10s\t%10s\t%10s\n\n',  ...
+                'iter', 'r norm', 'eps pri', 's norm',      ...
+                'eps dual', 'objective');
+    end
+    
 end % loop over k=1:max_iter
 
 if k>=max_iter && verb
@@ -212,7 +233,7 @@ function p = objective(A, b, lambda, N, x, z)
 end
 
 %% x-update function
-function x = x_update(A, At, b, kappa, V, D, niter, tol)
+function [x i] = x_update(A, At, b, kappa, V, D, niter, tol)
     [m,n] = size(A);
 
     q = At*b;
