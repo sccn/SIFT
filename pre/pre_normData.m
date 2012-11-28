@@ -79,11 +79,11 @@ for k=1:length(g.method)
             % divide by ensemble stdev
             if ntr==1
                 if g.verb, fprintf('Multiple trials not available, ignoring ensemble normalization\n'); end
-                return;
+            else
+                if g.verb, fprintf('Normalizing data across ensemble...\n'); end
+                normdata = bsxfun(@minus,data,mean(data,3));
+                normdata = bsxfun(@rdivide,normdata,std(data,0,3));
             end
-            if g.verb, fprintf('Normalizing data across ensemble...\n'); end
-            normdata = bsxfun(@minus,data,mean(data,3));
-            normdata = bsxfun(@rdivide,normdata,std(data,0,3));
         case 'time'
             % pointwise subtract trial mean
             % divide by trial stdev

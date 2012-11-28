@@ -76,11 +76,11 @@ g.compute_objval = nargout > 1 || g.compute_objval;
 
 %% select lambda using heuristic
 % example based on [2]
-if isempty(lambda)
+if isempty(g.lambda)
 
     nblks = length(blks);
     
-    if g.verb, fprintf('Using heuristic lambda selection...'); end
+    if g.verb, fprintf('Using heuristic g.lambda selection...'); end
         
     cum_part = cumsum(blks(1:nblks-1));
     
@@ -99,9 +99,9 @@ if isempty(lambda)
 
     % regularization parameter as fraction of 
     % maximum group regularization parameter
-    lambda = 0.1*lambda_max;
+    g.lambda = 0.1*lambda_max;
     
-    if g.verb, fprintf('...lambda set to %0.10g\n',lambda); end
+    if g.verb, fprintf('...g.lambda set to %0.10g\n',g.lambda); end
 end
 
 %% Data preprocessing
@@ -139,7 +139,7 @@ history = struct(...
             
 if strcmp(x_update.arg_selection,'direct')
     % pre-factor
-    [L U] = factor(A, rho);
+    [L U] = factor(A, g.rho);
 end
 
 if verb
@@ -153,26 +153,26 @@ for k = 1:max_iter
 
     if strcmp(x_update.arg_selection,'direct')
         % x-update using direct method
-        q = Atb + rho*(z - u);    % temporary value
+        q = Atb + g.rho*(z - u);    % temporary value
         if( m >= n )    % if skinny
            x = U \ (L \ q);
         else            % if fat
-           x = q/rho - (A'*(U \ ( L \ (A*q) )))/rho^2;
+           x = q/g.rho - (A'*(U \ ( L \ (A*q) )))/g.rho^2;
         end
     else
         % x-update using iterative method
         % this uses Matlab's lsqr(); uses previous x to warm start
-        [x, flag, relres, iters] = lsqr([A; sqrt(rho)*speye(n)], ...
-            [b; sqrt(rho)*(z-u)],x_update.tol,x_update.max_iters,[],[],x);
+        [x, flag, relres, iters] = lsqr([A; sqrt(g.rho)*speye(n)], ...
+            [b; sqrt(g.rho)*(z-u)],x_update.tol,x_update.max_iters,[],[],x);
     end
 
     % z-update
     zold = z;
     start_ind = 1;
-    x_hat = alpha*x + (1-alpha)*zold;
+    x_hat = g.alpha*x + (1-g.alpha)*zold;
     for i = 1:length(blks),
         sel = start_ind:cum_part(i);
-        z(sel) = shrinkage(x_hat(sel) + u(sel), lambda/rho);
+        z(sel) = shrinkage(x_hat(sel) + u(sel), g.lambda/g.rho);
         start_ind = cum_part(i) + 1;
     end
           
@@ -181,13 +181,13 @@ for k = 1:max_iter
         history.lsqr_iters(k) = iters;
     end
     history.r_norm(k)  = norm(x - z);
-    history.s_norm(k)  = norm(-rho*(z - zold));
+    history.s_norm(k)  = norm(-g.rho*(z - zold));
     
     history.eps_pri(k) = sqrt(n)*g.abstol + g.reltol*max(norm(x), norm(-z));
-    history.eps_dual(k)= sqrt(n)*g.abstol + g.reltol*norm(rho*u);
+    history.eps_dual(k)= sqrt(n)*g.abstol + g.reltol*norm(g.rho*u);
 
     if g.compute_objval
-        history.objval(k)  = objective(A, b, lambda, cum_part, x, z);
+        history.objval(k)  = objective(A, b, g.lambda, cum_part, x, z);
     end
     
     if verb
@@ -202,27 +202,27 @@ for k = 1:max_iter
          break;
     end
 
-    % update rho              
+    % update g.rho              
     if rho_update
         refactor = false;
         if history.r_norm(k) > rho_cutoff * history.s_norm(k)
-            rho = rho .* rho_incr;
+            g.rho = g.rho .* rho_incr;
             u   = u ./ rho_incr;
             refactor = true;
-            if verb, fprintf('  incrementing rho to %5.5g.\n',rho); end
+            if verb, fprintf('  incrementing g.rho to %5.5g.\n',g.rho); end
         elseif history.s_norm(k) > rho_cutoff * history.r_norm(k)
-            rho = rho ./ rho_incr;
+            g.rho = g.rho ./ rho_incr;
             u   = u .* rho_incr;
             refactor = true;
-            if verb, fprintf('  decrementing rho to %5.5g.\n',rho); end
+            if verb, fprintf('  decrementing g.rho to %5.5g.\n',g.rho); end
         end
         
-        % update cholesky factorization using new rho
+        % update cholesky factorization using new g.rho
         if refactor && strcmp(x_update.arg_selection,'direct')
             if verb, fprintf('  refactoring A...'); end
             % pre-factor
-            [L U] = factor(A, rho);
-            if verb, fprintf('  done.'); end
+            [L U] = factor(A, g.rho);
+            if verb, fprintf('  done.\n'); end
         end
     end
     
@@ -234,15 +234,15 @@ for k = 1:max_iter
             lambda_counter = lambda_counter + 1;
             
             if lambda_counter > lambda_update_count
-                lambda = lambda/lambda_update_factor;
+                g.lambda = g.lambda/lambda_update_factor;
                 lambda_counter = 0;
-                if verb, fprintf('   relaxing lambda to %0.7g.\n',lambda); end
+                if verb, fprintf('   relaxing g.lambda to %0.7g.\n',g.lambda); end
             end
             
         end
     end
     
-    if verb && mod(k,15)
+    if verb && ~mod(k,15)
     	fprintf('\n%3s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n\n',   ...
                 'iter', 'r norm', 'eps pri', 's norm', 'eps dual', ...
                 'objective', 'lsqr iters');

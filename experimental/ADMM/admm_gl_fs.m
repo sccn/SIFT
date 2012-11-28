@@ -208,7 +208,7 @@ for k = 1:max_iter
         end
     end
     
-    if verb && mod(k,15)
+    if verb && ~mod(k,15)
     	fprintf('\n%3s\t%10s\t%10s\t%10s\t%10s\t%10s\n\n',  ...
                 'iter', 'r norm', 'eps pri', 's norm',      ...
                 'eps dual', 'objective');
