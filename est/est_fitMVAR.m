@@ -290,10 +290,10 @@ switch lower(g.algorithm.arg_selection)
     case 'group lasso dal/scsa'
         %     MODEL.ww = ww;
         MODEL.lambda = g.algorithm.dal_args.lambda;
-    case 'group lasso admm'
+    case 'group lasso (admm)'
         MODEL.lambda = g.algorithm.admm_args.lambda;
         MODEL.rho    = g.algorithm.admm_args.rho;
-        MODEL.Alpha  = g.algorithm.admm_args.Alpha;
+        MODEL.alpha  = g.algorithm.admm_args.alpha;
 end
 
 MODEL.AR = AR;

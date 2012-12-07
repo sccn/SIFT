@@ -119,6 +119,7 @@ g = arg_define([0 1],varargin, ...
                     arg({'initState','InitialState'},[],[],'Initial ADMM state vector. The dimension is [morder*(nchs^2) x 1]. If empty, the first state is initialized to zeros.') ...
                 },'Warm start. The previously estimated state will be used as a starting estimate for successive operations. Alternately, you may provide an non-empty initial state structure via the ''InitialState'' argument.'), ...
                 arg({'normcols','NormCols'},'none',{'none','norm','zscore'},'Normalize columns of dictionary'), ...
+                arg({'groupDiags','GroupAutoConnections','GroupDiags'},false,[],'Group auto-connections. All auto-connections for all channels will be penalized jointly as a separate group.'), ...
                 arg_norep({'AR0','InitialState'},[],[],'DEPRECATED. Initial VAR coefficient matrix','shape','matrix','type','expression'), ...
                 arg_sub({'admm_args','ADMM_Options'},[],@admm_gl,'Options for ADMM algorithm') ...
                 );
@@ -146,17 +147,58 @@ diagIdx = vec(repmat((1:p*(nchs+1):p*nchs^2), p, 1) + repmat((0:(p-1))', 1, nchs
 % Indices for the off-diagonal elements (connection to others)
 offDiagIdx = setdiff(1:p*nchs^2, diagIdx);
 
-% Reshape the design matrix into VAR[1]
-X = [];
-Y = [];
+% Reshape the design matrix into VAR[1] format
+%
+% X will be of size [ntr*(npnts-p) x nchs*p]
+% Y will be of size [ntr*(npnts-p) x nchs]
+%
+% X consists of ntr vertically stacked Toeplitz matrices.
+% Suppose ntr==1, M=nchs. Then X consists of M blocks [X1,...,XM]
+% where Xi is a matrix of size [npnts-p x p] containing 
+% the (1...p) order delay embedding of the data for channel i.
+% That is, Xi(:,k) is the data vector for channel i delayed by p+1-k 
+% samples (smaller k => more delay)
+%
+% Note that Y = X0.
+blocklen   = npnts-p;
+blockwidth = p*nchs;
+X = zeros(blocklen,blockwidth,ntr);
+Y = zeros(blocklen,nchs,ntr);
 for itr = 1:ntr
-    Xi = [];
+    % initialize delay-embedding blocks
+    Xi = zeros(blocklen,nchs,p);
     for jj = 1:p
-        Xi = cat(3, Xi, squeeze(g.data(:, p+1-jj:end-jj, itr))');
+        Xi(:,:,jj) = squeeze(g.data(:, p+1-jj:end-jj, itr))';
     end
-    X = cat(1, X, reshape(permute(Xi, [1 3 2]), npnts-p, nchs*p));
-    Y = cat(1,Y,g.data(:, p+1:end,itr)');
+    % permute to [npnts x p x nchs] so each page is a 
+    % delay-embedding block for a given channel...
+    Xi = permute(Xi, [1 3 2]); 
+    % ... and concatenate blocks horizontally to form 2D design mat
+    % for this trial X(:,:,itr) = [X1 X2 ... XM]
+    X(:,:,itr) = reshape(Xi, blocklen, blockwidth);
+    
+    % extract 0-lag data matrix for this trial...
+    Y(:,:,itr) = g.data(:, p+1:end,itr)';
 end
+clear Xi;
+% reshape X and Y to stack trials vertically and form final 2D matrix
+X = permute(X,[1 3 2]);  % [npnts x trials x nchs]
+Y = permute(Y,[1 3 2]);
+X = reshape(X,blocklen*ntr,blockwidth);
+Y = reshape(Y,blocklen*ntr,nchs);
+
+% %% OLD METHOD
+% % Reshape the design matrix into VAR[1]
+% X = [];
+% Y = [];
+% for itr = 1:ntr
+%     Xi = [];
+%     for jj = 1:p
+%         Xi = cat(3, Xi, squeeze(g.data(:, p+1-jj:end-jj, itr))');
+%     end
+%     X = cat(1, X, reshape(permute(Xi, [1 3 2]), npnts-p, nchs*p));
+%     Y = cat(1,Y,g.data(:, p+1:end,itr)');
+% end
 
 % target vector
 Y = vec(Y);
@@ -175,55 +217,31 @@ end
 
 % predictor design matrix
 X = blkdiageye(sparse(X),nchs);
-X = [X(:, offDiagIdx) X(:, diagIdx)];
-blks = [p*ones(1,nchs*(nchs-1)),p*nchs];
-
-% normalize columns of X (requires CVX)
-% if exist('norms','file')
-%     X = X*spdiags(1./norms(X)',0,nchs^2*p,nchs^2*p); % K = sum(blks);
-%     Y = Y./norm(Y);
-% end
-
-
-% if isempty(lambda)
-%     % select lambda using heuristic
-%     % Idea borrowed from Boyd et al [3]
-%     if g.verb, fprintf('Using heuristic lambda selection...'); end
-%         
-%     cum_part = cumsum(blks(1:end-1));
-%     
-%     % guess regularization param for 
-%     % each group of coefficients
-%     K = length(blks)-1;
-%     start_ind = 1;
-%     lambdas = zeros(1,K);
-%     
-%     for i = 1:K,
-%         sel = start_ind:cum_part(i);
-%         lambdas(i) = norm(X(:,sel)'*Y);
-%         start_ind = cum_part(i) + 1;
-%     end
-%     lambda_max = max(lambdas);
-% 
-%     % regularization parameter as fraction of 
-%     % maximum group regularization parameter
-%     g.admm_args.lambda = 0.1*lambda_max;   % 0.1*lambda_max
-%     
-%     if g.verb, fprintf('lambda set to %0.10g',lambda); end
-% end
+if g.groupDiags
+    X = [X(:, offDiagIdx) X(:, diagIdx)];
+    blks = [p*ones(1,nchs*(nchs-1)),p*nchs];
+else
+    blks = p*ones(1,nchs^2);
+end
 
 
 % Apply the ADMM method for group lasso estimation:
 % group penalize AR coefficients with different time-lags
 % between sources (nchs*(nchs-1) groups of size p). 
-[initAR] = admm_gl(X, Y, blks, g.admm_args,'InitialState',initAR);  %,'InitialState',initAR
+[initAR] = admm_gl(X, Y, blks, g.admm_args, ...
+                    'InitialState',initAR, ...
+                    'designMatrixBlockSize',fastif(g.groupDiags,[],[blocklen*ntr blockwidth]));
 
 % assemble coefficient matrices
-H2 = zeros(p,nchs,nchs);
-H2(offDiagIdx) = vec(initAR(1:(p*nchs*(nchs-1))));          % non-diagonal elements
-H2(diagIdx) = vec(initAR(((p*nchs*(nchs-1))+1):end));       % diagonal elements
+AR = zeros(p,nchs,nchs);
+if g.groupDiags
+    AR(offDiagIdx) = vec(initAR(1:(p*nchs*(nchs-1))));          % non-diagonal elements
+    AR(diagIdx) = vec(initAR(((p*nchs*(nchs-1))+1):end));       % diagonal elements
+else
+    AR(:) = initAR;
+end
 
-AR = permute(full(H2), [3 2 1]);   % the recovered (nchs x nchs x p) connectivity matrix
+AR = permute(full(AR), [3 2 1]);   % the recovered (nchs x nchs x p) connectivity matrix
 AR = reshape(AR,[nchs nchs*p]);
 
 %% estimate noise covariance matrix
