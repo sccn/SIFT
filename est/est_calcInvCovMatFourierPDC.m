@@ -46,8 +46,6 @@
 
 function V = est_calcInvCovMatFourierPDC(Rinv,E,foi,fs,N,p,verb,DEBUG)
 
-DEBUG = 0;
-
 %% extract the diagonal elements of H=Rinv
 % structure of Hd is (e.g., for p=2): 
 % [diag(H(1,1)), diag(H(2,1)), diag(H(1,2)), diag(H(2,2))]

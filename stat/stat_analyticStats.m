@@ -139,7 +139,18 @@ for m=1:length(g.estimator)
             end
             
             N = g.EEG.CAT.trials*(g.EEG.srate*g.EEG.CAT.MODEL.winlen);
-            df=fastif((g.EEG.CAT.MODEL.morder == 1), 1 , 2);
+            
+            % specify the degrees of freedom
+            if g.EEG.CAT.MODEL.morder == 1
+                df = 1;
+            elseif any(EEG.CAT.Conn.freqs==[0 EEG.srate/2])
+                % adjust degrees of freedom at end-points
+                df = 2*ones(size(g.EEG.CAT.Conn.RPDC),'single');
+                df(:,:,[1 end],:) = 1;
+            else
+                df = 2;
+            end
+%             df=fastif((g.EEG.CAT.MODEL.morder == 1), 1 , 2);
             
             if ismember('P-value',g.statistic)
                 Stats.RPDC.pval = 1-chi2cdf(g.EEG.CAT.Conn.RPDC*N,df);

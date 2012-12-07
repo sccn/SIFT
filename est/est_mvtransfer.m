@@ -266,8 +266,15 @@ if any(strcmpi('RPDC',methodsneeded))
             aij = [real(squeeze(Conn.PDC(i,j,:))).'; imag(squeeze(Conn.PDC(i,j,:))).'];
             aji = [real(squeeze(Conn.PDC(j,i,:))).'; imag(squeeze(Conn.PDC(j,i,:))).'];
             for k=1:nfreqs
-                Conn.RPDC(i,j,k) = (((aij(:,k)'/squeeze(V(i,j,k,:,:))))*aij(:,k))/2;
-                Conn.RPDC(j,i,k) = (((aji(:,k)'/squeeze(V(j,i,k,:,:))))*aji(:,k))/2;
+                if any(freqs(k)==[0 srate/2])
+                    % V is singular, so use generalized inverse (pinv)
+                    Conn.RPDC(i,j,k) = (((aij(:,k)'*pinv(squeeze(V(i,j,k,:,:)))))*aij(:,k))/2;
+                    Conn.RPDC(j,i,k) = (((aji(:,k)'*pinv(squeeze(V(j,i,k,:,:)))))*aji(:,k))/2;
+                else
+                    % V is nonsingular, so use (faster) backslash 
+                    Conn.RPDC(i,j,k) = (((aij(:,k)'/squeeze(V(i,j,k,:,:))))*aij(:,k))/2;
+                    Conn.RPDC(j,i,k) = (((aji(:,k)'/squeeze(V(j,i,k,:,:))))*aji(:,k))/2;
+                end
                 %                 %% DEBUG!
                 %                  try chol(squeeze(V(j,i,k,:,:))); % check for pos-definiteness
                 %                  catch, fprintf('V<0 i=%d j=%d f=%d || ',i,j,k); end

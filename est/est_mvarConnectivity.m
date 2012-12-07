@@ -63,7 +63,11 @@ else
 end
 
 if ~isempty(EEG) && isfield(EEG,'srate')
-    defreqs = ['1:' num2str(fix(EEG.srate/2)-1)];
+    if EEG.srate > 1
+        defreqs = ['1:1:' num2str(fix(EEG.srate/2)-1)];
+    else
+        defreqs = ['0.01:0.01:' num2str(EEG.srate/2-0.01)];
+    end
 else
     defreqs = [];
 end
@@ -119,14 +123,14 @@ end
 if isempty(g.connmethods)
     error('SIFT:est_mvarConnectivity','Please select at least one connectivity measure');
 end
-if any(g.freqs<1) || any(g.freqs>fix(EEG.srate/2)-1)
-    error('SIFT:est_mvarConnectivity','Frequencies must be within the range [%d %d] Hz',1,fix(EEG.srate/2)-1);
+if any(g.freqs<0) || any(g.freqs>EEG.srate/2)
+    error('SIFT:est_mvarConnectivity','Frequencies must be within the range [%d %d] Hz',0,EEG.srate/2);
 end
     
 g.winstep   = MODEL.winstep;
 g.winlen    = MODEL.winlen;
 
-if isempty(g.freqs), g.freqs = 1:floor(EEG.srate/2); end
+if isempty(g.freqs), g.freqs = eval(defreqs); end
 
 Conn = [];
 

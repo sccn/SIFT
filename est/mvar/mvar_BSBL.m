@@ -149,35 +149,6 @@ blks = [p*ones(1,nchs*(nchs-1)),p*nchs];
 blks = [1 cumsum(blks(1:end-1))+1];
 
 
-
-% if isempty(lambda)
-%     % select lambda using heuristic
-%     % Idea borrowed from Boyd et al [3]
-%     if g.verb, fprintf('Using heuristic lambda selection...'); end
-%         
-%     cum_part = cumsum(blks(1:end-1));
-%     
-%     % guess regularization param for 
-%     % each group of coefficients
-%     K = length(blks)-1;
-%     start_ind = 1;
-%     lambdas = zeros(1,K);
-%     
-%     for i = 1:K,
-%         sel = start_ind:cum_part(i);
-%         lambdas(i) = norm(X(:,sel)'*Y);
-%         start_ind = cum_part(i) + 1;
-%     end
-%     lambda_max = max(lambdas);
-% 
-%     % regularization parameter as fraction of 
-%     % maximum group regularization parameter
-%     g.admm_args.lambda = 0.1*lambda_max;   % 0.1*lambda_max
-%     
-%     if g.verb, fprintf('lambda set to %0.10g',lambda); end
-% end
-
-
 % Apply the BSBL method for sparse VAR estimation:
 % group penalize AR coefficients with different time-lags
 % between sources (nchs*(nchs-1) groups of size p). 

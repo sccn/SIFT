@@ -3,7 +3,7 @@ function Rinv = est_calcInvCovMat(AR,C,invCov,mode,MAXITER)
 %
 % For any M-variate VAR[p] process fit to data X = [X1, X2, ... Xn], 
 % this function returns the [(Mp)^2 x (Mp)^2] covariance (or inverse covariance) 
-% matrix of the parameters. This is a block-toeplitz, hermitian matrix with 
+% matrix of the process. This is a block-toeplitz, hermitian matrix with 
 % format as described in [2]. 
 % 
 % Briefly, let M=nvars, and Rhat be comprised of M x M submatrices 

@@ -1,7 +1,9 @@
 function V = est_calcInvCovMatFourier(Rinv,E,foi,fs,M,p, verb)
 %
-% Obtain the frequency domain transform of the inverse covariance matrix of 
-% an M-variate VAR[p] process
+% Obtain the frequency domain transform of the (inverse) covariance matrix
+% of an M-variate VAR[p] process.
+% 
+% Let 
 % This is needed for calculating the renormalized PDC [2]
 %
 % Inputs:
