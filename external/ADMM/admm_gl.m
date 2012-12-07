@@ -2,11 +2,11 @@ function [z, history] = admm_gl(varargin)
 
 % group_lasso  Solve group lasso problem via ADMM
 %
-% [x, history] = group_lasso(A, b, blks, ...);
+% [x, history] = group_lasso(A, y, blks, ...);
 % 
 % solves the following problem via ADMM:
 %
-%   minimize 1/2*|| Ax - b ||_2^2 + \lambda sum(norm(x_i))
+%   minimize 1/2*|| Ax - y ||_2^2 + \lambda sum(norm(x_i))
 %
 % The input p is a K-element vector giving the block sizes n_i, so that x_i
 % is in R^{n_i}.
@@ -34,12 +34,13 @@ function [z, history] = admm_gl(varargin)
 % [2] http://www.stanford.edu/~boyd/papers/admm/group_lasso/group_lasso_example.html
 
 g = arg_define(3,varargin, ...
-                arg_norep({'A','DesignMatrix'},mandatory,[],'The design matrix. This is the data matrix.'), ...
-                arg_norep({'b','TargetVector'},mandatory,[],'The target vector'), ...
+                arg_norep({'A','DesignMatrix'},mandatory,[],'The design matrix. This is the data matrix (ie X).'), ...
+                arg_norep({'y','TargetVector'},mandatory,[],'The target vector'), ...
                 arg_norep({'blks','Blocks'},mandatory,[],'Array containing the lengths of each block'), ...
-                arg({'lambda','RegularizationParam'},[],[0 Inf],'Regularization parameter (lambda)'), ...
-                arg({'rho','AugmentedLagrangianParam'},1.0,[0 Inf],'Initial value of augmented Lagrangian parameter (rho)'), ...
-                arg({'alpha','OverRelaxationParam','Alpha'},1.7,[0 Inf],'Over-relaxation parameter (alpha). Typical values are between 1.5 and 1.8'), ...
+                arg_nogui({'designMatrixBlockSize','DesignMatrixBlockSize'},[],[],'Design matrix structure. If empty, do not exploit structure for faster computation. If non-empty, the design matrix consists of identical blocks along the main diagonal. ''DesignMatrixBlockSize'' is the [numrow numcol] size of each block.'), ...
+                arg({'lambda','ReguParamLambda','RegularizationParam'},[],[0 Inf],'Regularization parameter (lambda)'), ...
+                arg({'rho','AugLagrangParamRho','AugmentedLagrangianParam'},1.0,[0 Inf],'Initial value of augmented Lagrangian parameter (rho)'), ...
+                arg({'alpha','OverRelaxationParamAlpha','OverRelaxationParam','Alpha'},1.7,[0 Inf],'Over-relaxation parameter (alpha). Typical values are between 1.5 and 1.8'), ...
                 arg({'z_init','InitialState','initAR'},[],[],'Initial state vector','shape','matrix'), ...
                 arg({'verb','Verbosity'},false,[],'Verbose output'), ...
                 arg({'max_iter','MaxIterations'},1000,[],'Maximum number of iterations'), ...
@@ -92,7 +93,7 @@ if isempty(g.lambda)
     
     for i = 1:K
         sel = start_ind:cum_part(i);
-        lambdas(i) = norm(A(:,sel)'*b);
+        lambdas(i) = norm(A(:,sel)'*y);
         start_ind = cum_part(i) + 1;
     end
     lambda_max = max(lambdas);
@@ -109,7 +110,7 @@ end
 [m, n] = size(A);
 
 % save a matrix-vector multiply
-Atb = A'*b;
+Aty = A'*y;
 % check that sum(blks) = total number of elements in x
 if (sum(blks) ~= n)
     error('invalid partition');
@@ -136,10 +137,10 @@ history = struct(...
             'objval'    ,   nan(max_iter,1), ...
             'lsqr_iters',   nan(max_iter,1)  ...
             );
-            
+
 if strcmp(x_update.arg_selection,'direct')
     % pre-factor
-    [L U] = factor(A, g.rho);
+    [L, U] = factor(A, g.rho, g.designMatrixBlockSize);
 end
 
 if verb
@@ -153,7 +154,7 @@ for k = 1:max_iter
 
     if strcmp(x_update.arg_selection,'direct')
         % x-update using direct method
-        q = Atb + g.rho*(z - u);    % temporary value
+        q = Aty + g.rho*(z - u);    % temporary value
         if( m >= n )    % if skinny
            x = U \ (L \ q);
         else            % if fat
@@ -163,7 +164,7 @@ for k = 1:max_iter
         % x-update using iterative method
         % this uses Matlab's lsqr(); uses previous x to warm start
         [x, flag, relres, iters] = lsqr([A; sqrt(g.rho)*speye(n)], ...
-            [b; sqrt(g.rho)*(z-u)],x_update.tol,x_update.max_iters,[],[],x);
+            [y; sqrt(g.rho)*(z-u)],x_update.tol,x_update.max_iters,[],[],x);
     end
 
     % z-update
@@ -187,7 +188,7 @@ for k = 1:max_iter
     history.eps_dual(k)= sqrt(n)*g.abstol + g.reltol*norm(g.rho*u);
 
     if g.compute_objval
-        history.objval(k)  = objective(A, b, g.lambda, cum_part, x, z);
+        history.objval(k)  = objective(A, y, g.lambda, cum_part, x, z);
     end
     
     if verb
@@ -221,7 +222,7 @@ for k = 1:max_iter
         if refactor && strcmp(x_update.arg_selection,'direct')
             if verb, fprintf('  refactoring A...'); end
             % pre-factor
-            [L U] = factor(A, g.rho);
+            [L U] = factor(A, g.rho, g.designMatrixBlockSize);
             if verb, fprintf('  done.\n'); end
         end
     end
@@ -260,7 +261,7 @@ end
 end
 
 %% objective function
-function p = objective(A, b, lambda, cum_part, x, z)
+function p = objective(A, y, lambda, cum_part, x, z)
     obj = 0;
     start_ind = 1;
     for i = 1:length(cum_part),
@@ -268,7 +269,7 @@ function p = objective(A, b, lambda, cum_part, x, z)
         obj = obj + norm(z(sel));
         start_ind = cum_part(i) + 1;
     end
-    p = ( 1/2*sum((A*x - b).^2) + lambda*obj );
+    p = ( 1/2*sum((A*x - y).^2) + lambda*obj );
 end
 
 %% shrinkage function
@@ -277,12 +278,13 @@ function z = shrinkage(x, kappa)
 end
 
 %% cholesky factorization
-function [L U] = factor(A, rho)
+function [L U] = factor(A, rho, blkSz)
+    if nargin < 3, blkSz = []; end
     [m, n] = size(A);
     if ( m >= n )    % if skinny
-       L = chol( A'*A + rho*speye(n), 'lower' );
+       L = chol( outerprod(A,'AtA',blkSz) + rho*speye(n), 'lower' );
     else            % if fat
-       L = chol( speye(m) + 1/rho*(A*A'), 'lower' );
+       L = chol( speye(m) + 1/rho*(outerprod(A,'AAt',blkSz)), 'lower' );
     end
     
     % force matlab to recognize the upper / lower triangular structure
@@ -290,8 +292,39 @@ function [L U] = factor(A, rho)
     U = sparse(L');
 end
 
+function C = outerprod(A,mode,blkSz)
+    if ~isempty(blkSz)
+        % A consists of identical blocks on main diag
+        % use a more efficient method for product
+        blkrows = blkSz(1);
+        blkcols = blkSz(2);
+        numblks = size(A,1)/blkrows;
+        
+        % extract block
+        Q = full(A(1:blkrows,1:blkcols));
+        
+        % compute matrix product for block
+        switch mode
+            case 'AtA'
+                C = Q'*Q;
+            case 'AAt'
+                C = Q*Q';
+        end
+            
+        % put blocks on main diagonal of sparse zero matrix
+        C = blkdiageye(sparse(C),numblks);
+    else       
+        % A is some othe structure, multiply the usual way
+        switch mode
+            case 'AtA'
+                C = A'*A;
+            case 'AAt'
+                C = A*A';
+        end
+    end
+end
+
 %% pos helper
 function q = pos(x)
     q = max(x,0);
 end
-
