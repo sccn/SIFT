@@ -1219,7 +1219,7 @@ for ch_i=1:nch
                 subargs.customTopoMatrix = {};
             end
             
-            if ~isempty(ALLEEG(1).dipfit)
+            if ~isempty(ALLEEG(1).dipfit) && isfield(ALLEEG(1).dipfit,'model')
                 subargs.dipfitstruct = ALLEEG(1).dipfit;
                 subargs.dipfitstruct.model = subargs.dipfitstruct.model(ALLEEG(1).CAT.curComps([j i]));
             else
