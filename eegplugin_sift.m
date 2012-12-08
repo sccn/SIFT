@@ -121,26 +121,27 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
 
     % create menus
     % ------------
-    menu = uimenu( highlevelmenu, 'label', 'SIFT', 'separator', 'on' ,'userdata', 'startup:off;study:on');
-    uimenu( menu, 'label', 'Pre-processing', 'callback', PreProc_callback,'userdata', 'startup:off;study:on');
-    modelmenu   = uimenu( menu, 'label', 'Model fitting and validation','userdata', 'startup:off;study:on');
-    connectmenu = uimenu( menu, 'label', 'Connectivity'  ,'callback',Connectivity_callback,'userdata', 'startup:off;study:on');
-    statmenu    = uimenu( menu, 'label', 'Statistics','userdata', 'startup:off;study:on');
-    vismenu     = uimenu( menu, 'label', 'Visualization' ,'userdata', 'startup:off;study:on');
-    aboutmenu   = uimenu( menu, 'label', 'About SIFT' ,'callback',AboutSIFT_callback,'userdata', 'startup:off;study:on');
+    userdata = 'startup:off;study:on';
+    menu = uimenu( highlevelmenu, 'label', 'SIFT', 'separator', 'on' ,'userdata', userdata);
+    uimenu( menu, 'label', 'Pre-processing', 'callback', PreProc_callback,'userdata', userdata);
+    modelmenu   = uimenu( menu, 'label', 'Model fitting and validation','userdata', userdata);
+    connectmenu = uimenu( menu, 'label', 'Connectivity'  ,'callback',Connectivity_callback,'userdata', userdata);
+    statmenu    = uimenu( menu, 'label', 'Statistics','userdata', userdata);
+    vismenu     = uimenu( menu, 'label', 'Visualization' ,'userdata', userdata);
+    aboutmenu   = uimenu( menu, 'label', 'About SIFT' ,'callback',AboutSIFT_callback,'userdata', userdata);
     
-    uimenu( vismenu , 'label', 'Time-Frequency Grid', 'callback', TFGrid_callback ,'userdata', 'startup:off;study:on');
-    uimenu( vismenu , 'label', 'BrainMovie3D', 'callback', BranMovie_callback ,'userdata', 'startup:off;study:on');
+    uimenu( vismenu , 'label', 'Time-Frequency Grid', 'callback', TFGrid_callback ,'userdata', userdata);
+    uimenu( vismenu , 'label', 'BrainMovie3D', 'callback', BranMovie_callback ,'userdata', userdata);
     uimenu( vismenu , 'label', 'Causal Projection', 'callback', CausalProjection_callback, 'enable','off' );
     
-    uimenu( statmenu, 'label', 'Surrogate Distributions', 'callback', SurrogateDistrib_callback ,'enable','on','userdata', 'startup:off;study:on');
-    uimenu( statmenu, 'label', 'Surrogate Statistics', 'callback', SurrogateStats_callback ,'enable','on','userdata', 'startup:off;study:on');
-    uimenu( statmenu, 'label', 'Analytic Statistics', 'callback', AnalyticStat_callback,'separator', 'on', 'enable','on','userdata', 'startup:off;study:on' );
+    uimenu( statmenu, 'label', 'Surrogate Distributions', 'callback', SurrogateDistrib_callback ,'enable','on','userdata', userdata);
+    uimenu( statmenu, 'label', 'Surrogate Statistics', 'callback', SurrogateStats_callback ,'enable','on','userdata', userdata);
+    uimenu( statmenu, 'label', 'Analytic Statistics', 'callback', AnalyticStat_callback,'separator', 'on', 'enable','on','userdata', userdata );
     uimenu( statmenu, 'label', 'Simple Statistics', 'callback', SimpleStat_callback, 'separator', 'on' ,'enable','off');
     
-    uimenu( modelmenu, 'label', 'Model Order Selection', 'callback', SelectModelOrder_callback ,'userdata', 'startup:off;study:on');
-    uimenu( modelmenu, 'label', 'Fit AMVAR Model', 'callback',FitModel_callback,'userdata', 'startup:off;study:on');
-    uimenu( modelmenu, 'label', 'Validate model', 'callback', ValidateModel_callback ,'userdata', 'startup:off;study:on');
+    uimenu( modelmenu, 'label', 'Model Order Selection', 'callback', SelectModelOrder_callback ,'userdata', userdata);
+    uimenu( modelmenu, 'label', 'Fit AMVAR Model', 'callback',FitModel_callback,'userdata', userdata);
+    uimenu( modelmenu, 'label', 'Validate model', 'callback', ValidateModel_callback ,'userdata', userdata);
 
  
 
