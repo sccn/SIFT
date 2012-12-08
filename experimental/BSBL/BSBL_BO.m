@@ -258,10 +258,11 @@ while (1)
         for k = 1 : usedNum
             Sigma0{k} = temp{index(k)};
         end
-        
-%         Sigma0 = Sigma0(index);
+%         Sigma0 = Sigma0(index);  % replace above with this
 
         % construct new Phi
+        
+        % TODO: replace below with this:
 %         idx2Keep = zeros(1,sum(blkLenList));
 %         curidx = 1;
 %         for k = 1 : usedNum
