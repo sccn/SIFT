@@ -41,13 +41,13 @@
 
 %% 
     
-GUI_CONFIG_NAME = 'DARPA_DEMO_METACP_CFG.mat'; %'MetaCPopts_Pyramind.mat'; %MetaCPopts_Pyramind.mat'; %'MetaCPopts.mat';
+GUI_CONFIG_NAME = 'DARPA_DEMO_METACP_CFG_LATEST.mat'; %'MetaCPopts_Pyramind.mat'; %MetaCPopts_Pyramind.mat'; %'MetaCPopts.mat';
 GUI_BRAINMOVIE_CONFIG_NAME = 'DARPA_DEMO_BM_CFG.mat'; %'BMCFG.mat'
 
 %% establish where we will read/write prefs, etc from
 datapath = 'data:/';  % this is relative to the BCILAB root dir
-TrainingDataFile = 'christian-calib3.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
-% TestingDataFile =  'christian-calib.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
+TrainingDataFile = 'christian-calib4.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
+TestingDataFile =  'christian-calib.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
 
 %% Set up the name of the stream we will write to in the workspace
 streamname              = 'EEGDATA';
