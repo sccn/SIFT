@@ -40,14 +40,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% 
-
-GUI_CONFIG_NAME = ''; %'MetaCPopts_Pyramind.mat'; %MetaCPopts_Pyramind.mat'; %'MetaCPopts.mat';
-GUI_BRAINMOVIE_CONFIG_NAME = ''; %'BMCFG.mat'
+    
+GUI_CONFIG_NAME = 'DARPA_DEMO_METACP_CFG.mat'; %'MetaCPopts_Pyramind.mat'; %MetaCPopts_Pyramind.mat'; %'MetaCPopts.mat';
+GUI_BRAINMOVIE_CONFIG_NAME = 'DARPA_DEMO_BM_CFG.mat'; %'BMCFG.mat'
 
 %% establish where we will read/write prefs, etc from
-datapath = 'data:/christian/';  % this is relative to the BCILAB root dir
-TrainingDataFile = 'eyesclosed.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
-TestingDataFile =  'clean.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
+datapath = 'data:/';  % this is relative to the BCILAB root dir
+TrainingDataFile = 'christian-calib3.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
+% TestingDataFile =  'christian-calib.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
 
 %% Set up the name of the stream we will write to in the workspace
 streamname              = 'EEGDATA';
@@ -59,10 +59,10 @@ raw = exp_eval(io_loadset([datapath TrainingDataFile],'markerchannel',{'remove_e
 flt_pipeline('update');
 
 %% start LSL streaming
-% run_readlsl('MatlabStream',streamname,'SelectionProperty',LSL_SelectionProperty,'SelectionValue',LSL_SelectionValue);
+run_readlsl('MatlabStream',streamname,'SelectionProperty',LSL_SelectionProperty,'SelectionValue',LSL_SelectionValue);
 
 %% ... OR read from datafile
-run_readdataset('MatlabStream',streamname,'Dataset',io_loadset([datapath TestingDataFile],'markerchannel',{'remove_eventchns',false}));
+% run_readdataset('MatlabStream',streamname,'Dataset',io_loadset([datapath TestingDataFile],'markerchannel',{'remove_eventchns',false}));
 
 %% initialize some variables
 [benchmarking.preproc     ...
@@ -75,10 +75,10 @@ specOpts = [];
 
 %% initialize options
     
-try
+if ~isempty([datapath GUI_CONFIG_NAME]) && exist(env_translatepath([datapath GUI_CONFIG_NAME]),'file')
     % try to load a configuration file
     io_load([datapath GUI_CONFIG_NAME]);
-catch
+else
     % manually set some defaults
     opts.miscOptCfg.dispBenchmark  = true;
     opts.miscOptCfg.doSIFT    = []; %struct(...
@@ -114,18 +114,18 @@ opts.adaptation.updateInterval = 1;
 opts.adaptation.bufferTime = 1;
 
 
-%% TEMP
-% tmp=io_load([datapath 'MetaCPopts.mat']);
-
 %% initialize the Meta Control Panel
 figHandles.MetaControlPanel = gui_metaControlPanel(raw,opts);
 waitfor(figHandles.MetaControlPanel,'UserData','initialized');
 
 % request if you want to save the results. It will be saved to
  % datapath folder above
-if strcmp(questdlg('Do you want to save this configuration?','Save config?','Yes','No','No'),'Yes')
-    io_save([datapath GUI_CONFIG_NAME],'opts');
-end
+% if strcmp(questdlg('Do you want to save this configuration?','Save config?','Yes','No','No'),'Yes')
+%     if isempty(GUI_CONFIG_NAME)
+%         GUI_CONFIG_NAME = uiputfile;
+%     end
+%     io_save([datapath GUI_CONFIG_NAME],'opts');
+% end
 
 %% Initialize figures
 figHandles.specDisplay      = [];
@@ -179,10 +179,19 @@ while ~opts.exitPipeline
                 opts.siftPipCfg.modeling.winlen = opts.miscOptCfg.winLenSec;
                 % select a subset of channels
                 if ~isempty(opts.miscOptCfg.doSIFT.channelSubset)
-                    [dummy eeg_chunk] = evalc('exp_eval(flt_selchans(''signal'',eeg_chunk,''channels'',opts.miscOptCfg.doSIFT.channelSubset))');
+                    [dummy eeg_chunk] = evalc('hlp_scope({''disable_expressions'',1},@flt_selchans,''signal'',eeg_chunk,''channels'',opts.miscOptCfg.doSIFT.channelSubset,''arg_direct'',true)');
+                    %[dummy eeg_chunk] = evalc('exp_eval(flt_selchans(''signal'',eeg_chunk,''channels'',opts.miscOptCfg.doSIFT.channelSubset))');
                 end
                 % run the SIFT modeling pipeline
-                [eeg_chunk cfg] = onl_siftpipeline('EEG',eeg_chunk,opts.siftPipCfg);
+                [eeg_chunk cfg] = hlp_scope({'is_online',1},@onl_siftpipeline,'EEG',eeg_chunk,opts.siftPipCfg);
+                % [eeg_chunk cfg] = onl_siftpipeline('EEG',eeg_chunk,opts.siftPipCfg);
+                
+                if eeg_chunk.pnts == 0
+                    fprintf('No data!\n');
+                    pause(0.01);
+                    continue;
+                end
+                
             catch err
                 hlp_handleerror(err);
                 pause(0.1);
