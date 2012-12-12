@@ -1,5 +1,5 @@
 
-function [EEG g] = pre_selectcomps(varargin)
+function [EEG g] = pre_selectComps(varargin)
 %
 % Remove some components from icaact matrix and dipfit structure.
 %
@@ -49,33 +49,15 @@ function [EEG g] = pre_selectcomps(varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
-% Extract some defaults and ranges
-MyComponentNames = [];
-if ~isempty(varargin)
-    EEG = arg_extract(varargin,'EEG',1);
-    if ~isempty(EEG) && isfield(EEG,'icaact')
-        % user called function with EEG argument
-        if isfield(EEG.CAT,'curComponentNames') && ~isempty(EEG.CAT.curComponentNames)
-            MyComponentNames = EEG.CAT.curComponentNames;
-        else
-            MyComponentNames = EEG.CAT.curComps;
-            MyComponentNames = strtrim(cellstr(num2str(MyComponentNames'))');
-        end
-        clear EEG
-    else
-        % user did not provide EEG argument but passed in list of component names
-        MyComponentNames = arg_extract(varargin,'MyComponentNames');
-    end
-end
-
+% extract the allowable component names
+CAT = arg_extract(varargin,'CAT',1);
+MyComponentNames = CAT.curComponentNames;
 
 % setup the argument structure
 g = arg_define([0 1],varargin, ...
-    arg_norep('EEG',mandatory), ...
+    arg_norep('CAT',mandatory), ...
     arg({'verb','VerbosityLevel'},0,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical'), ...
-    arg({'ComponentsToKeep'},MyComponentNames,MyComponentNames,'Select components to analyze. This should be a cell array of strings containing the IDs of components you wish to keep','type','logical'), ...
-    arg_norep('MyComponentNames',[],[],'A dummy argument needed to set range of ComponentToKeep','shape','row','type','cellstr') ...
+    arg({'ComponentsToKeep'},MyComponentNames,MyComponentNames,'Select components to analyze. This should be a cell array of strings containing the IDs of channels or components you wish to keep','type','logical') ...
     );
 
 
@@ -94,5 +76,3 @@ g.EEG.CAT.curComps            = ComponentIndicesToKeep;
 g.EEG.CAT.curComponentNames   = g.ComponentsToKeep;
 
 EEG = g.EEG;
-
-if g.verb, disp('Done!'); end
