@@ -23,7 +23,7 @@ function varargout = gui_metaControlPanel(varargin)
 
 % Edit the above text to modify the response to help gui_metaControlPanel
 
-% Last Modified by GUIDE v2.5 24-Oct-2012 21:47:54
+% Last Modified by GUIDE v2.5 30-Nov-2012 15:23:47
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -313,13 +313,6 @@ function cmdVisStream_Callback(hObject, eventdata, handles)
 vis_filtered;
 
 
-% --- Executes when pnlPropertyGridMisc is resized.
-function pnlPropertyGridMisc_ResizeFcn(hObject, eventdata, handles)
-% hObject    handle to pnlPropertyGridMisc (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
 % --- Executes on button press in chkDispSpectrum.
 function chkDispSpectrum_Callback(hObject, eventdata, handles)
 % hObject    handle to chkDispSpectrum (see GCBO)
@@ -403,3 +396,24 @@ function chkPauseSIFT_Callback(hObject, eventdata, handles)
 handles.opts.doSIFT = ~get(hObject,'Value');
 assignin('base','opts',handles.opts);
 guidata(hObject,handles);
+
+
+% --- Executes when pnlPropertyGridFltPip is resized.
+function pnlPropertyGridFltPip_ResizeFcn(hObject, eventdata, handles)
+% hObject    handle to pnlPropertyGridFltPip (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes when pnlPropertyGridSiftPip is resized.
+function pnlPropertyGridSiftPip_ResizeFcn(hObject, eventdata, handles)
+% hObject    handle to pnlPropertyGridSiftPip (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes when pnlPropertyGridMisc is resized.
+function pnlPropertyGridMisc_ResizeFcn(hObject, eventdata, handles)
+% hObject    handle to pnlPropertyGridMisc (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
