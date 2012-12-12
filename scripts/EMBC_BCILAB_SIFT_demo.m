@@ -41,12 +41,13 @@
 
 %% 
 
-GUI_CONFIG_NAME = 'MetaCPopts_Pyramind.mat'; %MetaCPopts_Pyramind.mat'; %'MetaCPopts.mat';
+GUI_CONFIG_NAME = ''; %'MetaCPopts_Pyramind.mat'; %MetaCPopts_Pyramind.mat'; %'MetaCPopts.mat';
+GUI_BRAINMOVIE_CONFIG_NAME = ''; %'BMCFG.mat'
 
 %% establish where we will read/write prefs, etc from
 datapath = 'data:/christian/';  % this is relative to the BCILAB root dir
-TrainingDataFile = 'Cognionics_Pyramind_demo.set'; %'eyesclosed.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
-TestingDataFile =  'Cognionics_Pyramind_demo.set'; %'clean.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
+TrainingDataFile = 'eyesclosed.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
+TestingDataFile =  'clean.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
 
 %% Set up the name of the stream we will write to in the workspace
 streamname              = 'EEGDATA';
@@ -58,10 +59,10 @@ raw = exp_eval(io_loadset([datapath TrainingDataFile],'markerchannel',{'remove_e
 flt_pipeline('update');
 
 %% start LSL streaming
-run_readlsl('MatlabStream',streamname,'SelectionProperty',LSL_SelectionProperty,'SelectionValue',LSL_SelectionValue);
+% run_readlsl('MatlabStream',streamname,'SelectionProperty',LSL_SelectionProperty,'SelectionValue',LSL_SelectionValue);
 
 %% ... OR read from datafile
-% run_readdataset('MatlabStream',streamname,'Dataset',io_loadset([datapath TestingDataFile],'markerchannel',{'remove_eventchns',false}));
+run_readdataset('MatlabStream',streamname,'Dataset',io_loadset([datapath TestingDataFile],'markerchannel',{'remove_eventchns',false}));
 
 %% initialize some variables
 [benchmarking.preproc     ...
@@ -133,7 +134,7 @@ figHandles.BMControlPanel   = [];
 
 %% try to load a BrainMovie configuration
 try 
-    io_load([datapath 'BMCFG.mat']);
+    io_load([datapath GUI_BRAINMOVIE_CONFIG_NAME]);
     BMCFG.BMopts.bmopts_suppl = {'title',{'Multivariate ','Granger Causality  '}};
     BMCFG.BMopts.caption = true;
 catch

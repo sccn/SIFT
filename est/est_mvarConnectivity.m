@@ -145,14 +145,19 @@ if g.verb
     fprintf(['Connectivity estimation will require %5.5g MB of memory (per condition).\n' ...
              'Make sure you have enough memory available.\n'],bytesReq/(1024^2));
     fprintf('-------------------------------------------------------------------------\n');
-end
 
-% check if we are likely to exceed memory capacity and notify user
-bytesAvail = hlp_getAvailableMemory('bytes');
-if bytesReq > bytesAvail
-    res = questdlg2('It appears you may not have sufficient memory to carry out this operation. Do you want to continue?','est_mvarConnectivity: Memory check','Yes','No','No');
-    if strcmpi(res,'no')
-        return;
+    % check if we are likely to exceed memory capacity and notify user
+    bytesAvail = hlp_getAvailableMemory('bytes');
+    if bytesReq > bytesAvail
+        if g.verb==2
+            res = questdlg2('It appears you may not have sufficient memory to carry out this operation. Do you want to continue?','est_mvarConnectivity: Memory check','Yes','No','No');
+        else
+            res = input('It appears you may not have sufficient memory to carry out this operation.\nDo you want to continue? (y)es/(n)o:  ','s');
+        end
+        
+        if strcmpi(res(1),'n')
+            return;
+        end
     end
 end
 
