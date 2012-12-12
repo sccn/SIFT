@@ -162,7 +162,7 @@ curcheck  = 0;
 % check residual whiteness 
 % -------------------------------------------------------------------------
 if g.checkWhiteness.arg_selection
-    whitestats = est_checkMVARWhiteness(g.EEG,MODEL,g.checkWhiteness,'winStartIdx',g.winStartIdx,'prctWinToSample',g.prctWinToSample,'verb',g.verb);
+    whitestats = est_checkMVARWhiteness('EEG',g.EEG,'MODEL',MODEL,g.checkWhiteness,'winStartIdx',g.winStartIdx,'prctWinToSample',g.prctWinToSample,'verb',g.verb);
     if isempty(whitestats)
         % whiteness checks cancelled
         g.checkWhiteness.arg_selection = false;
@@ -176,7 +176,7 @@ end
 % check model consistency
 % -------------------------------------------------------------------------
 if g.checkConsistency.arg_selection
-    PCstats = est_checkMVARConsistency(g.EEG,MODEL,g.checkConsistency,'winStartIdx',g.winStartIdx,'prctWinToSample',g.prctWinToSample,'verb',g.verb);
+    PCstats = est_checkMVARConsistency('EEG',g.EEG,'MODEL',MODEL,g.checkConsistency,'winStartIdx',g.winStartIdx,'prctWinToSample',g.prctWinToSample,'verb',g.verb);
     if isempty(PCstats)
         % consistency checks cancelled
         g.checkConsistency.arg_selection = false;
@@ -190,7 +190,7 @@ end
 % check model stability 
 % -------------------------------------------------------------------------
 if g.checkStability.arg_selection
-    stabilitystats = est_checkMVARStability(g.EEG,MODEL,g.checkStability,'winStartIdx',g.winStartIdx,'prctWinToSample',g.prctWinToSample,'verb',g.verb);
+    stabilitystats = est_checkMVARStability('EEG',g.EEG,'MODEL',MODEL,g.checkStability,'winStartIdx',g.winStartIdx,'prctWinToSample',g.prctWinToSample,'verb',g.verb);
     if isempty(stabilitystats)
         % consistency checks cancelled
         g.checkStability.arg_selection = false;
