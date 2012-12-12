@@ -23,7 +23,7 @@ function varargout = gui_metaControlPanel(varargin)
 
 % Edit the above text to modify the response to help gui_metaControlPanel
 
-% Last Modified by GUIDE v2.5 30-Nov-2012 15:23:47
+% Last Modified by GUIDE v2.5 11-Dec-2012 21:36:28
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -120,25 +120,52 @@ set(handles.pnlPropertyGridMisc,'foregroundcolor', GUITEXTCOLOR);
 %-----------------------------------------------
 
 % store opts structure
-handles.opts = varargin{2};
+handles.opts    = varargin{2};
+handles.dataset = varargin{1};
 
+handles = redrawPropertyGrids(hObject,handles);
+
+% save figure handle
+handles.figureHandle = hObject;
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% Wait for user to click OK, Cancel or close figure
+% uiwait(handles.gui_MetaControlPanel);
+
+
+% UIWAIT makes gui_metaControlPanel wait for user response (see UIRESUME)
+% uiwait(handles.gui_MetaControlPanel);
+
+
+% --- User-defined function to (re)draw Property Grids
+function handles = redrawPropertyGrids(hObject,handles)
+
+try
+    % delete existing property grids
+    delete([handles.SiftPipPropertyGridHandle.Control, ...
+            handles.FltPipPropertyGridHandle.Control, ....
+            handles.MiscPropertyGridHandle.Control]);
+catch err
+end
+ 
 % render the PropertyGrids in the correct panels
 handles.SiftPipPropertyGridHandle = arg_guipanel( ...
                 handles.pnlPropertyGridSiftPip, ...
                 'Function',@onl_siftpipeline, ...
-                'Parameters',{'EEG',varargin{1},handles.opts.siftPipCfg});
+                'Parameters',{'EEG',handles.dataset,handles.opts.siftPipCfg});
     
 handles.FltPipPropertyGridHandle = arg_guipanel( ...
                  handles.pnlPropertyGridFltPip, ...
                 'Function',@flt_pipeline, ...
-                'Parameters',{'Signal',varargin{1},handles.opts.fltPipCfg});
+                'Parameters',{'Signal',handles.dataset,handles.opts.fltPipCfg});
 
 handles.MiscPropertyGridHandle = arg_guipanel(...
                  handles.pnlPropertyGridMisc, ...
                  'Function',@onl_MetaCtrlPnlMiscOpts,'Parameters',{handles.opts.miscOptCfg});
              
-% save figure handle
-handles.figureHandle = hObject;
 
 % initialize some control contents from opts input
 % try set(handles.txtWindowLength,'String',num2str(handles.opts.winLenSec));
@@ -155,20 +182,14 @@ handles.figureHandle = hObject;
 % catch; end
 drawnow
 
+% --- Get contents of Property Grids and store in subfields of handles.opts
+function handles = getPropertyGridContents(handles)
+% handles  handles structure with opts subfield 
 
-% Update handles structure
-guidata(hObject, handles);
-
-
-% Wait for user to click OK, Cancel or close figure
-% uiwait(handles.gui_BrainMovie3D);
-
-
-% UIWAIT makes gui_metaControlPanel wait for user response (see UIRESUME)
-% uiwait(handles.gui_BrainMovie3D);
-
-
-
+% get the property specifications
+handles.opts.fltPipCfg  = arg_tovals(handles.FltPipPropertyGridHandle.GetPropertySpecification,true);
+handles.opts.siftPipCfg = arg_tovals(handles.SiftPipPropertyGridHandle.GetPropertySpecification,true); % NOTE: if there are problems, set the last 'arg_direct' argument to false
+handles.opts.miscOptCfg = arg_tovals(handles.MiscPropertyGridHandle.GetPropertySpecification,false);
 
 
 % --- Outputs from this function are returned to the command line.
@@ -212,11 +233,9 @@ function cmdUpdate_Callback(hObject, eventdata, handles)
 
 % handles.ExitButtonClicked ='OK';
 
-
-% get the property specifications
-handles.opts.fltPipCfg  = arg_tovals(handles.FltPipPropertyGridHandle.GetPropertySpecification,true);
-handles.opts.siftPipCfg = arg_tovals(handles.SiftPipPropertyGridHandle.GetPropertySpecification,false);
-handles.opts.miscOptCfg = arg_tovals(handles.MiscPropertyGridHandle.GetPropertySpecification,false);
+% get the contents of the prop grids
+% results will be stored in subfields of handles.opts
+handles = getPropertyGridContents(handles);
 
 % save pipeline configurations in base workspace and set new data flags
 assignin('base','opts',handles.opts);
@@ -230,7 +249,7 @@ set(handles.gcf,'UserData','initialized');
 
 guidata(hObject,handles);
 % guidata(hObject,handles);
-% uiresume(handles.gui_BrainMovie3D);
+% uiresume(handles.gui_MetaControlPanel);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -284,17 +303,6 @@ end
 assignin('base','opts',handles.opts);
 guidata(hObject,handles);
 
-% --- Executes on button press in chkDispBenchmarking.
-function chkDispBenchmarking_Callback(hObject, eventdata, handles)
-% hObject    handle to chkDispBenchmarking (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of chkDispBenchmarking
-
-handles.opts.doBenchmark = get(hObject,'Value');
-assignin('base','opts',handles.opts);
-guidata(hObject,handles);
 
 % --- Executes during object deletion, before destroying properties.
 function chkDispBenchmarking_DeleteFcn(hObject, eventdata, handles)
@@ -312,90 +320,6 @@ function cmdVisStream_Callback(hObject, eventdata, handles)
 % open stream visualizer
 vis_filtered;
 
-
-% --- Executes on button press in chkDispSpectrum.
-function chkDispSpectrum_Callback(hObject, eventdata, handles)
-% hObject    handle to chkDispSpectrum (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of chkDispSpectrum
-
-handles.opts.dispSpectrum = get(hObject,'Value');
-assignin('base','opts',handles.opts);
-guidata(hObject,handles);
-
-
-% --- Executes on button press in chkDispBrainMovie.
-function chkDispBrainMovie_Callback(hObject, eventdata, handles)
-% hObject    handle to chkDispBrainMovie (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of chkDispBrainMovie
-
-
-handles.opts.doBrainMovie = get(hObject,'Value');
-assignin('base','opts',handles.opts);
-guidata(hObject,handles);
-
-
-
-function txtWindowLength_Callback(hObject, eventdata, handles)
-% hObject    handle to txtWindowLength (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of txtWindowLength as text
-%        str2double(get(hObject,'String')) returns contents of txtWindowLength as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function txtWindowLength_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtWindowLength (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on key press with focus on gui_BrainMovie3D or any of its controls.
-function gui_BrainMovie3D_WindowKeyPressFcn(hObject, eventdata, handles)
-% hObject    handle to gui_BrainMovie3D (see GCBO)
-% eventdata  structure with the following fields (see FIGURE)
-%	Key: name of the key that was pressed, in lower case
-%	Character: character interpretation of the key(s) that was pressed
-%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --- Executes on button press in chkAdaptBMLimits.
-function chkAdaptBMLimits_Callback(hObject, eventdata, handles)
-% hObject    handle to chkAdaptBMLimits (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of chkAdaptBMLimits
-
-handles.opts.adaptLimits = get(hObject,'Value');
-assignin('base','opts',handles.opts);
-guidata(hObject,handles);
-
-
-% --- Executes on button press in chkPauseSIFT.
-function chkPauseSIFT_Callback(hObject, eventdata, handles)
-% hObject    handle to chkPauseSIFT (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of chkPauseSIFT
-handles.opts.doSIFT = ~get(hObject,'Value');
-assignin('base','opts',handles.opts);
-guidata(hObject,handles);
 
 
 % --- Executes when pnlPropertyGridFltPip is resized.
@@ -416,4 +340,60 @@ function pnlPropertyGridSiftPip_ResizeFcn(hObject, eventdata, handles)
 function pnlPropertyGridMisc_ResizeFcn(hObject, eventdata, handles)
 % hObject    handle to pnlPropertyGridMisc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in cmdSaveConfig.
+function cmdSaveConfig_Callback(hObject, eventdata, handles)
+% hObject    handle to cmdSaveConfig (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% get current contents of property grid
+handles = getPropertyGridContents(handles);
+opts    = handles.opts;
+
+% select the path/file for saving configs
+[fname fpath] = uiputfile('*.mat','Save Config File');
+% save the opts structure
+save(fullfile(fpath,fname),'opts');
+
+
+% --------------------------------------------------------------------
+function mnu_File_Callback(hObject, eventdata, handles)
+% hObject    handle to mnu_File (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Load a configuration file and update Property Grids ------------
+function mnu_LoadCfg_Callback(hObject, eventdata, handles)
+% hObject    handle to mnu_LoadCfg (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% load the configs
+[fname fpath] = uigetfile('*.mat','Load Config File');
+tmp = load(fullfile(fpath,fname),'opts');
+handles.opts = tmp.opts;
+
+% redraw the property grids
+handles = redrawPropertyGrids(hObject,handles);
+guidata(hObject,handles);
+
+% --------------------------------------------------------------------
+function mnu_SaveCfg_Callback(hObject, eventdata, handles)
+% hObject    handle to mnu_SaveCfg (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+cmdSaveConfig_Callback(hObject,eventdata,handles);
+
+
+% --- Executes on key press with focus on gui_MetaControlPanel or any of its controls.
+function gui_MetaControlPanel_WindowKeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to gui_MetaControlPanel (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
