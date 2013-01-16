@@ -86,7 +86,7 @@ function [AR PE lambdaOpt] = mvar_ridge(varargin)
 verb = arg_extract(varargin,{'verb','Verbosity'},[],0);
 
 g = arg_define([0 1],varargin, ...
-                arg_norep({'data','Data'},mandatory,[],'Data Matrix. Dimensions are [nchs x npnts].'), ...
+                arg_norep({'data','Data'},mandatory,[],'Data Matrix. Dimensions are [nchs x npnts x ntr].'), ...
                 arg({'p','ModelOrder','morder'},10,[],'VAR Model order'), ...
                 arg_subswitch({'lambdaSelMode','LambdaSelectionMode'},'automatic', ...
                 {'manual',{ ...
@@ -97,7 +97,12 @@ g = arg_define([0 1],varargin, ...
                     } ...
                  },'Selection mode for lambda. Automatic (GCV grid search) or Manual (must provide lambda)'), ...
                 arg({'varPrior','VariancePrior'},1,[0 Inf],'Parameter covariance prior (sigma). If sigma a scalar, the parameter covariance prior is taken to be a diagonal matrix with sigma (variance) on diagonals. Otherwise, sigma can be a full prior covariance matrix. A sparse matrix is advised if covariance matrix is not dense.'), ...
-                arg({'verb','Verbosity'},verb,[],'Verbose output','type','logical') ...
+                arg({'normcols','NormCols'},'zscore',{'none','norm','zscore'},'Normalize data. Columns of data matrix X and target vector Y are normalized using the chosen method.'), ...
+                arg_subtoggle({'warmStart','WarmStart'},[], ...
+                {...
+                    arg({'initState','InitialState'},[],[],'Initial BSBL state object. If empty, last state will be used.') ...
+                },'Warm start. The previously estimated state will be used as a starting estimate for successive BSBL operations. Alternately, you may provide an non-empty initial state structure via the ''InitialState'' argument.'), ...
+                arg({'verb','Verbosity'},verb,[],'Verbose output','type','int32','mapper',@(x)int32(x)) ...
                 );
 
 % arg({'scaled','UseScaling'},true,[],'Scaling option. If set, coefficient estimates are restored to the scale of the original data'), ...
@@ -106,22 +111,40 @@ arg_toworkspace(g);
 
 [nchs npnts ntr] = size(data);
 
-% assemble predictors X and target variables Y for the structural equation
-% Y = XA + noise
+% % initialize state
+% if g.warmStart.arg_selection && ~isempty(g.warmStart.initState)
+%     initAR = g.warmStart.initState;
+% elseif ~g.warmStart.arg_selection
+%     % reset initAR
+%     initAR = struct([]);
+% end
+% if isfield(initAR,'x') && size(initAR.x,1) ~= p*nchs^2
+%     % dimensions have changed, reset state
+%     fprintf('mvar_BSBL: model dimensions changed -- resetting state\n');
+%     initAR = struct([]);
+% end
 
-X = [];
-Y = [];
-for itr = 1:ntr
-    Xi = [];
-    for jj = 1:p
-        Xi = cat(3, Xi, squeeze(data(:, p+1-jj:end-jj, itr))');
-    end
-    X = cat(1, X, reshape(permute(Xi, [1 3 2]), npnts-p, nchs*p));
-    Y = cat(1,Y,data(:, p+1:end,itr)');
+% assemble the predictor (design) matrix and target vector
+[X Y] = hlp_mkVarPredMatrix(g.data,p);
+
+% normalization
+switch lower(g.normcols)
+    case 'zscore'
+        % standardize columns of X and Y (unit variance)
+        X = zscore(X,1,1);
+        Y = zscore(Y,1,1);
+    case 'norm'
+        % normalize columns of X and Y (unit norm)
+        X = bsxfun(@rdivide,X,sqrt(sum(X.^2)));
+        Y = bsxfun(@rdivide,Y,sqrt(sum(Y.^2)));
 end
 
-Y = vec(Y);
-X = blkdiageye(X,nchs);
+% It is convenient to express A as a column vector so we must...
+% vectorize the target matrix...
+Y = hlp_vec(Y);
+% ...and expand predictor matrix
+X = blkdiageye(sparse(X),nchs);
+
 
 switch g.lambdaSelMode.arg_selection
     case 'manual'
@@ -149,7 +172,3 @@ if nargout>1
     res = res(:,:);
     PE = cov(res');
 end
-
-
-function v = vec(x)
-v = x(:);

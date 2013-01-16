@@ -1,25 +1,23 @@
-function arg_toworkspace(args,doyield)
+function arg_toworkspace(args)
 % Copy the arguments in the given Struct into the workspace of the calling function. 
-% arg_toworkspace(Struct,Yield)
+% arg_toworkspace(Struct)
 %
 % In:
 %   Struct : an argument structure, as produced by arg_define
 %
-%   Yield : When true, this function reports ("yields") the field 'report_args' to the framework, given that it is non-empty.
+% Examples:
+%   function myfunction(varargin)
+%   opts = arg_define(varargin, ...
+%               arg(...), ...
+%               arg(...));
 %
-% Implementation Note:
-%   The Yield functionality is implemented by means of an exception that is recognized by arg_report().
+%   arg_toworkspace(opts);
 %
-%                               Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
-%                               2010-09-24
-
-global bcilab;
-
-% check if we need to return the Struct to the framework
-if exist('doyield','var') && doyield && ~isempty(args.report_args)
-    bcilab.temp.report_args = args.report_args;
-    error('BCILAB:arg:report_args','This (internal) exception is destined to be caught by arg_report(); please do not interfere with it.');
-end
+% See also:
+%   arg_define
+%
+%                                Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
+%                                2010-09-24
 
 % place the variables in the caller's workspace
 for fn=fieldnames(args)'

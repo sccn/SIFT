@@ -1,6 +1,6 @@
-function [inargs,outargs] = hlp_inoutargs(filename,funcname)
+function [inargs,outargs,h1] = hlp_inoutargs(filename,funcname)
 % Retrieve the names of input/output arguments of the given m file.
-% [In-Args,Out-Args] = hlp_inoutargs(Filename,Function-Name)
+% [In-Args,Out-Args,H1-Line] = hlp_inoutargs(Filename,Function-Name)
 %
 % In:
 %   Filename        : full path to an m-file
@@ -10,6 +10,7 @@ function [inargs,outargs] = hlp_inoutargs(filename,funcname)
 % Out:
 %   In-Args  : cell array of input argument names for the function
 %   Out-Args : cell array of output argument names for the function
+%   H1-Line  : first line of help text
 %
 % Notes:
 %   For heavy use, utl_fileversion is to be preferred (which caches the result of this function properly).
@@ -17,12 +18,16 @@ function [inargs,outargs] = hlp_inoutargs(filename,funcname)
 %                           Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
 %                           2010-04-14
 
+h1 = [];
+
 if ~exist('funcname','var')
     funcname = []; end
 
 if ~exist(filename,'file')
     error(['there is no file named ' filename]); end
-f = fopen(filename);
+f = fopen(filename,'r');
+if f == -1
+    error(['Cannot open the file named ' filename]); end
 try
     while 1
         % read the file line by line
@@ -47,12 +52,12 @@ try
             iend = strfind(l,')')-1;
             % and read them in (note: both ranges could be empty)
             if ~(isempty(istart) || isempty(iend))
-                inargs = explode(l(istart:iend),', '); 
+                inargs = hlp_split(l(istart:iend),', '); 
             else
                 inargs = {};
             end
             if ~(isempty(ostart) || isempty(oend))
-                outargs = explode(l(ostart:oend),', '); 
+                outargs = hlp_split(l(ostart:oend),', '); 
             else
                 outargs = {};
             end
@@ -80,9 +85,16 @@ try
             end
         end
     end
+    try
+        % check if we find a commented line... this would be the h1 line
+        l = fgetl(f);
+        comm = find(l=='%',1);
+        if ~isempty(comm)
+            h1 = strtrim(l(comm+1:end)); end
+    catch
+    end
     fclose(f);
-catch
-    e = lasterror; %#ok<LERR>
+catch e
     if f ~= -1
         fclose(f); end
     rethrow(e);

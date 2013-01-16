@@ -6,7 +6,8 @@ function [data g] = pre_detrend(varargin)
 %
 % Inputs:
 %
-%   EEG:        EEG data structure
+%   data:           raw EEG data
+%   SamplingRate:   data sampling rate
 %
 % Optional:     <'Name',Value> pairs
 %
@@ -23,7 +24,7 @@ function [data g] = pre_detrend(varargin)
 %                       Input Data Type: boolean
 % Outputs:
 %
-%   EEG:        processed EEG structure
+%   data:       processed EEG data
 %   g:          argument specification structure
 %
 % See Also: pop_pre_prepData(), pre_prepData(), detrend()

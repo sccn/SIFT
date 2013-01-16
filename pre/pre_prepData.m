@@ -229,10 +229,14 @@ MyChannelNames   = [];
 if ~isempty(EEG)
     
     % determine the allowable signal types
-    if any(cellfun(@isempty,{EEG.icaweights}))
-        defSigType = {'Channels'};
-    else
-        defSigType = {'Components','Channels'};
+    defSigType = {'Channels'};
+    if ~any(cellfun(@isempty,{EEG.icaweights}))
+        % if EEG contains icaweights, allow components
+        defSigType = [defSigType {'Components'}];
+    end
+    if ~any(cellfun(@(x) isfield(x,'srcpot') && ~isempty(x.srcpot), {EEG}))
+        % if EEG contains the field 'srcpot', allow sources
+        defSigType = [defSigType {'Sources'}];
     end
     
     clear EEG;
@@ -308,8 +312,8 @@ switch lower(g.sigtype.arg_selection)
             'curComps',curComps,                   ...
             'curComponentNames', MyComponentNames, ...
             'times',   EEG.times,                  ...
-            'pnts',    EEG.pnts,                   ...
-            'trials',  EEG.trials                  ...
+            'pnts',    size(EEG.icaact,2),         ...
+            'trials',  size(EEG.icaact,3)          ...
             );
     case 'channels'
         % specify default channel names
@@ -331,6 +335,23 @@ switch lower(g.sigtype.arg_selection)
             'times',   EEG.times,                  ...
             'pnts',    EEG.pnts,                   ...
             'trials',  EEG.trials                  ...
+            );
+    case 'sources'
+        curComps = 1:size(EEG.CSD,1);
+        if isempty(g.varnames)
+            MyComponentNames = strtrim(cellstr(num2str(curComps'))');
+        else
+            MyComponentNames = g.varnames;
+        end
+        % create dataset
+        EEG.CAT = hlp_sift_emptyset(               ...
+            'srcdata', EEG.srcpot,                 ...
+            'nbchan',  size(EEG.srcpot,1),         ...
+            'curComps',curComps,                   ...
+            'curComponentNames', MyComponentNames, ...
+            'times',   EEG.times,                  ...
+            'pnts',    size(EEG.srcpot,2),         ...
+            'trials',  size(EEG.srcpot,3)          ...
             );
 end
 
@@ -407,7 +428,7 @@ end
 arglist = {};
 
 if any(strcmpi(defSigType,'components'))
-    arglist{end+1} = {'Components' {arg({'componentsToKeep','ComponentsToKeep'},[],[],'Vector of component indices to keep','shape','matrix')}};
+    arglist{end+1} = {'Components' {}};  %arg({'componentsToKeep','ComponentsToKeep'},[],[],'Vector of component indices to keep')
 end
 
 if any(strcmpi(defSigType,'channels'))

@@ -1,11 +1,12 @@
 function res = hlp_varargin2struct(args, varargin)
 % Convert a list of name-value pairs into a struct with values assigned to names.
-% struct = hlp_varargin2struct(varargin, defaults)
+% struct = hlp_varargin2struct(Varargin, Defaults)
 %
 % In:
-%   varargin: cell array of names-value pairs (may also contain structs in place of NVPs, see notes)
+%   Varargin : cell array of name-value pairs and/or structs (with values assigned to names)
 %
-%   defaults: optional name-value list of defaults (may also contain structs in place of NVPs, see notes)
+%   Defaults : optional list of name-value pairs, encoding defaults; multiple alternative names may 
+%              be specified in a cell array
 %
 % Example:
 %   function myfunc(x,y,z,varargin)
@@ -29,8 +30,26 @@ function res = hlp_varargin2struct(args, varargin)
 %     ... ,{'standard_name','alt_name_x','alt_name_y'}, 20, ...
 %
 % Out: 
-%   struct: structure with values assigned to names; 
-%           if the caller function does not retrieve the struct, the variables are instead copied into the caller's workspace.
+%   Result : a struct with fields corresponding to the passed arguments (plus the defaults that were
+%            not overridden); if the caller function does not retrieve the struct, the variables are
+%            instead copied into the caller's workspace.
+%
+% Examples:
+%   % define a function which takes some of its arguments as name-value pairs
+%   function myfunction(myarg1,myarg2,varargin)
+%   opts = hlp_varargin2struct(varargin, 'myarg3',10, 'myarg4',1001, 'myarg5','test');
+%
+%   % as before, but this time allow an alternative name for myarg3
+%   function myfunction(myarg1,myarg2,varargin)
+%   opts = hlp_varargin2struct(varargin, {'myarg3','legacyargXY'},10, 'myarg4',1001, 'myarg5','test');
+%
+%   % as before, but this time do not return arguments in a struct, but assign them directly to the
+%   % function's workspace
+%   function myfunction(myarg1,myarg2,varargin)
+%   hlp_varargin2struct(varargin, {'myarg3','legacyargXY'},10, 'myarg4',1001, 'myarg5','test');
+%
+% See also:
+%   hlp_struct2varargin, arg_define
 %
 %                               Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
 %                               2010-04-05
@@ -111,12 +130,17 @@ if ~isempty(args)
             end
         end
     catch
-        error(['invalid field name specified in arguments: ' args{k}]);
+        if ischar(args{k})
+            error(['invalid field name specified in arguments: ' args{k}]);
+        else
+            error(['invalid field name specified for the argument at position ' num2str(k)]);
+        end
     end
 end
 
 % check for missing but mandatory args
-missing_entries = strcmp(mandatory,struct2cell(res));
+% note: the used string needs to match mandatory.m
+missing_entries = strcmp('__arg_mandatory__',struct2cell(res)); 
 if any(missing_entries)
     fn = fieldnames(res)';
     fn = fn(missing_entries);

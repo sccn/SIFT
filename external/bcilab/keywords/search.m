@@ -1,4 +1,5 @@
 function res = search(varargin)
+%   Special keyword to declare parameter values to search over.
 %   search(x,y,z,...) or search([x,y,z,....]) or search({x,y,z,...}) expresses
 %   a parameter range (i.e. set of possible parameter values, to be searched for) in a grid search.
 %
@@ -10,7 +11,7 @@ function res = search(varargin)
 %   for use as argument to utl_gridsearch, utl_searchmodel, utl_nested_crossval, etc.
 %
 % See also:
-%   utl_gridsearch(), utl_searchmodel(), utl_nested_crossval()
+%   utl_gridsearch, utl_searchmodel, utl_nested_crossval
 %
 %                               Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
 %                               2010-04-22

@@ -36,12 +36,12 @@ function [z, history] = admm_gl(varargin)
 g = arg_define([0 3],varargin, ...
                 arg_norep({'A','DesignMatrix'},mandatory,[],'The design matrix. This is the data matrix (ie X).'), ...
                 arg_norep({'y','TargetVector'},mandatory,[],'The target vector'), ...
-                arg_norep({'blks','Blocks'},mandatory,[],'Array containing the lengths of each block'), ...
+                arg_norep({'blks','Blocks'},mandatory,[],'Block (Group) size. Array containing the number of elements in each block (group) of coefficients. ie: blks = [5 5 10] is two blocks of size 5 followed by a block of size 10.'), ...
                 arg_nogui({'designMatrixBlockSize','DesignMatrixBlockSize'},[],[],'Design matrix structure. If empty, do not exploit structure for faster computation. If non-empty, the design matrix consists of identical blocks along the main diagonal. ''DesignMatrixBlockSize'' is the [numrow numcol] size of each block.'), ...
                 arg({'lambda','ReguParamLambda','RegularizationParam'},[],[0 Inf],'Regularization parameter (lambda)'), ...
                 arg({'rho','AugLagrangParamRho','AugmentedLagrangianParam'},1.0,[0 Inf],'Initial value of augmented Lagrangian parameter (rho)'), ...
                 arg({'alpha','OverRelaxationParamAlpha','OverRelaxationParam','Alpha'},1.7,[0 Inf],'Over-relaxation parameter (alpha). Typical values are between 1.5 and 1.8'), ...
-                arg({'z_init','InitialState','initAR'},[],[],'Initial state vector','shape','matrix'), ...
+                arg_nogui({'z_init','InitialState','initAR'},[],[],'Initial state vector','shape','matrix'), ...
                 arg({'verb','Verbosity'},false,[],'Verbose output'), ...
                 arg({'max_iter','MaxIterations'},1000,[],'Maximum number of iterations'), ...
                 arg({'compute_objval','ComputeObjectiveValue'},false,[],'Compute objective value function. Slower processing. Useful mainly for diagnostics'), ...
@@ -75,35 +75,6 @@ end
 %% defaults
 g.compute_objval = nargout > 1 || g.compute_objval;
 
-%% select lambda using heuristic
-% example based on [2]
-if isempty(g.lambda)
-
-    nblks = length(blks);
-    
-    if g.verb, fprintf('Using heuristic g.lambda selection...'); end
-        
-    cum_part = cumsum(blks(1:nblks-1));
-    
-    % guess regularization param for 
-    % each group of coefficients
-    K = nblks-1;
-    start_ind = 1;
-    lambdas = zeros(1,K);
-    
-    for i = 1:K
-        sel = start_ind:cum_part(i);
-        lambdas(i) = norm(A(:,sel)'*y);
-        start_ind = cum_part(i) + 1;
-    end
-    lambda_max = max(lambdas);
-
-    % regularization parameter as fraction of 
-    % maximum group regularization parameter
-    g.lambda = 0.1*lambda_max;
-    
-    if g.verb, fprintf('...g.lambda set to %0.10g\n',g.lambda); end
-end
 
 %% Data preprocessing
 
@@ -111,6 +82,7 @@ end
 
 % save a matrix-vector multiply
 Aty = A'*y;
+
 % check that sum(blks) = total number of elements in x
 if (sum(blks) ~= n)
     error('invalid partition');
@@ -118,6 +90,67 @@ end
 
 % cumulative partition
 cum_part = cumsum(blks);
+
+% check if blocks are equal size
+eqSizeBlocks = all(blks==blks(1));
+nblks        = length(blks);
+
+
+%% select lambda using heuristic
+% example based on reference [2]
+
+if isempty(g.lambda)
+    if g.verb, fprintf('Using heuristic lambda selection...'); end
+        
+    % compute a rough estimate of the variance for each block
+    % and store the maximum of the variance estimates.
+    if eqSizeBlocks
+        % fast path
+        lambda_max  = max( norms( reshape(Aty,n/nblks,nblks) ) );
+    else
+        % slow path
+        lambda_max  = -Inf;
+        start_ind   = 1;
+        for i = 1:nblks
+            sel        = start_ind:cum_part(i);
+            lambda_max = max( lambda_max, norm(Aty(sel)) );
+            start_ind  = cum_part(i) + 1;
+        end
+    end
+
+    % regularization parameter as a fraction of max block variance
+    % (this is our a-priori estimate of the noise variance)
+    g.lambda = 0.1*lambda_max;
+    
+    if g.verb, fprintf('...g.lambda set to %0.10g\n',g.lambda); end
+end
+
+
+% if isempty(g.lambda)
+%     
+%     if g.verb, fprintf('Using heuristic g.lambda selection...'); end
+%         
+%     cum_part = cumsum(blks(1:nblks-1));
+%     
+%     % guess regularization param for 
+%     % each group of coefficients
+%     K = nblks-1;
+%     start_ind = 1;
+%     lambdas = zeros(1,K);
+%     
+%     for i = 1:K
+%         sel = start_ind:cum_part(i);
+%         lambdas(i) = norm(A(:,sel)'*y);
+%         start_ind = cum_part(i) + 1;
+%     end
+%     lambda_max = max(lambdas);
+% 
+%     % regularization parameter as fraction of 
+%     % maximum group regularization parameter
+%     g.lambda = 0.1*lambda_max;
+%     
+%     if g.verb, fprintf('...g.lambda set to %0.10g\n',g.lambda); end
+% end
 
 %% ADMM solver
 
@@ -171,10 +204,21 @@ for k = 1:max_iter
     zold = z;
     start_ind = 1;
     x_hat = g.alpha*x + (1-g.alpha)*zold;
-    for i = 1:length(blks),
-        sel = start_ind:cum_part(i);
-        z(sel) = shrinkage(x_hat(sel) + u(sel), g.lambda/g.rho);
-        start_ind = cum_part(i) + 1;
+    if eqSizeBlocks
+        % all blocks are same length, so reshape to [blocklen x numblks]
+        % and regularize blocks all at once for speed
+        z = shrinkage(  reshape(x_hat,n/nblks,nblks) ...
+                      + reshape(u,n/nblks,nblks),    ...
+                        g.lambda/g.rho );
+        z = reshape(z,n,1);
+    else
+        % blocks are different size, so regularize each in a loop
+        for i = 1:nblks
+            % regularize each block
+            sel = start_ind:cum_part(i);
+            z(sel) = shrinkage(x_hat(sel) + u(sel), g.lambda/g.rho);
+            start_ind = cum_part(i) + 1;
+        end
     end
           
     % diagnostics, reporting, termination checks
@@ -237,7 +281,7 @@ for k = 1:max_iter
             if lambda_counter > lambda_update_count
                 g.lambda = g.lambda/lambda_update_factor;
                 lambda_counter = 0;
-                if verb, fprintf('   relaxing g.lambda to %0.7g.\n',g.lambda); end
+                if verb, fprintf('  relaxing g.lambda to %0.7g.\n',g.lambda); end
             end
             
         end
@@ -274,7 +318,10 @@ end
 
 %% shrinkage function
 function z = shrinkage(x, kappa)
-    z = pos(1 - kappa/norm(x))*x;
+    % OPTIMIZATION NOTE: the call to norms() can be replaced
+    % with sqrt(mtimesx(x,'t',x)) or a call to DNorm2.m (FEX)
+    % This will produce faster performance, but requires compilation
+    z = bsxfun(@times,pos(1 - kappa./norms(x)),x);
 end
 
 %% cholesky factorization
