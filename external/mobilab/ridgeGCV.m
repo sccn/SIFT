@@ -1,4 +1,4 @@
-function [J,lambdaOpt,Yhat] = ridgeGCV(Y,K,L,lambdaOpt,nlambda,plotGCV,verb)
+function [J,lambdaOpt,Yhat] = ridgeGCV(Y,K,L,lambdaOpt,nlambda,plotGCV,verb,lambdaLearnRule)
 %[J,lambdaOpt] = ridgeGCV(Y,K,L,nlambda,plotGCV)
 %
 % Estimates a ridge regression model, also know as Tikhonov regularization, 
@@ -24,7 +24,7 @@ function [J,lambdaOpt,Yhat] = ridgeGCV(Y,K,L,lambdaOpt,nlambda,plotGCV,verb)
 % References:
 %   Pedro A. Valdés-Hernández, Alejandro Ojeda, Eduardo Martínez-Montes, Agustín
 %       Lage-Castellanos, Trinidad Virués-Alba, Lourdes Valdés-Urrutia, Pedro A.
-%       Valdes-Sosa, 2009. White matter White matter architecture rather than 
+%       Valdes-Sosa, 2009. White matter architecture rather than 
 %       cortical surface area correlates with the EEG alpha rhythm. NeuroImage 49
 %       (2010) 2328–2339
 
@@ -35,14 +35,15 @@ if nargin < 4 || isempty(lambdaOpt), lambdaOpt = -1; end
 if nargin < 5, nlambda = 100;end
 if nargin < 6, plotGCV = false;end
 if nargin < 7, verb = 0; end
-
+if nargin < 8, lambdaLearnRule = 'grid_gcv'; end
+    
 [U,S,V] = svd(K/L,'econ');
 V = L\V;
 s = diag(S);
 s2 = s.^2;
 UtY = U'*Y;
 
-if lambdaOpt<0
+if lambdaOpt<0 && strcmpi(lambdaLearnRule,'grid_gcv')
     % automatically find optimal lambda via grid search
     % for minimum of GCV
     tol = max([n p])*eps(max(s));

@@ -33,11 +33,11 @@ MU_array=cell(keep,1);
 iter_array=0;
 
 %%Hyperparameters
-c=10000;
-eta=median(N_k_st);
-SS=eta*mean(SIGMA_S,3);
-p1=1;
-p2=1;
+c=10000;                    %'c' in the paper
+eta=median(N_k_st);         % 'eta' in paper
+SS=eta*mean(SIGMA_S,3);     % 'S' in the paper
+p1=1;                       % 'a' in the paper
+p2=1;                       % 'b' in the paper
 
 
 %% run MCMC 

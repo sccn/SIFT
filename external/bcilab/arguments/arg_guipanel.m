@@ -3,9 +3,10 @@ function h = arg_guipanel(varargin)
 % Handle = arg_guipanel(Options ...)
 % Handle = arg_guipanel(Parent, Options ...)
 %
-% The handle supports the method .GetPropertySpecification(), by means of which the edited argument specification can be retrieved.
-% This result can be turned into a valid Function argument using arg_tovals(). Additional Parameters may be passed to the Function,
-% in order to override some of its defaults.
+% The handle supports the method .GetPropertySpecification(), by means of which the edited argument
+% specification can be retrieved. This result can be turned into a valid Function argument using
+% arg_tovals(). Additional Parameters may be passed to the Function, in order to override some of
+% its defaults.
 %
 % In:
 %   Parent : optional parent widget
@@ -18,21 +19,39 @@ function h = arg_guipanel(varargin)
 %              'Position' : position of the panel within the parent widget
 %
 % Out:
-%   Handle : handle to the panel; supports .GetPropertySpecification() to obain the edited specification
+%   Handle : handle to the panel; supports .GetPropertySpecification() to obain the edited 
+%            specification
 %
-%                               Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
-%                               2010-10-24
+% Examples:
+%   % get a uipanel that allows to edit parameters to a function
+%   f = figure;
+%   h = arg_guipanel(f,'Function',@myfunction);
+%
+%   % get a uipanel that allows to edit parameters to a function, and customize initial settings
+%   f = figure;
+%   h = arg_guipanel(f,'Function',@myfunction,'Parameters',{3,21,'test'});
+%
+%   % get a uipanel that allows to edit parameters to a function, and put it in a specific position
+%   f = figure;
+%   h = arg_guipanel(f,'Function',@myfunction,'Position',[0 0 100 200]);
+%
+% See also:
+%   arg_guidialog, arg_guidialog_ex, arg_define
+%
+%                                Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
+%                                2010-10-24
 
 % separate the parent, if specified
 if isscalar(varargin{1}) && ishandle(varargin{1})
     parent = varargin{1};
     varargin = varargin(2:end);
 else
-    parent = figure('MenuBar','none');
+    mp = get(0,'MonitorPositions')';
+    parent = figure('MenuBar','none','Position',[mp(3)/2-200,mp(4)/2-200,400,400]);
 end
 
 % get the options
-opts = hlp_varargin2struct(varargin, {'Function','func'},mandatory, {'Parameters','params'},{}, {'Position','pos'},[0 0 1 1]);
+opts = hlp_varargin2struct(varargin, {'Function','function','func'},mandatory, {'Parameters','parameters','params'},{}, {'Position','position','pos'},[0 0 1 1]);
 
 % obtain the argument specification for the function
 spec = arg_report('rich', opts.Function, opts.Parameters);

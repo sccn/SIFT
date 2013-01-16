@@ -1,4 +1,4 @@
-function Result = BSBL_BO(Phi, y, blkStartLoc, LearnLambda, varargin)
+function Result = BSBL_BO(varargin)
 
 % BSBL-BO: Recover block sparse signal (1D) exploiting intra-block correlation, given the block partition.
 %
@@ -107,77 +107,63 @@ function Result = BSBL_BO(Phi, y, blkStartLoc, LearnLambda, varargin)
 %   1.0 (08/27/2011)
 %
 
+arg_define(varargin, ...
+    arg_norep({'Phi','DesignMatrix','A'},mandatory,[],'The design matrix. This is the data matrix (ie X).'), ...
+    arg_norep({'y','TargetVector'},mandatory,[],'The target vector'), ...
+    arg_norep({'blks','Blocks'},mandatory,[],'Block (Group) size. Array containing the number of elements in each block (group) of coefficients. ie: blks = [5 5 10] is two blocks of size 5 followed by a block of size 10.'), ...
+    arg_nogui({'designMatrixBlockSize','DesignMatrixBlockSize'},[],[],'Design matrix structure. If empty, do not exploit structure for faster computation. If non-empty, the design matrix consists of identical blocks along the main diagonal. ''DesignMatrixBlockSize'' is the [numrow numcol] size of each block.'), ...
+    arg({'LearnLambda','LambdaLearningRule'},'LowNoise',{'off','LowNoise','HighNoise'},{'Lambda learning rule',sprintf(['\n' ...
+                                                                                          '''LowNoise'' :  Use the lambda learning rule for very LOW SNR cases (SNR<10dB). Uses lambda=std(y)*1e-2 or user-input value as initial value.\n\n' ...
+                                                                                          '''HighNoise'':  Use the lambda learning rule for medium noisy cases (SNR>10dB). Uses lambda=std(y)*1e-2 or user-input value as initial value.\n\n' ...
+                                                                                          '''off'':        Do not use the lambda learning rule. Uses lambda=1e-14 or user-input value as initial value' ...
+                                                                                          ])}), ...
+    arg({'PRUNE_GAMMA','GammaPruningThresh'},[],[0 Inf],{'Gamma Pruning threshold',sprintf(['\n' ...
+                                                           'Threshold for prunning small hyperparameters gamma_i. Blocks of parameters are pruned when their ''power'' (gamma_i) is small.\n'    ...
+                                                           'In noisy cases, you can set PRUNE_GAMMA = 1e-3 or 1e-4. \n'   ...
+                                                           'In strong noisy cases (e.g. SNR <= 6 dB), set PRUNE_GAMMA = 1e-2 for better performance.' ...
+                                                         ])}), ...
+    arg({'LAMBDA','InitialLambda','Lambda'},[],[],'Initial regularization value (lambda). If empty, the initial value is estimated from the data.','type','denserealdouble'), ...                                                        
+    arg({'EPSILON','StoppingTolerance'},1e-8,[0 Inf],'Stopping tolerance. The algorithm terminates when the L2 norm of the change in parameter estimates is small than this value.'), ...
+    arg({'LEARNTYPE','LearnCorrelation'},true,[],'Exploit correlation structure.'), ...
+    arg({'MAX_ITERS','MaxIterations'},600,[1 Inf],'Maximum iterations'), ...
+    arg({'PRINT','VerboseOutput','verb'},false,[],'Verbosity'), ...
+    arg_nogui({'initState','InitialState'},[],[],'Initial BSBL state object for warm start.') ...
+    );
 
-% scaling...
+% Error checks
+if isstruct(initState) && ~isempty(initState) && ~all(isfield(initState,{'x' 'B'}))
+	error('Invalid format for Input Argument ''initState''. This should be a structure such as output by BSBL_BO.');
+end
+
+% Modify some arguments
+switch LearnLambda
+    case 'off',         LearnLambda = 0;
+    case 'LowNoise',    LearnLambda = 1;
+    case 'HighNoise',   LearnLambda = 2;
+end
+
+% Determine scaling factor
 scl = std(y);
-if (scl < 0.4) | (scl > 1)
+if (scl < 0.4) || (scl > 1)
     y = y/scl*0.4;
 end
 
-% Default Parameter Values for Any Cases
-EPSILON       = 1e-8;       % solution accurancy tolerance
-MAX_ITERS     = 600;        % maximum iterations
-PRINT         = 0;          % don't show progress information
-LEARNTYPE     = 1;          % adaptively estimate the covariance matrix B
-InitState     = struct([]);
-
-if LearnLambda == 0  
-    lambda = 1e-12;   
-    PRUNE_GAMMA = 1e-3;
-elseif LearnLambda == 2
-    lambda = scl * 1e-2;    
-    PRUNE_GAMMA = 1e-2;
-elseif LearnLambda == 1
-    lambda = scl * 1e-2;    
-    PRUNE_GAMMA = 1e-2;
-else
-    error(['Unrecognized Value for Input Argument ''LearnLambda''']);
+% Specify some default values
+if isempty(LAMBDA)
+    LAMBDA = fastif(LearnLambda,scl*1e-2,1e-12);
+end
+if isempty(PRUNE_GAMMA)
+    PRUNE_GAMMA = fastif(LearnLambda,1e-2,1e-3);
 end
 
-
-if(mod(length(varargin),2)==1)
-    error('Optional parameters should always go by pairs\n');
-else
-    for i=1:2:(length(varargin)-1)
-        switch lower(varargin{i})
-            case 'learntype'
-                LEARNTYPE = varargin{i+1};
-                if LEARNTYPE ~= 1 & LEARNTYPE ~= 0
-                    error(['Unrecognized Value for Input Argument ''LEARNTYPE''']);
-                end
-            case 'prune_gamma'
-                if ~isempty(varargin{i+1})
-                    PRUNE_GAMMA = varargin{i+1}; 
-                end
-            case 'lambda'
-                if ~isempty(varargin{i+1})
-                    lambda = varargin{i+1};   
-                end
-            case 'epsilon'   
-                EPSILON = varargin{i+1}; 
-            case 'print'    
-                PRINT = varargin{i+1}; 
-            case 'max_iters'
-                MAX_ITERS = varargin{i+1};  
-            case 'initstate'
-                InitState = varargin{i+1};
-                if isstruct(InitState) && ~isempty(InitState) && ~isfield(InitState,'x')
-                    error(['Invalid Parameter for Input Argument ''InitState''']);
-                end
-            otherwise
-                error(['Unrecognized parameter: ''' varargin{i} '''']);
-        end
-    end
-end
-
-
+% Print some information
 if PRINT
     fprintf('\n====================================================\n');
-    fprintf('           Running BSBL-BO ....... \n');
-    fprintf('           Information about parameters...\n');
+    fprintf('           Running BSBL-BO                \n');
+    fprintf('           Information about parameters   \n');
     fprintf('====================================================\n');
     fprintf('PRUNE_GAMMA  : %e\n',PRUNE_GAMMA);
-    fprintf('lambda       : %e\n',lambda);
+    fprintf('LAMBDA       : %e\n',LAMBDA);
     fprintf('LearnLambda  : %d\n',LearnLambda);    
     fprintf('LearnType    : %d\n',LEARNTYPE);
     fprintf('EPSILON      : %e\n',EPSILON);
@@ -187,39 +173,36 @@ end
 
 %% Initialization
 [N,M] = size(Phi);
+blkStartLoc = [1 cumsum(blks(1:length(blks)-1))+1];
 Phi0 = Phi;
 blkStartLoc0 = blkStartLoc;
-p = length(blkStartLoc);   % block number
-for k = 1 : p-1
-    blkLenList(k) = blkStartLoc(k+1)-blkStartLoc(k);
-end
-blkLenList(p) = M - blkStartLoc(end)+1;
-maxLen = max(blkLenList);
-if sum(blkLenList == maxLen) == p, 
+blks0 = blks;
+nblks = length(blkStartLoc);   % number of blocks
+maxLen = max(blks);
+if all(blks==blks(1))
     equalSize = 1;
 else
     equalSize = 0;
 end
 
-for k = 1 : p
-    Sigma0{k} = eye(blkLenList(k));
-end
+% initialize Sigma0 (cell array containing each block's covariance matrix)
+Sigma0 = arrayfun(@(x)speye(x), blks, 'UniformOutput',false);
 
-if isempty(InitState)
+if isempty(initState)
     % initialize to default state
-    gamma = ones(p,1);
-    keep_list = [1:p]';
-    usedNum = length(keep_list);
-    mu_x = zeros(M,1);
-    count = 0;
+    gamma       = ones(nblks,1);
+    keep_list   = (1:nblks)';
+    usedNum     = length(keep_list);
+    mu_x        = zeros(M,1);
+    count       = 0;
 else
     % initialize based on input state
-    gamma = InitState.gamma_est;
-    keep_list = (1:length(gamma))'; %InitState.gamma_used;
-    usedNum = length(keep_list);
-    mu_x = InitState.x;
-    count = 0;
-    lambda = InitState.lambda;
+    gamma       = initState.gamma_est;
+    keep_list   = (1:length(gamma))'; %initState.gamma_used;
+    usedNum     = length(keep_list);
+    mu_x        = initState.x;
+    count       = 0;
+    LAMBDA      = initState.lambda;
 end
 
 %      Result.x          : the estimated block sparse signal
@@ -230,16 +213,15 @@ end
 %      Result.lambda     : the final value of lambda
 
 
+%% Main Iteration Loop
+while count < MAX_ITERS
 
-%% Iteration
-while (1)
-    count = count + 1;
-
-    %=========== Prune weights as their hyperparameters go to zero ==============
+    
+    %===== Prune weights and blocks as their hyperparameters go to zero ===
     if (min(gamma) < PRUNE_GAMMA)
-        index = find(gamma > PRUNE_GAMMA);
-        usedNum = length(index);
-        keep_list = keep_list(index); 
+        blks2keep = find(gamma > PRUNE_GAMMA);
+        usedNum   = length(blks2keep);
+        keep_list = keep_list(blks2keep); 
         if isempty(keep_list), 
             fprintf('\n====================================================================================\n');
             fprintf('x becomes zero vector. The solution may be incorrect. \n');
@@ -247,250 +229,227 @@ while (1)
             fprintf('Try smaller values of ''prune_gamma'' and ''EPSILON'' or normalize ''y'' to unit norm.\n');
             fprintf('====================================================================================\n\n');
             break; 
-        end;
-        blkStartLoc = blkStartLoc(index);
-        blkLenList = blkLenList(index);
-        
-        % prune gamma and associated components in Sigma0 
-        gamma = gamma(index);
-        temp = Sigma0;
-        Sigma0 = [];
-        for k = 1 : usedNum
-            Sigma0{k} = temp{index(k)};
         end
-%         Sigma0 = Sigma0(index);  % replace above with this
+        
+        % Prune gamma and associated components in Sigma0
+        % (retain only blocks with nonzero gamma)
+        gamma  = gamma(blks2keep);
+        Sigma0 = Sigma0(blks2keep);
 
-        % construct new Phi
+        % Prune the design matrix Phi 
+        % (retain only blocks with nonzero gamma)
         
-        % TODO: replace below with this:
-%         idx2Keep = zeros(1,sum(blkLenList));
-%         curidx = 1;
-%         for k = 1 : usedNum
-%             idx2Keep(curidx:blkLenList(k)) = blkStartLoc(k):blkStartLoc(k)+blkLenList(k)-1;
-%             curidx = curidx+blkLenList(k);
-%         end
-%         Phi = Phi0(:,idx2Keep);
-        
-        temp = [];
-        for k = 1 : usedNum
-            temp = [temp, Phi0(:,blkStartLoc(k):blkStartLoc(k)+blkLenList(k)-1)];
+        % get linear indices into blocks
+        blkStartLoc = blkStartLoc0(blks2keep);
+        blks        = blks0(blks2keep);
+        blkInd2keep = zeros(1,sum(blks));
+        curidx = 1;
+        for k = 1:usedNum
+            blkInd2keep(curidx:curidx+blks(k)-1) = blkStartLoc(k):blkStartLoc(k)+blks(k)-1;
+            curidx = curidx+blks(k);
         end
-        Phi = temp;
-        %clear temp;
+        Phi = Phi0(:,blkInd2keep);
+        
+%         temp = [];
+%         for k = 1 : usedNum
+%             temp = [temp, Phi0(:,blkStartLoc(k):blkStartLoc(k)+blkLen{k}-1)];
+%         end
+%         Phi = temp;
+%         clear temp;
     end
 
+    % get linear indices of elements in each block
+    blkLen = cellfun(@(x)size(x,1), Sigma0);
+    blkInd = cell(1,usedNum);
+    for gidx = 1:usedNum
+        blkInd{gidx} = (gidx-1)*blkLen(gidx)+1 : gidx*blkLen(gidx);
+    end
+    
     %=================== Compute new weights =================
     mu_old = mu_x;
     
+%     PhiBPhi = cellfun(...
+%         @(Sigma0_i,blkInd_i) Phi(:,blkInd_i)*Sigma0_i*Phi(:,blkInd_i)', ...
+%         Sigma0, blkInd,'UniformOutput',false);
+
     PhiBPhi = zeros(N);
-    currentLoc = 0;
-    for i = 1 : usedNum
-        
-        currentLen = size(Sigma0{i},1);
-        currentLoc = currentLoc + 1;
-        currentSeg = currentLoc : 1 : currentLoc + currentLen - 1;
-        
-        PhiBPhi = PhiBPhi + Phi(:, currentSeg)*Sigma0{i}*Phi(:, currentSeg)';
-        currentLoc = currentSeg(end);
+    for i=1:usedNum
+        PhiBPhi = PhiBPhi + Phi(:,blkInd{i})*Sigma0{i}*Phi(:,blkInd{i})';
     end
-     
-    H = Phi' /(PhiBPhi + lambda * eye(N));
-    Hy = H * y;      
+    
+    H    = Phi'/(PhiBPhi + LAMBDA * speye(N));
+    Hy   = H * y;      
     HPhi = H * Phi;
     
-    mu_x = zeros(size(Phi,2),1);
-    Sigma_x = [];
-    Cov_x = [];
-     
-    B = []; invB = []; B0 = zeros(maxLen); r0 = zeros(1); r1 = zeros(1);
-    currentLoc = 0;
-    for i = 1 : usedNum
+    % Compute mean and covariance of parameters
+    mu_x    = cellfun(...
+        @(Sigma0_i,blkInd_i) Sigma0_i*Hy(blkInd_i), ...
+        Sigma0,blkInd,'UniformOutput',false);
+    Sigma_x = cellfun( ...
+        @(Sigma0_i,blkInd_i) Sigma0_i-Sigma0_i*HPhi(blkInd_i,blkInd_i)*Sigma0_i, ...
+        Sigma0, blkInd,'UniformOutput',false);
+    Cov_x   = cellfun( ...
+        @(Sigma_xi,mu_xi) Sigma_xi + mu_xi*mu_xi', ...
+        Sigma_x, mu_x,'UniformOutput',false);
+    mu_x    = cell2mat(cellfun(@transpose,mu_x,'UniformOutput',false))';
+
+    %=========== Learn correlation structure ===========
+    if LEARNTYPE == 0
+        % assume identity correlation structure
+        [B invB] = deal(cellfun(@eye,blkLen,'UniformOutput',false));
+       
+    elseif LEARNTYPE == 1
+        % constrain all the blocks to have the same correlation structure
+        r0 = 0;
+        r1 = 0;
+        B0 = zeros(maxLen);
         
-        currentLen = size(Sigma0{i},1);
-        currentLoc = currentLoc + 1;
-        seg = currentLoc : 1 : currentLoc + currentLen - 1;
-        
-        mu_x(seg) = Sigma0{i} * Hy(seg);       % solution
-        Sigma_x{i} = Sigma0{i} - Sigma0{i} * HPhi(seg,seg) * Sigma0{i};
-        Cov_x{i} = Sigma_x{i} + mu_x(seg) * mu_x(seg)';
-        currentLoc = seg(end);
-        
-        %=========== Learn correlation structure in blocks ===========
-        % do not consider correlation structure in each block
-        if LEARNTYPE == 0
-            B{i} = eye(currentLen);
-            invB{i} = eye(currentLen);
- 
-        % constrain all the blocks have the same correlation structure
-        elseif LEARNTYPE == 1
+        for i = 1 : usedNum
             if equalSize == 0
-                if currentLen > 1
-                    temp = Cov_x{i}/gamma(i);
-                    r0 = r0 + mean(diag(temp));
-                    r1 = r1 + mean(diag(temp,1));
+                if blkLen(i) > 1
+                    tmp = Cov_x{i}/gamma(i);
+                    r0  = r0 + mean(diag(tmp));
+                    r1  = r1 + mean(diag(tmp,1));
                 end
             elseif equalSize == 1
                 B0 = B0 + Cov_x{i}/gamma(i);
             end
+        end
 
-        end % end of learnType
-
-    end
+    end % if LEARNTYPE
+        
+    %%
     
     %=========== Learn correlation structure in blocks with Constraint 1 ===========
     % If blocks have the same size
-    if (equalSize == 1) && (LEARNTYPE == 1)
+    if (LEARNTYPE == 1) && (equalSize == 1)
 
         % Constrain all the blocks have the same correlation structure
         % (an effective strategy to avoid overfitting)
         b = (mean(diag(B0,1))/mean(diag(B0)));
-        if abs(b) >= 0.99, b = 0.99*sign(b); end;
-        bs = [];
-        for j = 1 : maxLen, bs(j) = (b)^(j-1); end;
-        B0 = toeplitz(bs);
- 
-        for i = 1 : usedNum
-             
-            B{i} = B0;
-            invB{i} = inverse(B{i});
+        if abs(b) >= 0.99
+            b = 0.99*sign(b); 
         end
+        B0   = toeplitz(b.^((1:maxLen)-1));
+        B    = repmat({B0},1,usedNum);
+        invB = repmat({inverse(B0)},1,usedNum);
+        
     
     % if blocks have different sizes
-    elseif (equalSize == 0) & (LEARNTYPE == 1)
-        r = r1/r0; if abs(r) >= 0.99, r = 0.99*sign(r); end;
-
-        for i = 1 : usedNum
-            currentLen = size(Cov_x{i},1);
-
-            bs = [];
-            for j = 1 : currentLen, bs(j) = r^(j-1); end;
-            B{i} = toeplitz(bs);
-            invB{i} = inverse(B{i});
-
+    elseif (LEARNTYPE == 1) && (equalSize == 0)
+        r = r1/r0; 
+        if abs(r) >= 0.99 
+            r = 0.99*sign(r); 
         end
-         
+        B    = cellfun(@(Cov_x_i) toeplitz(r.^((1:size(Cov_x_i,1))-1)), ...
+                       Cov_x, 'UniformOutput',false);
+        invB = cellfun(@inverse,B,'UniformOutput',false);
+
     end
 
-    
-    % estimate gamma(i) and lambda 
-    if LearnLambda == 1          
-        gamma_old = gamma;
-        lambdaComp = 0; currentLoc = 0;
-        for i =  1 : usedNum
+    % update lambda and each block's gamma
+    % for speed, we use cellfun() throughout instead of looping over blocks
+    % ---------------------------------------------------------------------
+    gamma_old  = gamma;
 
-            currentLen = size(Sigma_x{i},1);
-            currentLoc = currentLoc + 1;
-            currentSeg = currentLoc : 1 : currentLoc + currentLen - 1;
-            
-            gamma(i) = gamma_old(i)*norm( sqrtm(B{i})*Hy(currentSeg) )/sqrt(trace(HPhi(currentSeg,currentSeg)*B{i}));
-            
-            lambdaComp = lambdaComp + trace(Phi(:,currentSeg)*Sigma_x{i}*Phi(:,currentSeg)');
-            
-            Sigma0{i} = B{i} * gamma(i);
-            
-            currentLoc = currentSeg(end);
-        end
-        lambda = norm(y - Phi * mu_x,2)^2/N + lambdaComp/N; 
-        
-          
-    elseif LearnLambda == 2    
-        gamma_old = gamma;
-        lambdaComp = 0;  currentLoc = 0;
-        for i =  1 : usedNum  
-            
-            currentLen = size(Sigma_x{i},1);
-            currentLoc = currentLoc + 1;
-            currentSeg = currentLoc : 1 : currentLoc + currentLen - 1;
- 
-            gamma(i) = gamma_old(i)*norm( sqrtm(B{i})*Hy(currentSeg) )/sqrt(trace(HPhi(currentSeg,currentSeg)*B{i}));
-            
-            lambdaComp = lambdaComp + trace(Sigma_x{i}*invB{i})/gamma_old(i);
-            
-            Sigma0{i} = B{i} * gamma(i);
-            
-            currentLoc = currentSeg(end);
-        end
-        lambda = norm(y - Phi * mu_x,2)^2/N + lambda * (length(mu_x) - lambdaComp)/N; 
-        
-    else   % only estimate gamma(i)
-        gamma_old = gamma;
-        currentLoc = 0;
-        for i =  1 : usedNum
-            % gamma(i) = trace(invB{i} * Cov_x{i})/size(Cov_x{i},1);
-            currentLen = size(Sigma0{i},1);
-            currentLoc = currentLoc + 1;
-            seg = currentLoc : 1 : currentLoc + currentLen - 1;
-            
-            gamma(i) = gamma_old(i)*norm( sqrtm(B{i})*Hy(seg) )/sqrt(trace(HPhi(seg,seg)*B{i}));
-            
-            Sigma0{i} = B{i} * gamma(i);
-            
-            currentLoc = seg(end);
-        end
+    % get the indices into each block
+    if LearnLambda
+        blkLen = cellfun(@(x)size(x,1), Sigma_x);
+    else
+        blkLen = cellfun(@(x)size(x,1), Sigma0);
     end
-
+    blkInd = cell(1,usedNum);
+    for gidx = 1:usedNum
+        blkInd{gidx} = (gidx-1)*blkLen(gidx)+1 : gidx*blkLen(gidx);
+    end
     
+    % compute gamma update factors...
+    gamfun = @(B_i,blkInd_i) ...
+               norm(sqrtm(B_i)*Hy(blkInd_i)) ...
+               /sqrt(trace(HPhi(blkInd_i,blkInd_i)*B_i));
+    gamupd = vec(cellfun(gamfun,B,blkInd));
+    % ...update the gammas
+    gamma  = gamma_old.*gamupd; 
+
+    % compute weighted covariance Sigma0{i} = B{i}*gamma(i)
+    Sigma0 = cellfun(@mtimes,B,arrayfun(@(x){x},gamma'),'UniformOutput',false);
+
+    % update lambda using the appropriate learning rule
+    switch LearnLambda
+        case 1
+            lambdafun  = @(Sigma_xi,blkInd_i) ...
+                           trace( Phi(:,blkInd_i)*Sigma_xi*Phi(:,blkInd_i)' );
+            lambdaComp = sum( cellfun(lambdafun,Sigma_x,blkInd) );
+            LAMBDA     = norm(y - Phi * mu_x, 2)^2/N + lambdaComp/N; 
+        case 2
+            lambdafun  = @(Sigma_xi,invB_i,gamma_old_i) ...
+                           trace( Sigma_xi*invB_i )/gamma_old_i;
+            lambdatmp  = cellfun(lambdafun,Sigma_x,invB,arrayfun(@(x){x},gamma_old));           
+            lambdaComp = sum(cell2mat(lambdatmp));
+            LAMBDA     = norm(y - Phi * mu_x, 2)^2/N ...
+                         + LAMBDA*(length(mu_x)-lambdaComp)/N;
+    end
+        
+
     % ================= Check stopping conditions, eyc. ==============
     if (size(mu_x) == size(mu_old))
         dmu = max(max(abs(mu_old - mu_x)));
-        if (dmu < EPSILON)  break;  end;
-    end;
+        if (dmu < EPSILON), break; end
+    end
     if (PRINT) 
-        disp([' iters: ',num2str(count),...
-            ' num coeffs: ',num2str(usedNum), ...
-            ' min gamma: ', num2str(min(gamma)),...
-            ' gamma change: ',num2str(max(abs(gamma - gamma_old))),...
-            ' mu change: ', num2str(dmu)]); 
+        disp([' iters: ',       num2str(count),...
+            ' num coeffs: ',    num2str(usedNum), ...
+            ' min gamma: ',     num2str(min(gamma)),...
+            ' gamma change: ',  num2str(max(abs(gamma - gamma_old))),...
+            ' mu change: ',     num2str(dmu)]); 
     end;
-    if (count >= MAX_ITERS), if PRINT, fprintf('Reach max iterations. Stop\n\n'); end; break;  end;
 
-end;
+end % main while loop
 
+if (count >= MAX_ITERS) && PRINT
+    fprintf('Max iterations (%d) reached. BSBL solution may be sub-optimal.\n\n',MAX_ITERS);
+end
 
 
 if isempty(keep_list)
-    Result.x = zeros(M,1);
-    Result.gamma_used = [];
-    Result.gamma_est = zeros(p,1);
-    Result.B = B;
-    Result.count = count;
-    Result.lambdatrace = lambda;
-
+    Result.x            = zeros(M,1);
+    Result.gamma_used   = [];
+    Result.gamma_est    = zeros(nblks,1);
+    Result.B            = B;
+    Result.count        = count;
+    Result.lambdatrace  = LAMBDA;
 else
-    %% Expand hyperparameyers
-    gamma_used = sort(keep_list);
-    gamma_est = zeros(p,1);
+    %% Expand hyperparameters
+    gamma_used          = sort(keep_list);
+    gamma_est           = zeros(nblks,1);
     gamma_est(keep_list,1) = gamma;
 
 
     %% reconstruct the original signal
     x = zeros(M,1);
-    currentLoc = 0;
+    curLoc = 0;
     for i = 1 : usedNum
 
-        currentLen = size(Sigma0{i},1);
-        currentLoc = currentLoc + 1;
-        seg = currentLoc : 1 : currentLoc + currentLen - 1;
+        curBlkLen   = size(Sigma0{i},1);
+        curLoc      = curLoc + 1;
+        seg         = curLoc : 1 : curLoc + curBlkLen - 1;
 
-        realLocs = blkStartLoc0(keep_list(i)) : blkStartLoc0(keep_list(i))+currentLen-1;
+        realLocs    = blkStartLoc0(keep_list(i)) : blkStartLoc0(keep_list(i))+curBlkLen-1;
 
         x( realLocs ) = mu_x( seg );
-        currentLoc = seg(end);
+        curLoc        = seg(end);
     end
 
+    % restore parameters to original scale
     if (scl < 0.4) || (scl > 1)
         Result.x = x * scl/0.4;
     else
         Result.x = x;
     end
-    Result.gamma_used = gamma_used;
-    Result.gamma_est = gamma_est;
-    Result.B = B;
-    Result.count = count;
-    Result.lambda = lambda;
+    
+    Result.gamma_used   = gamma_used;
+    Result.gamma_est    = gamma_est;
+    Result.B            = B;
+    Result.count        = count;
+    Result.lambda       = LAMBDA;
 end
-
-return;
-
-
-

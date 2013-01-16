@@ -36,12 +36,16 @@ function x = arg_extract(args,names,position,default)
 %   % extract the sapling rate argument (by name, and fall back to some default if missing)
 %   x = arg_extract(varargin,{'srate','SamplingRate'},[],200);
 %
+% See also:
+%   arg_define
 %
 %                                Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
 %                                2010-09-24
 
 if ~iscell(names)
     names = {names}; end
+if ~iscell(args)
+    error('Args must be given as a cell array...'); end
 
 % collect the indices where the argument can appear in the Args
 indices = cellfun('isclass',args,'struct');
@@ -80,7 +84,6 @@ else
     if exist('default','var')
         x = default;
     else
-        x = [];
-%         error(['The argument ' hlp_tostring(names) ' was not specified, and no default was assigned.']);
+        error(['The argument ' hlp_tostring(names) ' was not specified, and no default was assigned.']);
     end
 end

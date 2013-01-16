@@ -14,18 +14,23 @@ function args = hlp_struct2varargin(struc,varargin)
 %  Args: a list of name-value pairs
 %
 % Examples:
-%  hlp_struct2varargin(options,'suppress',{'myarg1','myarg2'});
-%  hlp_struct2varargin(options,'rewrite',{'channels','chns','samplerate','srate'});
-%  hlp_struct2varargin(options,'restrict',{'test','arg1','arg2'});
+%   % in the given cell array of name-value pairs, remove occurrences of myarg1 and myarg2 parameters
+%   hlp_struct2varargin(options,'suppress',{'myarg1','myarg2'});
+%
+%   % rewrite any occurrences of a 'channel' parameter into 'chns', and likewise for samplerate
+%   hlp_struct2varargin(options,'rewrite',{'channels','chns','samplerate','srate'});
+%
+%   % restrict the given name-value pairs to those whose name is either test, arg1, or arg2.
+%   hlp_struct2varargin(options,'restrict',{'test','arg1','arg2'});
+%
+% See also:
+%   hlp_varargin2struct
 %
 %                               Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
 %                               2010-03-28
 
-if isempty(struc)
-    args = {};
-    return;
-end
-
+if isempty(struc), args = {}; return; end
+    
 opts = hlp_varargin2struct(varargin,'restrict',[],'suppress',[],'rewrite',[]);
 
 fields = fieldnames(struc)';

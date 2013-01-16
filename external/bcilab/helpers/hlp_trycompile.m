@@ -984,7 +984,8 @@ else
     ipath = '';
 end
 debugness = hlp_rewrite(o.debug,true,'-g',false,'-g:none');
-opts = [sprintf(' %s',verbosity,cpath,ipath,debugness) ' '];
+targetsource = '-target 1.6 -source 1.6';
+opts = [sprintf(' %s',verbosity,cpath,ipath,debugness,targetsource) ' '];
 
 
 % create mex options string from options struct

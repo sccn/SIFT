@@ -2,70 +2,133 @@ function res = arg_subtoggle(varargin)
 % Specify an argument of a function which is a struct of sub-arguments that can be disabled.
 % Spec = arg_subtoggle(Names,Default,Source,Help,Options...)
 %
-% Accessible to the function as a struct, and visible in the GUI as a an expandable sub-list of arguments (with a checkbox to toggle).
-% The special field 'arg_selection' (true/false) indicates whether the argument is enabled or not. The value assigned to the argument determines whether it
+% Accessible to the function as a struct, and visible in the GUI as a an expandable sub-list of
+% arguments (with a checkbox to toggle). The special field 'arg_selection' (true/false) indicates
+% whether the argument is enabled or not. The value assigned to the argument determines whether it
 % is turned on or off, as determined by the mapper option.
 %
 % In:
-%   Names : The name(s) of the argument. At least one must be specified, and if multiple are specified, they must be passed in a cell array.
-%           * The first name specified is the argument's "code" name, as it should appear in the function's code (= the name under which arg_define()
-%             returns it to the function).
-%           * The second name, if specified, is the "Human-readable" name, which is exposed in the GUIs (otherwise the code name is displayed).
-%           * Further specified names are alternative names for the argument (e.g., for backwards compatibility with older function syntaxes/parameter names).
+%   Names : The name(s) of the argument. At least one must be specified, and if multiple are
+%           specified, they must be passed in a cell array.
+%           * The first name specified is the argument's "code" name, as it should appear in the
+%             function's code (= the name under which arg_define() returns it to the function).
+%           * The second name, if specified, is the "Human-readable" name, which is exposed in the
+%             GUIs (if omitted, the code name is displayed).
+%           * Further specified names are alternative names for the argument (e.g., for backwards
+%             compatibility with older function syntaxes/parameter names).
 %
-%   Defaults : A cell array of arguments to override defaults for the Source; all syntax accepted by the (selected) Source is allowed here,
-%              whereas in the case of positional arguments, the leading arg_norep() arguments of the source are implicitly skipped.
-%              Note: Whether the argument is turned on or off is determined via the 'mapper' option.
-%                    By default, [] and 'off' are mapped to off, whereas {}, non-empty cell arrays and structs are mapped to on.
+%   Defaults : A cell array of arguments to override defaults for the Source; all syntax accepted by
+%              the (selected) Source is allowed here, whereas in the case of positional arguments,
+%              the leading arg_norep() arguments of the source are implicitly skipped. Note: Whether
+%              the argument is turned on or off is determined via the 'mapper' option. By default,
+%              [] and 'off' are mapped to off, whereas {}, non-empty cell arrays and structs are
+%              mapped to on.
 %
-%   Source : A source of argument specifications, usually a function handle (referring to a function which defines arguments via arg_define()).
+%   Source : A source of argument specifications, usually a function handle (referring to a function
+%            which defines arguments via arg_define()).
 %
-%            For convenience, a cell array with a list of argument declarations, formatted like the Specification part of an arg_define() clause
-%            can be given, instead. In this case, the effect is the same as specifying @some_function, for a function implemented as:
+%            For convenience, a cell array with a list of argument declarations, formatted like the
+%            Specification part of an arg_define() clause can be given, instead. In this case, the
+%            effect is the same as specifying @some_function, for a function implemented as:
 %
-%               function some_function(varargin)
-%               arg_define(Format,varargin,Source{:});
+%               function some_function(varargin) arg_define(Format,varargin,Source{:});
 %
 %   Help : The help text for this argument (displayed inside GUIs), optional. (default: []).
-%          (Developers: Please do *not* omit this, as it is the key bridge between ease of use and advanced functionality.)
+%          (Developers: Please do *not* omit this, as it is the key bridge between ease of use and
+%          advanced functionality.)
 %
-%          The first sentence should be the executive summary (max. 60 chars), any further sentences are a detailed explanation (examples, units, considerations).
-%          The end of the first sentence is indicated by a '. ' followed by a capital letter (beginning of the next sentence). If ambiguous,
-%          the help can also be specified as a cell array of 2 cells.
+%          The first sentence should be the executive summary (max. 60 chars), any further sentences
+%          are a detailed explanation (examples, units, considerations). The end of the first
+%          sentence is indicated by a '. ' followed by a capital letter (beginning of the next
+%          sentence). If ambiguous, the help can also be specified as a cell array of 2 cells.
 %
 %   Options... : Optional name-value pairs to denote additional properties:
-%                 'cat' :  The human-readable category of this argument, helpful to present a list of many parameters in a categorized list, and to separate
-%                          "Core Parameters" from "Miscellaneous" arguments. Developers: When choosing names, every bit of consistency with other function in the
+%                 'cat' :  The human-readable category of this argument, helpful to present a list
+%                          of many parameters in a categorized list, and to separate
+%                          "Core Parameters" from "Miscellaneous" arguments. Developers: When
+%                          choosing names, every bit of consistency with other function in the
 %                          toolbox helps the uses find their way (default: []).
 %
-%                 'fmt' : Optional format specification for the Source (if it is a cell array) (default: []). See arg_define() for a detailed explanation.
+%                 'fmt' : Optional format specification for the Source (if it is a cell array)
+%                         (default: []). See arg_define() for a detailed explanation.
 %
-%                 'mapper' : A function that maps the argument list (e.g., Defaults) to a value in the domain of selectors, and a potentially updated argument list.
-%                            The mapper is applied to the argument list prior to any parsing (i.e. it faces the raw argument list) to determine the current selection, and its
-%                            its second output (the potentially updated argument list) is forwarded to the Source that was selected, for further parsing.
+%                 'mapper' : A function that maps the argument list (e.g., Defaults) to a value in
+%                            the domain of selectors, and a potentially updated argument list. The
+%                            mapper is applied to the argument list prior to any parsing (i.e. it
+%                            faces the raw argument list) to determine the current selection, and
+%                            its its second output (the potentially updated argument list) is
+%                            forwarded to the Source that was selected, for further parsing.
 %
-%                            The default mapper maps [] and 'off' to off, whereas 'on', empty or non-empty cell arrays and structs are mapped to on.
+%                            The default mapper maps [] and 'off' to off, whereas 'on', empty or
+%                            non-empty cell arrays and structs are mapped to on.
 %
-%                 'merge': Whether a value (cell array of arguments) assigned to this argument should completely replace all arguments of the default,
-%                          or whether it should instead the two cell arrays should be concatenated ('merged'), so that defaults are only selectively overridden.
-%                          Note that for concatenation to make sense, the cell array of Defaults cannot be some subset of all allowed positional arguments, 
-%                          but must instead either be the full set of positional arguments (and possibly some NVPs) or be specified as NVPs in the first place.
+%                 'merge': Whether a value (cell array of arguments) assigned to this argument
+%                          should completely replace all arguments of the default, or whether it
+%                          should instead the two cell arrays should be concatenated ('merged'), so
+%                          that defaults are only selectively overridden. Note that for
+%                          concatenation to make sense, the cell array of Defaults cannot be some
+%                          subset of all allowed positional arguments, but must instead either be
+%                          the full set of positional arguments (and possibly some NVPs) or be
+%                          specified as NVPs in the first place.
 %
 %
 % Out:
-%   Spec : A cell array, that, when called as spec{1}(reptype,spec{2}{:}), yields a specification of the argument, for use by arg_define. 
-%          Technical note: Upon assignment with a value (via the assigner field), the
-%          'children' field of the specifier struct is populated according to how the selected (by the mapper) Source parses the value into arguments.
-%          The additional struct field 'arg_selection 'is introduced at this point.
+%   Spec : A cell array, that, when called as spec{1}(reptype,spec{2}{:}), yields a specification of
+%          the argument, for use by arg_define. Technical note: Upon assignment with a value (via
+%          the assigner field), the 'children' field of the specifier struct is populated according
+%          to how the selected (by the mapper) Source parses the value into arguments. The
+%          additional struct field 'arg_selection 'is introduced at this point.
 %
-% Notes:
-%   for MATLAB versions older than 2008a, type and shape checking is not necessarily enforced.
+% Examples:
+%   % define a function with an argument that can be turned on or off, and which has sub-arguments
+%   % that are effective if the argument is turned on (default: on); some valid calls are:
+%   % myfunction('somearg','testtest', 'myoption','off')
+%   % myfunction('somearg','testtest', 'myoption',[])     % alternative for: off
+%   % myfunction('somearg','testtest', 'myoption','on')
+%   % myfunction('somearg','testtest', 'myoption',{})     % alternatie for: on
+%   % myfunction('somearg','testtest', 'myoption',{'param1','test','param2',10})
+%   % myfunction('somearg','testtest', 'myoption',{'param2',10})
+%   % myfunction('testtest', {'param2',10})
+%   % myfunction('myoption', {'param2',10})
+%   function myfunction(varargin)
+%   arg_define(varargin, ...
+%       arg('somearg','test',[],'Some help.'), ...
+%       arg_subtoggle('myoption',},{},{ ...
+%           arg('param1',[],[],'Parameter 1.'), ...
+%           arg('param2',5,[],'Parameter 2.') ...
+%           }, 'Optional processing step. If selected, several sub-argument can be specified.'));
 %
-%                               Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
-%                               2010-09-24
+%   % define a function with an argument that can be turned on or off, and whose sub-arguments match
+%   % those of some other function (there declared via arg_define)
+%   function myfunction(varargin)
+%   arg_define(varargin, ...
+%       arg_subtoggle('myoption',},{},@someotherfunction, 'Optional processing step. If selected, several sub-argument can be specified.'));
+%
+%   % as before, but override some of the defaults of someotherfunction
+%   function myfunction(varargin)
+%   arg_define(varargin, ...
+%       arg_subtoggle('myoption',},{'param1',10},@someotherfunction, 'Optional processing step. If selected, several sub-argument can be specified.'));
+%
+%   % as before, but specify a custom mapper function that determines how myoption is passed, and 
+%   % what forms map to 'on' and 'off'
+%   function myfunction(varargin)
+%   arg_define(varargin, ...
+%       arg_subtoggle('myoption',},{},@someotherfunction, 'Optional processing step. If selected, several sub-argument can be specified.'.'mapper',@mymapper));
+%
+%   % as before, but specify a custom formatting function that determines the arguments in myoption 
+%   % may be passed (keeping the defaults regarding what forms map to 'on' and 'off')
+%   function myfunction(varargin)
+%   arg_define(varargin, ...
+%       arg_subtoggle('myoption',},{},@someotherfunction, 'Optional processing step. If selected, several sub-argument can be specified.'.'fmt',@myparser));
+%
+% See also:
+%   arg, arg_nogui, arg_norep, arg_sub, arg_subswitch, arg_define
+%
+%                                Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
+%                                2010-09-24
 
-% we return a function that an be invoked to yield a specification (its output is cached for efficiency)
-% packed in a cell array together with the remaining arguments
+% we return a function that an be invoked to yield a specification (its output is cached for
+% efficiency) packed in a cell array together with the remaining arguments
 res = {@invoke_argsubtoggle_cached,varargin};
 
 
@@ -108,9 +171,8 @@ if nargin(spec.mapper) == 1
 % parse the help
 if ~isempty(spec.help)
     try
-        spec.help = parse_help(spec.help);
-    catch
-        e = lasterror; %#ok<LERR>
+        spec.help = parse_help(spec.help,100);
+    catch e
         disp(['Problem with the help text for argument ' spec.names{1} ': ' e.message]);
         spec.help = {};
     end
@@ -120,7 +182,8 @@ end
 
 % uniformize Source syntax
 if iscell(source)
-    % args is a cell array instead of a function: we effectively turn this into a regular arg_define-using function (taking & parsing values)
+    % args is a cell array instead of a function: we effectively turn this into a regular
+    % arg_define-using function (taking & parsing values)
     source = @(varargin) arg_define(spec.fmt,varargin,source{:});
 else
     % args is a function: was a custom format specified?
@@ -132,8 +195,15 @@ else
 end
 spec = rmfield(spec,'fmt');
 
-% find out what boolean flag and value set the default configuration maps to
-% this is relevant for the merging option: in this case, we need to pull up the currect default and merge it with the passed value
+% wrap the default into a cell if necessary (note: this is convenience syntax)
+if isstruct(defaults)
+    defaults = {defaults};
+elseif ~iscell(defaults) && ~isequal(defaults,[])
+    error(['It is not allowed to use anything other than a cell array, a struct, or [] as defaults of an arg_subtoggle argument (here:' spec.names{1} ')']);
+end
+% resolve the default configuration into the boolean flag and value set; this is relevant for
+% the merging option: in this case, we need to pull up the currect default and merge it with the
+% passed value
 [default_sel,default_val] = spec.mapper(defaults);
 
 % set up the regular assigner
@@ -148,16 +218,22 @@ end
 
 
 function spec = assign_argsubtoggle(spec,value,reptype,source,default_sel,default_val,suppressNames)
+% precompute things that we might need later
 persistent arg_sel arg_desel;
 if isempty(arg_sel) || isempty(arg_sel)
     arg_sel = arg_nogui('arg_selection',true); arg_sel = arg_sel{1}([],arg_sel{2}{:});
     arg_desel = arg_nogui('arg_selection',false); arg_desel = arg_desel{1}([],arg_desel{2}{:});
 end
-
+% wrap the value into a cell if necessary (note: this is convenience syntax)
+if isstruct(value)
+    value = {value};
+elseif ~iscell(value) && ~isequal(value,[]) && ~isempty(default_val)
+    error(['For an arg_subtoggle argument that has non-empty defaults (here:' spec.names{1} '), it is not allowed to assign anything other than a cell array, a struct, or [] to it.']);
+end
 % retrieve the values for the realized switch option...
 [selected,value] = spec.mapper(value);
 % build the complementary alternative, if requested
-if strcmp(reptype,'build')    
+if strcmp(reptype,'build')
     if selected
         spec.alternatives{1} = arg_desel;
     else
@@ -201,7 +277,7 @@ spec.value = selected;
 
 
 
-
+% this function maps an argument list onto a binary flag (enabled status) plus value set to assign
 function [selected,args] = map_argsubtoggle(args)
 if isequal(args,'on')
     selected = true;

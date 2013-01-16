@@ -86,7 +86,7 @@ function [AR PE] = mvar_glADMM(varargin)
 % [2] S. Boyd, N. Parikh, E. Chu, B. Peleato, and J. Eckstein, "Distributed 
 %       Optimization and Statistical Learning via the Alternating Direction 
 %       Method of Multipliers". Foundations and Trends in Machine Learning, 
-%       Michael Jordan, Editor in Chief, 3(1):1?122, 2011.
+%       Michael Jordan, Editor in Chief, 3(1):1-122, 2011.
 %       http://www.stanford.edu/~boyd/papers/distr_opt_stat_learning_admm.html
 % [3] http://www.stanford.edu/~boyd/papers/admm/group_lasso/group_lasso_example.html
 %
@@ -128,6 +128,8 @@ g = arg_define([0 1],varargin, ...
   
 [nchs npnts ntr] = size(g.data);
 p = g.morder;
+blkrows   = npnts-p;
+blkcols   = p*nchs;
 
 % initialize state
 if g.warmStart.arg_selection && ~isempty(g.warmStart.initState)
@@ -142,90 +144,51 @@ if size(initAR,1) ~= p*nchs^2
     initAR = zeros(p*nchs^2,1);
 end
 
-% Indices for the diagonal elements (self connection)
-diagIdx = vec(repmat((1:p*(nchs+1):p*nchs^2), p, 1) + repmat((0:(p-1))', 1, nchs))';
-% Indices for the off-diagonal elements (connection to others)
-offDiagIdx = setdiff(1:p*nchs^2, diagIdx);
+% -------------------------------------------------------------------------
+% Build the predictor (design) matrix and target vectors
+% -------------------------------------------------------------------------
 
-% Reshape the design matrix into VAR[1] format
-%
-% X will be of size [ntr*(npnts-p) x nchs*p]
-% Y will be of size [ntr*(npnts-p) x nchs]
-%
-% X consists of ntr vertically stacked Toeplitz matrices.
-% Suppose ntr==1, M=nchs. Then X consists of M blocks [X1,...,XM]
-% where Xi is a matrix of size [npnts-p x p] containing 
-% the (1...p) order delay embedding of the data for channel i.
-% That is, Xi(:,k) is the data vector for channel i delayed by p+1-k 
-% samples (smaller k => more delay)
-%
-% Note that Y = X0.
-blocklen   = npnts-p;
-blockwidth = p*nchs;
-X = zeros(blocklen,blockwidth,ntr);
-Y = zeros(blocklen,nchs,ntr);
-for itr = 1:ntr
-    % initialize delay-embedding blocks
-    Xi = zeros(blocklen,nchs,p);
-    for jj = 1:p
-        Xi(:,:,jj) = squeeze(g.data(:, p+1-jj:end-jj, itr))';
-    end
-    % permute to [npnts x p x nchs] so each page is a 
-    % delay-embedding block for a given channel...
-    Xi = permute(Xi, [1 3 2]); 
-    % ... and concatenate blocks horizontally to form 2D design mat
-    % for this trial X(:,:,itr) = [X1 X2 ... XM]
-    X(:,:,itr) = reshape(Xi, blocklen, blockwidth);
-    
-    % extract 0-lag data matrix for this trial...
-    Y(:,:,itr) = g.data(:, p+1:end,itr)';
-end
-clear Xi;
-% reshape X and Y to stack trials vertically and form final 2D matrix
-X = permute(X,[1 3 2]);  % [npnts x trials x nchs]
-Y = permute(Y,[1 3 2]);
-X = reshape(X,blocklen*ntr,blockwidth);
-Y = reshape(Y,blocklen*ntr,nchs);
-
-% %% OLD METHOD
-% % Reshape the design matrix into VAR[1]
-% X = [];
-% Y = [];
-% for itr = 1:ntr
-%     Xi = [];
-%     for jj = 1:p
-%         Xi = cat(3, Xi, squeeze(g.data(:, p+1-jj:end-jj, itr))');
-%     end
-%     X = cat(1, X, reshape(permute(Xi, [1 3 2]), npnts-p, nchs*p));
-%     Y = cat(1,Y,g.data(:, p+1:end,itr)');
-% end
-
-% target vector
-Y = vec(Y);
+% assemble the predictor (design) matrix and target vector
+[X Y] = hlp_mkVarPredMatrix(g.data,p);
 
 % normalization
 switch lower(g.normcols)
     case 'zscore'
-        % standardize columns of X (unit variance)
+        % standardize columns of X and Y (unit variance)
         X = zscore(X,1,1);
-        Y = zscore(Y);
+        Y = zscore(Y,1,1);
     case 'norm'
-        % normalize columns of X (unit norm)
-        X     = bsxfun(@rdivide,X,sqrt(sum(X.^2)));
-        Y     = Y./norm(Y);
+        % normalize columns of X and Y (unit norm)
+        X = bsxfun(@rdivide,X,sqrt(sum(X.^2)));
+        Y = bsxfun(@rdivide,Y,sqrt(sum(Y.^2)));
 end
 
-% predictor design matrix
+% It is convenient to express A as a column vector so we must...
+% vectorize the target matrix...
+Y = hlp_vec(Y);
+% ...and expand predictor matrix
 X = blkdiageye(sparse(X),nchs);
+
+% If auto-prediction coefficients (connectivity matrix 'diagonals') are to
+% be smoothed separately, we place them in a special block at the end of
+% the coefficient vector. To acheive this, we also need to move the
+% associated predictors for these coefficients to the rightmost columns
+% of the predictor matrix
 if g.groupDiags
+    % Indices for the diagonal elements (self connection)
+    diagIdx = vec(repmat((1:p*(nchs+1):p*nchs^2), p, 1) + repmat((0:(p-1))', 1, nchs))';
+    % Indices for the off-diagonal elements (connection to others)
+    offDiagIdx = setdiff(1:p*nchs^2, diagIdx);
+
     X = [X(:, offDiagIdx) X(:, diagIdx)];
     blks = [p*ones(1,nchs*(nchs-1)),p*nchs];
 else
     blks = p*ones(1,nchs^2);
 end
 
-
+% -------------------------------------------------------------------------
 % Apply the ADMM method for group lasso estimation:
+% -------------------------------------------------------------------------
 % group penalize AR coefficients with different time-lags
 % between sources (nchs*(nchs-1) groups of size p). 
 [initAR] = admm_gl('A',X,  ...
@@ -233,7 +196,7 @@ end
                    'blks',blks, ...
                    g.admm_args, ...
                    'z_init',initAR, ...
-                   'designMatrixBlockSize',fastif(g.groupDiags,[],[blocklen*ntr blockwidth]));
+                   'designMatrixBlockSize',fastif(g.groupDiags,[],[blkrows*ntr blkcols]));
 
 % assemble coefficient matrices
 AR = zeros(p,nchs,nchs);

@@ -12,8 +12,15 @@ function data = hlp_rewrite(data,varargin)
 %
 %
 % Notes:
-%   No two oldval's may be equal.
-%   If there is no match, data remains unchanged.
+%   * No two oldval's may be equal. 
+%   * If there is no match, data remains unchanged.
+%
+% Examples:
+%   % rewrite short forms of some string into corresponding long forms
+%   hlp_rewrite(myinput, 'hp','highpass', 'lp','lowpass', 'bp','bandpass')
+% 
+%   % rewrite true to 'on' and false to 'off'
+%   hlp_rewrite(myinput, true,'on', false,'off')
 %
 %                               Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
 %                               2010-09-26

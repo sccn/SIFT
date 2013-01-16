@@ -40,30 +40,32 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% 
-    
-GUI_CONFIG_NAME = 'DARPA_DEMO_METACP_CFG_LATEST.mat'; %'MetaCPopts_Pyramind.mat'; %MetaCPopts_Pyramind.mat'; %'MetaCPopts.mat';
+RUN_LSL = false;
+GUI_CONFIG_NAME = 'DARPA_DEMO_METACP_CFG_FEWCHANS.mat'; %'MetaCPopts_Pyramind.mat'; %MetaCPopts_Pyramind.mat'; %'MetaCPopts.mat';
 GUI_BRAINMOVIE_CONFIG_NAME = 'DARPA_DEMO_BM_CFG.mat'; %'BMCFG.mat'
 
 %% establish where we will read/write prefs, etc from
 datapath = 'data:/';  % this is relative to the BCILAB root dir
-TrainingDataFile = 'christian-calib4.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
-TestingDataFile =  'christian-calib.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
+TrainingDataFile = 'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
+TestingDataFile =  'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
 
 %% Set up the name of the stream we will write to in the workspace
 streamname              = 'EEGDATA';
 LSL_SelectionProperty   = 'type';  % 'name'
 LSL_SelectionValue      = 'EEG';   % 'Cogionics'
- 
+
 %% load calibration recording
 raw = exp_eval(io_loadset([datapath TrainingDataFile],'markerchannel',{'remove_eventchns',false}));
 flt_pipeline('update');
 
 %% start LSL streaming
-run_readlsl('MatlabStream',streamname,'SelectionProperty',LSL_SelectionProperty,'SelectionValue',LSL_SelectionValue);
-
+if RUN_LSL == true
+    run_readlsl('MatlabStream',streamname,'SelectionProperty',LSL_SelectionProperty,'SelectionValue',LSL_SelectionValue);
+end
 %% ... OR read from datafile
-% run_readdataset('MatlabStream',streamname,'Dataset',io_loadset([datapath TestingDataFile],'markerchannel',{'remove_eventchns',false}));
-
+if RUN_LSL == false
+    run_readdataset('MatlabStream',streamname,'Dataset',io_loadset([datapath TestingDataFile],'markerchannel',{'remove_eventchns',false}));
+end
 %% initialize some variables
 [benchmarking.preproc     ...
  benchmarking.modeling    ...
@@ -72,6 +74,13 @@ run_readlsl('MatlabStream',streamname,'SelectionProperty',LSL_SelectionProperty,
 newPipeline     = true;
 newBrainmovie   = true;
 specOpts = [];
+
+% create a minimal moving average pipeline...
+% noflats = exp_eval_optimized(flt_movavg(flt_selchans(raw,{'FC3', 'FC4', 'FC2', 'FC1', 'C3', 'C4', 'C2', 'C1', 'CP3', 'CP4', 'CP2', 'CP1', 'P3', 'P4', 'P2', 'P1'})));
+noflats = exp_eval_optimized(flt_movavg(flt_selchans(raw,{'FC4', 'FC2', 'FC1', 'C4', 'C2', 'C1', 'CP3', 'CP4', 'CP2', 'CP1', 'P3', 'P4', 'P2', 'P1'})));
+highpassed = exp_eval_optimized(flt_fir(noflats,[0.5 1],'highpass'));
+goodchannels = exp_eval_optimized(flt_clean_channels('signal',highpassed,'min_corr',0.35,'ignored_quantile',0.3));
+
 
 %% initialize options
     

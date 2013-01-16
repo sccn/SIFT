@@ -969,7 +969,7 @@ for cnd = 1:length(g.Conn)
 %     %     prcthresh = repmat(prctile(c.Conn,4),(1-g.prcthresh)*100,3),[1 1 size(Conn,3) size(Conn,4)]);
     if g.useStats.arg_selection
         if isempty(Stats)
-            error('IFT:StatsThresholding:NoStats','You must supply a ''stats'' structure. See help');
+            error('SIFT:StatsThresholding:NoStats','You must supply a ''stats'' structure. See help');
             return;
         end
         % apply statistical threshold

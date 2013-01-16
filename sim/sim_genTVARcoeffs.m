@@ -77,7 +77,7 @@ g = arg_define([0 3],varargin, ...
               );
 
 
-arg_toworkspace(g,false);
+arg_toworkspace(g);
 
 %% convert prototype time-varying VAR specification into coefficients
 

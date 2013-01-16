@@ -11,6 +11,13 @@ function res = hlp_findscaling(X, scaling)
 % Out:
 %   Scale-Info  : scaling structure that can be used with hlp_applyscaling, to scale data
 %
+% Examples:
+%   scaleinfo = hlp_findscaling(data,'whiten')
+%   hlp_applyscaling(data,scaleinfo)
+%
+% See also:
+%   hlp_applyscaling
+%
 %               Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
 %               2010-03-28
 
@@ -22,11 +29,14 @@ switch scaling
         res = struct('add',{-mean(X)});
     case 'std'
         res = struct('add',{-mean(X)}, 'mul',{1./ std(X)});
+        res.mul(~isfinite(res.mul(:))) = 1;
     case 'minmax'
         res = struct('add',{-min(X)}, 'mul',{1./ (max(X) - min(X))});
+        res.mul(~isfinite(res.mul(:))) = 1;
     case 'whiten'
         [Uc,Lc] = eig(cov(X));
         res = struct('add',{-mean(X)},'project',{Uc * sqrt(inv(Lc))'});
+        res.project(~isfinite(res.project(:))) = 1;
     otherwise
         if ~isempty(scaling) && ~strcmp(scaling,'none')
             error('hlp_findscaling: unknown scaling mode specified'); end

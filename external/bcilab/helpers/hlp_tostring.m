@@ -2,9 +2,9 @@ function str = hlp_tostring(v)
 % Get an human-readable string representation of a data structure.
 % String = hlp_tostring(Data)
 %
-% The resulting string representations are usually executable, but there are corner cases
-% (e.g., certain function handles and large datasets), which are problematic. The function
-% hlp_serialize() fulfills this need - results are always executable but not easy to read.
+% The resulting string representations are usually executable, but there are corner cases (e.g.,
+% certain anonymous function handles and large data sets), which are not supported. For
+% general-purpose serialization, see hlp_serialize/hlp_deserialize.
 %
 % In:
 %   Data : a data structure
@@ -15,11 +15,18 @@ function str = hlp_tostring(v)
 % Notes:
 %   hlp_tostring has builtin support for displaying expression data structures.
 %
-%                                       Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
-%                                       2010-04-15
+% Examples:
+%   % get a string representation of a data structure
+%   hlp_tostring({'test',[1 2 3], struct('field','value')})
 %
-%                                       adapted from serialize.m
-%                                       (C) 2006 Joger Hansegord (jogerh@ifi.uio.no)
+% See also:
+%   hlp_serialize
+%
+%                                Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
+%                                2010-04-15
+%
+%                                adapted from serialize.m
+%                                (C) 2006 Joger Hansegord (jogerh@ifi.uio.no)
 
 n = 15;
 str = serializevalue(v,n);
@@ -34,11 +41,11 @@ elseif ischar(v)
     val = serializestring(v, n);
 elseif isa(v,'function_handle')
     val = serializefunction(v, n);
-elseif isfield(v,'bcilab') && isfield(v.bcilab,'expression')
-    val = serializevalue(v.bcilab.expression, n);
-elseif all(isfield(v,{'head','parts'}))
+elseif is_impure_expression(v)
+    val = serializevalue(v.tracking.expression, n);
+elseif has_canonical_representation(v)
     val = serializeexpression(v, n);
-elseif all(isfield(v,{'data','srate'}))
+elseif is_dataset(v)
     val = serializedataset(v, n);
 elseif isstruct(v)
     val = serializestruct(v, n);
@@ -47,22 +54,27 @@ elseif iscell(v)
 elseif isobject(v)
     val = serializeobject(v, n);
 else
-    error('Unhandled type %s', class(v));
+    try
+        val = serializeobject(v, n);
+    catch
+        error('Unhandled type %s', class(v));
+    end
 end
 
 %
 % Serialize a string
 %
 function val = serializestring(v,n)
-val              = ['''' v ''''];
-doConvertToUint8 = false;
-try
-    dummy = eval(val); %#ok<NASGU>
-catch
-    doConvertToUint8 = true;
-end
-if doConvertToUint8 || ~isequal(eval(val), v)
-    val = ['char(' serializevalue(uint8(v), n) ')'];
+if any(v == '''')
+    val = ['''' strrep(v,'''','''''') ''''];
+    try
+        if ~isequal(eval(val),v)
+            val = ['char(' serializevalue(uint8(v), n) ')']; end
+    catch
+        val = ['char(' serializevalue(uint8(v), n) ')']; 
+    end
+else
+    val = ['''' v ''''];
 end
 
 %
@@ -84,8 +96,8 @@ if ndims(v) < 3
                 val = ['[' num2str(v(1)) ':' num2str(v(end)) ']'''];
             else
                 val = ['[' num2str(v(1)) ':' num2str(v(2)-v(1)) ':' num2str(v(end)) ']'''];
-            end
-        else
+            end        
+        else            
             val = mat2str(v, n);
         end
     else
@@ -128,20 +140,27 @@ end
 % Serialize an expression
 %
 function val = serializeexpression(v, n)
-if numel(v.parts) > 0
-    val = [char(v.head) '('];
-    for fieldNo = 1:numel(v.parts)
-        val = [val serializevalue(v.parts{fieldNo}, n), ', ']; end
-    val = [val(1:end-2) ')'];
+if numel(v) > 1
+    val = ['['];
+    for k = 1:numel(v)
+        val = [val serializevalue(v(k), n), ', ']; end 
+    val = [val(1:end-2) ']'];
 else
-    val = char(v.head);
+    if numel(v.parts) > 0
+        val = [char(v.head) '('];
+        for fieldNo = 1:numel(v.parts)
+            val = [val serializevalue(v.parts{fieldNo}, n), ', ']; end
+        val = [val(1:end-2) ')'];
+    else
+        val = char(v.head);
+    end
 end
 
 %
-% Serialize a dataset
+% Serialize a data set
 %
 function val = serializedataset(v, n) %#ok<INUSD>
-val = '<EEGLAB dataset>';
+val = '<EEGLAB data set>';
 
 %
 % Serialize a struct by converting the field values using struct2cell
@@ -162,7 +181,7 @@ if numel(fieldNames)==0
     val = [val ')'];
 else
     val = [val(1:end-2) ')'];
-end
+end    
 if ~isvector(v)
     val = sprintf('reshape(%s, %s)', val, mat2str(size(v)));
 end
@@ -194,9 +213,9 @@ string___ = char(expression___);
 if string___(1) == '@'
     % we are dealing with a lambda function
     if is_symbolic_lambda(expression___)
-        result___ = eval(string___(27:end-21));
+        result___ = eval(string___(27:end-21));        
     else
-        error('cannot derive a function symbol from a non-symbolic lambda function.');
+        error('cannot derive a function symbol from a non-symbolic lambda function.'); 
     end
 else
     % we are dealing with a regular function handle

@@ -8,8 +8,11 @@ function spec = arg_specifier(varargin)
 % Out:
 %   A specifier that is recognized by arg_define.
 %
-%                               Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
-%                               2010-09-25
+% See also:
+%   arg_define
+%
+%                                Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
+%                                2010-09-25
 
 spec = struct(...
     ... % core properties 
