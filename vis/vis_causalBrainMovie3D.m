@@ -540,40 +540,44 @@ g = arg_define([0 2],varargin, ...
             { ...
             arg_subtoggle({'scalp','Scalp','plotscalp'},{}, ...
                         { 
-                        arg({'scalpres','Resolution'},'high',{'full','high','mid','low'},'Resolution for the BEM scalp mesh. Full/High/Mid/Low corresponds to 100/50/10/1% of original mesh resolution.'), ...
+                        arg({'scalpres','Resolution'},'high',{'full','high','mid','low','custommesh'},'Resolution for the BEM scalp mesh. Full/High/Mid/Low corresponds to 100/50/10/1% of original mesh resolution.'), ...
+                        arg({'volumefile','CustomMesh'},[],[],'Mesh structure. This only applies if ''Resolution'' is chosen to be ''custommesh''. This is a struct with fields ''vertices'' and ''faces'' defining the surface mesh. This can also be (1) a filename or path to custom mesh volume file or (2) the name of a variable in the base workspace containing the mesh or (3) an expression to evaluate in the workspace which returns the mesh structure.','type','expression','shape','row'), ...
                         arg({'scalptrans','Transparency','scalptransparency'},0.8,[0 1],'Transparency of the surface. Real number in [0 1], where 0=opaque, 1=transparent.'), ...
-                        arg({'scalpcolor','Color'},[1,.75,.65],[],'Layer color','cat','Layers'), ...
+                        arg({'scalpcolor','Color'},[1,.75,.65],[],'Layer color. Can be a single vector, or a [num_vertices x 3] matrix of colors','shape','matrix','cat','Layers'), ...
                         },'Superimpose semi-transparent mesh of scalp on brainmovie. UseOpenGL must be set to "on"','cat','Layers'), ...
             arg_subtoggle({'skull','Skull','plotskull'},[], ...
                         { 
-                        arg({'skullres','Resolution'},'high',{'full','high','mid','low'},'Resolution for the BEM skull mesh. Full/High/Mid/Low corresponds to 100/50/10/1% of original mesh resolution.'), ...
+                        arg({'skullres','Resolution'},'high',{'full','high','mid','low','custommesh'},'Resolution for the BEM skull mesh. Full/High/Mid/Low corresponds to 100/50/10/1% of original mesh resolution.'), ...
+                        arg({'volumefile','CustomMesh'},[],[],'Mesh structure. This only applies if ''Resolution'' is chosen to be ''custommesh''. This is a struct with fields ''vertices'' and ''faces'' defining the surface mesh. This can also be (1) a filename or path to custom mesh volume file or (2) the name of a variable in the base workspace containing the mesh or (3) an expression to evaluate in the workspace which returns the mesh structure.','type','expression','shape','row'), ...
                         arg({'skulltrans','Transparency','skulltransparency'},0.8,[0 1],'Transparency of the surface. Real number in [0 1], where 0=opaque, 1=transparent.'), ...
-                        arg({'skullcolor','Color'},[1,.75,.65],[],'Layer color','cat','Layers'), ...
+                        arg({'skullcolor','Color'},[1,.75,.65],[],'Layer color. Can be a single vector, or a [num_vertices x 3] matrix of colors','shape','matrix','cat','Layers'), ...
                         },'Superimpose semi-transparent mesh of skull on brainmovie. UseOpenGL must be set to "on"','cat','Layers'), ...
             arg_subtoggle({'csf','CSF','plotcsf'},[], ...
                         { 
-                        arg({'csfres','Resolution'},'high',{'full','high','mid','low'},'Resolution for the BEM csf mesh. Full/High/Mid/Low corresponds to 100/50/10/1% of original mesh resolution.'), ...
+                        arg({'csfres','Resolution'},'high',{'full','high','mid','low','custommesh'},'Resolution for the BEM csf mesh. Full/High/Mid/Low corresponds to 100/50/10/1% of original mesh resolution.'), ...
+                        arg({'volumefile','CustomMesh'},[],[],'Mesh structure. This only applies if ''Resolution'' is chosen to be ''custommesh''. This is a struct with fields ''vertices'' and ''faces'' defining the surface mesh. This can also be (1) a filename or path to custom mesh volume file or (2) the name of a variable in the base workspace containing the mesh or (3) an expression to evaluate in the workspace which returns the mesh structure.','type','expression','shape','row'), ...
                         arg({'csftrans','Transparency','csftransparency'},0.8,[0 1],'Transparency of the surface. Real number in [0 1], where 0=opaque, 1=transparent.'), ...
-                        arg({'csfcolor','Color'},[1,.75,.65],[],'Layer color','cat','Layers'), ...
+                        arg({'csfcolor','Color'},[1,.75,.65],[],'Layer color Can be a single vector, or a [num_vertices x 3] matrix of colors','shape','matrix','cat','Layers'), ...
                         },'Superimpose semi-transparent mesh of CSF layer on brainmovie. UseOpenGL must be set to "on"','cat','Layers'), ...
             arg_subtoggle({'cortex','Cortex','plotcortex'},{}, ...
                         {
-                        arg({'cortexres','Resolution'},'high',{'full','high','mid','low','smooth'},'Resolution for the LONI mesh atlas. Full/High/Mid/Low corresponds to 100/50/10/1% of original mesh resolution.'), ...
+                        arg({'cortexres','Resolution'},'high',{'full','high','mid','low','smooth','custommesh'},'Resolution for the LONI mesh atlas. Full/High/Mid/Low corresponds to 100/50/10/1% of original mesh resolution.'), ...
+                        arg({'volumefile','CustomMesh'},[],[],'Mesh structure. This only applies if ''Resolution'' is chosen to be ''custommesh''. This is a struct with fields ''vertices'' and ''faces'' defining the surface mesh. This can also be (1) a filename or path to custom mesh volume file or (2) the name of a variable in the base workspace containing the mesh or (3) an expression to evaluate in the workspace which returns the mesh structure.','type','expression','shape','row'), ...
                         arg({'cortextrans','Transparency'},0.7,[0 1],'Transparency of the surface. Real number in [0 1], where 0=opaque, 1=transparent.'), ...
                         arg_subswitch({'cortexcolor','Color'},'LONI_Atlas', ...
                             {'LONI_Atlas' { ...
                                 arg({'colormapping','Color'},[],[],'Color according to LONI Atlas. If empty then use colortable from LONI database. Can also be one of the following: An [N x 3] colortable defining the color atlas (N = number of atlas labels). A string containing a function to evaluate to return the colortable (e.g. ''jet(112)''). A cell array containing a colormap function name which accepts as input the number of labels (automatically determined) (e.g. {''jet''})','type','expression','shape','row','cat','Layers'), ...
                                 } ...
                              'Constant' { ...
-                                arg({'colormapping','Color'},[1 1 1],[],'Layer color','cat','Layers','type','expression'), ...
+                                arg({'colormapping','Color'},[1 1 1],[],'Layer color. Can be a single vector, or a [num_vertices x 3] matrix of colors','shape','matrix','cat','Layers','type','expression'), ...
                                 } ...
                             },'Layer color','cat','Layers') ...
                          },'Superimpose semi-transparent cortex mesh on brainmovie. UseOpenGL must be set to "on"','cat','Layers'), ...
             arg_subtoggle({'custom','CustomMesh'},[], ...
                         { 
-                        arg({'volumefile','VolumeMeshFile'},'',[],'Filename or path to custom mesh volume file. This can also be the name of a variable in the base workspace. This is a struct with fields ''vertices'' and ''faces'' defining the surface mesh.','type','char','shape','row'), ...
+                        arg({'volumefile','VolumeMeshFile'},[],[],'Mesh structure. This is a struct with fields ''vertices'' and ''faces'' defining the surface mesh. This can also be (1) a filename or path to custom mesh volume file or (2) the name of a variable in the base workspace containing the mesh or (3) an expression to evaluate in the workspace which returns the mesh structure.','type','expression','shape','row'), ...
                         arg({'meshtrans','Transparency','transparency'},0.8,[0 1],'Transparency of the surface. Real number in [0 1], where 0=opaque, 1=transparent.'), ...
-                        arg({'meshcolor','Color'},[1,.75,.65],[],'Layer color','cat','Layers'), ...
+                        arg({'meshcolor','Color'},[1,.75,.65],[],'Layer color. Can be a single vector, or a [num_vertices x 3] matrix of colors','shape','matrix','cat','Layers'), ...
                         },'Superimpose custom semi-transparent mesh on brainmovie. UseOpenGL must be set to "on"','cat','Layers'), ...            
             },'Enable Visualization Layers','cat','DisplayProperties'), ...
             arg({'facelighting','FaceLighting'},'phong',{'flat','gouraud','phong','none'},{'Lighting algorithm.', '''flat'' produces uniform lighting across each of the faces of the object. Fastest to render, but poorest quality','''gouraud'' calculates the vertex normals and interpolates linearly across the faces. Good quality and faster to render than phong. The default choice for most applications.','''phong'' interpolates the vertex normals across each face and calculates the reflectance at each pixel. Phong lighting generally produces better results than Gouraud lighting, but it takes longer to render.'}), ...
@@ -723,28 +727,20 @@ if g.BMopts.Layers.scalp.arg_selection
     % determine the file type and load it
     switch g.BMopts.Layers.scalp.scalpres
         case 'full'
-            filename = 'scalp_bem_mesh_fullres';
+            filename = 'scalp_bem_mesh_fullres.mat';
         case 'high'
-            filename = 'scalp_bem_mesh_50res';
+            filename = 'scalp_bem_mesh_50res.mat';
         case 'mid'
-            filename = 'scalp_bem_mesh_10res';
+            filename = 'scalp_bem_mesh_10res.mat';
         case 'low'
-            filename = 'scalp_bem_mesh_1res';
+            filename = 'scalp_bem_mesh_1res.mat';
+        case 'custommesh'
+            filename = g.BMopts.Layers.scalp.volumefile;
     end
+
+    g = hlp_loadMesh(g,filename,'scalp');
     
-    % check if file is in the base workspace, and if so, load from there
-    if evalin('base',sprintf('exist(''%s'',''var'');',filename))
-        g.BMopts.Layers.scalp.mesh = evalin('base',filename);
-    else
-        g.BMopts.Layers.scalp.mesh = load(sprintf('%s.mat',filename));
-        fn = fieldnames(g.BMopts.Layers.scalp.mesh);
-        if length(fn)==1 && isstruct(g.BMopts.Layers.scalp.mesh.(fn{1}))
-            g.BMopts.Layers.scalp.mesh = g.BMopts.Layers.scalp.mesh.(fn{1});
-        end
-    end
-    
-    g.BMopts.Layers.scalp.color = g.BMopts.Layers.scalp.scalpcolor;
-    
+    g.BMopts.Layers.scalp.color        = g.BMopts.Layers.scalp.scalpcolor;
     g.BMopts.Layers.scalp.transparency = g.BMopts.Layers.scalp.scalptrans;
 else
     g.BMopts.Layers.scalp.transparency = 1;
@@ -755,28 +751,31 @@ if g.BMopts.Layers.skull.arg_selection
     % determine the file type and load it
     switch g.BMopts.Layers.skull.skullres
         case 'full'
-            filename = 'skull_bem_mesh_fullres';
+            filename = 'skull_bem_mesh_fullres.mat';
         case 'high'
-            filename = 'skull_bem_mesh_50res';
+            filename = 'skull_bem_mesh_50res.mat';
         case 'mid'
-            filename = 'skull_bem_mesh_10res';
+            filename = 'skull_bem_mesh_10res.mat';
         case 'low'
-            filename = 'skull_bem_mesh_1res';
+            filename = 'skull_bem_mesh_1res.mat';
+        case 'custommesh'
+            filename = g.BMopts.Layers.skull.volumefile;
     end
+
+    g = hlp_loadMesh(g,filename,'skull');
     
-    % check if file is in the base workspace, and if so, load from there
-    if evalin('base',sprintf('exist(''%s'',''var'');',filename))
-        g.BMopts.Layers.skull.mesh = evalin('base',filename);
-    else
-        g.BMopts.Layers.skull.mesh = load(sprintf('%s.mat',filename));
-        fn = fieldnames(g.BMopts.Layers.skull.mesh);
-        if length(fn)==1 && isstruct(g.BMopts.Layers.skull.mesh.(fn{1}))
-            g.BMopts.Layers.skull.mesh = g.BMopts.Layers.skull.mesh.(fn{1});
-        end
-    end
+%     % check if file is in the base workspace, and if so, load from there
+%     if evalin('base',sprintf('exist(''%s'',''var'');',filename))
+%         g.BMopts.Layers.skull.mesh = evalin('base',filename);
+%     else
+%         g.BMopts.Layers.skull.mesh = load(sprintf('%s.mat',filename));
+%         fn = fieldnames(g.BMopts.Layers.skull.mesh);
+%         if length(fn)==1 && isstruct(g.BMopts.Layers.skull.mesh.(fn{1}))
+%             g.BMopts.Layers.skull.mesh = g.BMopts.Layers.skull.mesh.(fn{1});
+%         end
+%     end
     
-    g.BMopts.Layers.skull.color = g.BMopts.Layers.skull.skullcolor;
-    
+    g.BMopts.Layers.skull.color        = g.BMopts.Layers.skull.skullcolor;
     g.BMopts.Layers.skull.transparency = g.BMopts.Layers.skull.skulltrans;
 else
     g.BMopts.Layers.skull.transparency = 1;
@@ -787,28 +786,31 @@ if g.BMopts.Layers.csf.arg_selection
     % determine the file type and load it
     switch g.BMopts.Layers.csf.csfres
         case 'full'
-            filename = 'csf_bem_mesh_fullres';
+            filename = 'csf_bem_mesh_fullres.mat';
         case 'high'
-            filename = 'csf_bem_mesh_50res';
+            filename = 'csf_bem_mesh_50res.mat';
         case 'mid'
-            filename = 'csf_bem_mesh_10res';
+            filename = 'csf_bem_mesh_10res.mat';
         case 'low'
-            filename = 'csf_bem_mesh_1res';
+            filename = 'csf_bem_mesh_1res.mat';
+        case 'custommesh'
+            filename = g.BMopts.Layers.csf.volumefile;
     end
+
+    g = hlp_loadMesh(g,filename,'csf');
     
-    % check if file is in the base workspace, and if so, load from there
-    if evalin('base',sprintf('exist(''%s'',''var'');',filename))
-        g.BMopts.Layers.csf.mesh = evalin('base',filename);
-    else
-        g.BMopts.Layers.csf.mesh = load(sprintf('%s.mat',filename));
-        fn = fieldnames(g.BMopts.Layers.csf.mesh);
-        if length(fn)==1 && isstruct(g.BMopts.Layers.csf.mesh.(fn{1}))
-            g.BMopts.Layers.csf.mesh = g.BMopts.Layers.csf.mesh.(fn{1});
-        end
-    end
+%     % check if file is in the base workspace, and if so, load from there
+%     if evalin('base',sprintf('exist(''%s'',''var'');',filename))
+%         g.BMopts.Layers.csf.mesh = evalin('base',filename);
+%     else
+%         g.BMopts.Layers.csf.mesh = load(sprintf('%s.mat',filename));
+%         fn = fieldnames(g.BMopts.Layers.csf.mesh);
+%         if length(fn)==1 && isstruct(g.BMopts.Layers.csf.mesh.(fn{1}))
+%             g.BMopts.Layers.csf.mesh = g.BMopts.Layers.csf.mesh.(fn{1});
+%         end
+%     end
     
-    g.BMopts.Layers.csf.color = g.BMopts.Layers.csf.csfcolor;
-    
+    g.BMopts.Layers.csf.color        = g.BMopts.Layers.csf.csfcolor;
     g.BMopts.Layers.csf.transparency = g.BMopts.Layers.csf.csftrans;
 else
     g.BMopts.Layers.csf.transparency = 1;
@@ -819,29 +821,33 @@ if g.BMopts.Layers.cortex.arg_selection
     % determine the file type and load it
     switch g.BMopts.Layers.cortex.cortexres
         case 'full'
-            filename = 'LONImesh_fullres';
+            filename = 'LONImesh_fullres.mat';
         case 'high'
-            filename = 'LONImesh_50res';
+            filename = 'LONImesh_50res.mat';
         case 'mid'
-            filename = 'LONImesh_10res';
+            filename = 'LONImesh_10res.mat';
         case 'low'
-            filename = 'LONImesh_1res';
+            filename = 'LONImesh_1res.mat';
         case 'smooth'
-            filename = 'LONImesh_smooth_no_coreg';
+            filename = 'LONImesh_smooth_no_coreg.mat';
+        case 'custommesh'
+            filename = g.BMopts.Layers.cortex.volumefile;
     end
+
+    g = hlp_loadMesh(g,filename,'cortex');
     
-    % check if file is in the base workspace, and if so, load from there
-    if evalin('base',sprintf('exist(''%s'',''var'');',filename))
-        g.BMopts.Layers.cortex.mesh = evalin('base',filename);
-    else
-        g.BMopts.Layers.cortex.mesh = load(sprintf('%s.mat',filename));
-        fn = fieldnames(g.BMopts.Layers.cortex.mesh);
-        if length(fn)==1 && isstruct(g.BMopts.Layers.cortex.mesh.(fn{1}))
-            g.BMopts.Layers.cortex.mesh = g.BMopts.Layers.cortex.mesh.(fn{1});
-        end
-    end
+%     % check if file is in the base workspace, and if so, load from there
+%     if evalin('base',sprintf('exist(''%s'',''var'');',filename))
+%         g.BMopts.Layers.cortex.mesh = evalin('base',filename);
+%     else
+%         g.BMopts.Layers.cortex.mesh = load(sprintf('%s.mat',filename));
+%         fn = fieldnames(g.BMopts.Layers.cortex.mesh);
+%         if length(fn)==1 && isstruct(g.BMopts.Layers.cortex.mesh.(fn{1}))
+%             g.BMopts.Layers.cortex.mesh = g.BMopts.Layers.cortex.mesh.(fn{1});
+%         end
+%     end
     
-    g.BMopts.Layers.cortex.color = g.BMopts.Layers.cortex.cortexcolor;
+    g.BMopts.Layers.cortex.color        = g.BMopts.Layers.cortex.cortexcolor;
     g.BMopts.Layers.cortex.transparency = g.BMopts.Layers.cortex.cortextrans;
 else
     g.BMopts.Layers.cortex.transparency = 1;
@@ -849,21 +855,12 @@ end
 
 % handle custom layer
 if g.BMopts.Layers.custom.arg_selection
-    % determine the file type and load it
+    % load the mesh
+    
     filename = g.BMopts.Layers.custom.volumefile;
+    g = hlp_loadMesh(g,filename,'custom');
     
-    % check if file is in the base workspace, and if so, load from there
-    if evalin('base',sprintf('exist(''%s'',''var'');',filename))
-        g.BMopts.Layers.custom.mesh = evalin('base',filename);
-    else
-        g.BMopts.Layers.custom.mesh = load(filename);
-        fn = fieldnames(g.BMopts.Layers.custom.mesh);
-        if length(fn)==1 && isstruct(g.BMopts.Layers.custom.mesh.(fn{1}))
-            g.BMopts.Layers.custom.mesh = g.BMopts.Layers.custom.mesh.(fn{1});
-        end
-    end
-    
-    g.BMopts.Layers.custom.color = g.BMopts.Layers.custom.meshcolor;
+    g.BMopts.Layers.custom.color        = g.BMopts.Layers.custom.meshcolor;
     g.BMopts.Layers.custom.transparency = g.BMopts.Layers.custom.meshtrans;
 else
     g.BMopts.Layers.custom.transparency = 1;
@@ -1518,6 +1515,50 @@ end
 
 
 
+
+function g = hlp_loadMesh(g,filename,layer)
+% helper function to load a mesh
+%
+%
+% g         - is the config structure
+% layer     - is the fieldname of the layer we are working with 
+%             (scalp, csf, skull, cortex, custom)
+% filename  - determines where to find the mesh. filename is is either disk 
+%             filename, base varname, or base-evaluable command string.
+%             filename can also be an actual mesh structure.
+%
+
+% first check if we already have the mesh structure loaded
+if isstruct(g.BMopts.Layers.(layer).volumefile)
+        % volumefile contains the mesh
+        g.BMopts.Layers.(layer).mesh = g.BMopts.Layers.(layer).volumefile;
+else
+    % the mesh structure is either:
+    % (1) contained in a workspace variable or
+    % (2) contained in a file on disk or
+    % (3) returned as the result of evaluating volumefile as a command
+    %     in the base workspace 
+
+    % check if volumefile is a variable in the base workspace...
+    if evalin('base',sprintf('exist(''%s'',''var'');',filename))
+        % ...if so, copy it here
+        g.BMopts.Layers.(layer).mesh = evalin('base',filename);
+    elseif exist(filename,'file')==2
+        % volumefile is a file on disk, load it
+        g.BMopts.Layers.(layer).mesh = load(filename);
+        fn = fieldnames(g.BMopts.Layers.(layer).mesh);
+        if length(fn)==1 && isstruct(g.BMopts.Layers.(layer).mesh.(fn{1}))
+            g.BMopts.Layers.(layer).mesh = g.BMopts.Layers.(layer).mesh.(fn{1});
+        end
+    else
+        % try to evaluate the string in the workspace and get a mesh
+        try
+            g.BMopts.Layers.(layer).mesh = evalin('base',filename);
+        catch err
+            error('Unable to evaluate command %s in workspace\n. The following error was returned: %s\n',filename,err.message);
+        end
+    end
+end
 
 
 

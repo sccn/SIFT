@@ -6,6 +6,11 @@ function dipfit = hlp_makeDipfitStruct(sourceSpace,roiVertices,CSD)
 % interest. If this is provided, then dipfit.model(k).posxyz contains the
 % centroid location of the kth ROI and momxyz contains its mean moment.
     
+% The dipfit structure contains centroids (dipfit.model.posxyz) and
+% surface mesh (dipfit.model.surfmesh) for each ROI as well as complete 
+% surface mesh (dipfit.surfmesh). We also store the indices of each ROI
+% into the complete surface mesh (dipfit.model.meshVertices)
+    
 % Inputs:
 %   sourceSpace:    Surface structure containing fields 
 %                     .vertices [num_vertices x 3]
@@ -17,8 +22,11 @@ function dipfit = hlp_makeDipfitStruct(sourceSpace,roiVertices,CSD)
 %
 % Outputs:
 %   dipfit:         dipfit model (struct array) containing fields
-%                   .model.posxyz     dipole location
-%                   .model.momxyz     dipole moment
+%                   .surfmesh:           full surface mesh (faces, vertices)
+%                   .model.posxyz:       dipole location (X,Y,Z)
+%                   .model.momxyz:       dipole moment
+%                   .model.surfmesh:     ROI surface mesh (faces,vertices)
+%                   .model.meshVertices: ROI vertex indices into full mesh
 %
 % Author: Tim Mullen, 2013, SCCN/INC/UCSD
 
@@ -48,26 +56,28 @@ if ~isempty(CSD)
         momxyz  = sqrt(sum(CSD.^2,2));
         s   = sign(dot(normals,CSD,2));
         momxyz  = s.*momxyz; % momxyz are the moment vectors (scaled by power)
-%         obj.hVector = quiver3(sourceSpace.vertices(:,1),sourceSpace.vertices(:,2),sourceSpace.vertices(:,3),CSD(:,1),CSD(:,2),CSD(:,3),2);
     else
         momxyz = CSD;
-%         obj.hVector = quiver3(sourceSpace.vertices(:,1),sourceSpace.vertices(:,2),sourceSpace.vertices(:,3),normals(:,1),normals(:,2),normals(:,3),2);
     end
 else
     momxyz = zeros(numDipoles,3);
 end
+
+posxyz = zeros(numDipoles,3);
 
 % compute ROI averages
 if ~isempty(roiVertices)
     
     % average vertex locations (spatial centroid)
     % obtain surfaces for each ROI
-    for k=1:length(roiVertices)
-        [nVertices,nFaces] = geometricTools.getSurfaceROI(sourceSpace.vertices,sourceSpace.faces,roiVertices{k});
-        
-%         posxyz = cellfun(@(x) mean(sourceSpace.vertices(x,:),1)', ...
-%                          roiVertices, 'UniformOutput',false);
-        posxyz = cell2mat(posxyz)';
+    surfmesh = cell(1,numDipoles);
+    for k=1:numDipoles
+        [v,f]       = geometricTools.getSurfaceROI(sourceSpace.vertices,...
+                                                   sourceSpace.faces,   ...
+                                                   roiVertices{k});
+        surfmesh{k} = struct('vertices',v,'faces',f);
+        posxyz(k,:) = mean(meshcentroid(v,f));
+    end
     
     % average vertex moments
     if ~isempty(CSD)
@@ -80,19 +90,22 @@ end
 % construct the dipole model
 dipfit.hdmfile  = '';
 dipfit.mrifile  = '';
+dipfit.surfmesh = sourceSpace;
 dipfit.chanfile = '';
 dipfit.chansel  = [];
 dipfit.coordformat = 'MNI';
 dipfit.coord_transform = [0 0 0 0 0 0 1 1 1];
 
-for i=1:numDipoles
-    dipfit.model(i).posxyz      = posxyz(i,:);
-    dipfit.model(i).momxyz      = momxyz(i,:);
-    dipfit.model(i).rv          = 0;
-    dipfit.model(i).select      = 1;
-    dipfit.model(i).diffmap     = [];
-    dipfit.model(i).sourcepot   = [];
-    dipfit.model(i).datapot     = [];
+for k=1:numDipoles
+    dipfit.model(k).posxyz      = posxyz(k,:);
+    dipfit.model(k).momxyz      = momxyz(k,:);
+    dipfit.model(k).rv          = 0;
+    dipfit.model(k).select      = 1;
+    dipfit.model(k).diffmap     = [];
+    dipfit.model(k).sourcepot   = [];
+    dipfit.model(k).datapot     = [];
+    dipfit.model(k).meshVertices= roiVertices{k};
+    dipfit.model(k).surfmesh    = surfmesh{k};
 end
 
 

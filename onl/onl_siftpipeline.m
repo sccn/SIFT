@@ -26,6 +26,11 @@ cfg = arg_define([0 Inf],varargin, ...
 % pre-process data
 cfg.EEG = pre_prepData('EEG',cfg.EEG,cfg.preproc,'verb',cfg.verb);
 
+% if strcmp(cfg.preproc.sigtype.arg_selection,'Sources')
+%     % if using sources, construct the dipfit matrix
+%     cfg.EEG.dipfit = hlp_microcache('dipfit',@hlp_makeDipfitStruct,hmObj.sourceSpace,cfg.EEG.roiVertices);
+% end
+                
 % get the m-file name of the function implementing the modeling approach
 modelingFuncName = hlp_getModelingApproaches('mfileNameOnly',cfg.modeling.arg_selection);
 

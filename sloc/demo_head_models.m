@@ -1,4 +1,4 @@
-eeglab
+% eeglab
 try
 clear all
 close all
@@ -9,9 +9,10 @@ clear all
 close all
 end
 
-eeglabPath = fileparts(which('eeglab'));
-mobilabPath = '/Users/timmullen/Documents/WORK/Toolboxes/mobilab'; %[eeglabPath filesep 'plugins' filesep 'mobilab'];
-addpath(genpath(mobilabPath));
+%%
+% eeglabPath = fileparts(which('eeglab'));
+mobilabPath = 'C:\DevelCore\mobilab'; %'/Users/timmullen/Documents/WORK/Toolboxes/mobilab'; %[eeglabPath filesep 'plugins' filesep 'mobilab'];
+% addpath(genpath(mobilabPath));
 
 templateFile = [mobilabPath filesep 'data' filesep 'headModelColin27_11997.mat'];
 standardMontage = [mobilabPath filesep 'data' filesep 'standard_1020.elc'];
