@@ -40,19 +40,32 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% 
+COLOR_SOURCE_ROI = true;
 RUN_LSL = false;
-GUI_CONFIG_NAME = 'DARPA_DEMO_METACP_CFG_FEWCHANS.mat'; %'MetaCPopts_Pyramind.mat'; %MetaCPopts_Pyramind.mat'; %'MetaCPopts.mat';
-GUI_BRAINMOVIE_CONFIG_NAME = 'DARPA_DEMO_BM_CFG.mat'; %'BMCFG.mat'
+HEAD_MODEL_NAME = 'mobilab/Cognionics_64_HeadModelObj.mat';
+GUI_CONFIG_NAME = 'DEMO_SOURCELOC_METACP_CFG.mat'; 'DARPA_DEMO_METACP_CFG_FEWCHANS.mat'; %'MetaCPopts_Pyramind.mat'; %MetaCPopts_Pyramind.mat'; %'MetaCPopts.mat';
+GUI_BRAINMOVIE_CONFIG_NAME = 'DEMO_SOURCELOC_BM_CFG.mat'; %'DARPA_DEMO_BM_CFG.mat'; %'BMCFG.mat'
 
 %% establish where we will read/write prefs, etc from
 datapath = 'data:/';  % this is relative to the BCILAB root dir
-TrainingDataFile = 'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
-TestingDataFile =  'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
+TrainingDataFile = 'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
+TestingDataFile =  'Cognionics_64_Flanker.set'; %'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
 
 %% Set up the name of the stream we will write to in the workspace
 streamname              = 'EEGDATA';
 LSL_SelectionProperty   = 'type';  % 'name'
 LSL_SelectionValue      = 'EEG';   % 'Cogionics'
+
+%% load head model object
+if ~isempty(HEAD_MODEL_NAME)
+    hmObj = headModel.loadFromFile(env_translatepath([datapath HEAD_MODEL_NAME]));
+    % load meshes for visualization
+    surfData    = load(hmObj.surfaces);
+    surfData    = surfData.surfData;
+    scalpMesh   = surfData(1);
+    csfMesh     = surfData(2);
+    cortexMesh  = surfData(3);
+end
 
 %% load calibration recording
 raw = exp_eval(io_loadset([datapath TrainingDataFile],'markerchannel',{'remove_eventchns',false}));
@@ -77,14 +90,15 @@ specOpts = [];
 
 % create a minimal moving average pipeline...
 % noflats = exp_eval_optimized(flt_movavg(flt_selchans(raw,{'FC3', 'FC4', 'FC2', 'FC1', 'C3', 'C4', 'C2', 'C1', 'CP3', 'CP4', 'CP2', 'CP1', 'P3', 'P4', 'P2', 'P1'})));
-noflats = exp_eval_optimized(flt_movavg(flt_selchans(raw,{'FC4', 'FC2', 'FC1', 'C4', 'C2', 'C1', 'CP3', 'CP4', 'CP2', 'CP1', 'P3', 'P4', 'P2', 'P1'})));
+noflats = flt_seltypes(raw,'EEG');
+%noflats = exp_eval_optimized(flt_movavg(flt_seltypes(raw,'EEG')));
 highpassed = exp_eval_optimized(flt_fir(noflats,[0.5 1],'highpass'));
 goodchannels = exp_eval_optimized(flt_clean_channels('signal',highpassed,'min_corr',0.35,'ignored_quantile',0.3));
 
 
 %% initialize options
     
-if ~isempty([datapath GUI_CONFIG_NAME]) && exist(env_translatepath([datapath GUI_CONFIG_NAME]),'file')
+if ~isempty(GUI_CONFIG_NAME) && exist(env_translatepath([datapath GUI_CONFIG_NAME]),'file')
     % try to load a configuration file
     io_load([datapath GUI_CONFIG_NAME]);
 else
@@ -124,6 +138,7 @@ opts.adaptation.bufferTime = 1;
 
 
 %% initialize the Meta Control Panel
+raw.srcpot = 1; % allow sources
 figHandles.MetaControlPanel = gui_metaControlPanel(raw,opts);
 waitfor(figHandles.MetaControlPanel,'UserData','initialized');
 
@@ -154,6 +169,8 @@ BMRenderMode = 'init_and_render';
 
 %% Main loop
 
+
+
 while ~opts.exitPipeline
     
     try
@@ -165,6 +182,9 @@ while ~opts.exitPipeline
             cleaned_data = exp_eval(flt_pipeline('signal',raw,opts.fltPipCfg));
             pipeline = onl_newpipeline(cleaned_data,streamname);
             newPipeline = false;
+            
+%             disp('profile on');
+%             profile -memory on
         end
 
         if opts.holdPipeline
@@ -176,8 +196,11 @@ while ~opts.exitPipeline
         % grab a chunk of data from the stream
         % ---------------------------------------------------------------------
         tic;
-        [eeg_chunk,pipeline] = onl_filtered(pipeline,round(opts.miscOptCfg.winLenSec*cleaned_data.srate));
-        benchmarking.preproc = toc;
+        [eeg_chunk,pipeline] = onl_filtered(pipeline, ...
+                                            round(opts.miscOptCfg.winLenSec*cleaned_data.srate), ...
+                                            opts.miscOptCfg.suppress_console_output, ...
+                                            fastif(opts.fltPipCfg.psourceLocalize.arg_selection,{'srcpot'},{}));
+        benchmarking.preproc = toc; 
 
         % process the chunk via sift
         % ---------------------------------------------------------------------
@@ -186,6 +209,12 @@ while ~opts.exitPipeline
             try
                 % force the modeling window length to agree with chunk length
                 opts.siftPipCfg.modeling.winlen = opts.miscOptCfg.winLenSec;
+                
+                % import ROI Names
+                if strcmpi(opts.siftPipCfg.preproc.sigtype.arg_selection,'sources')
+                    opts.siftPipCfg.preproc.varnames = eeg_chunk.roiLabels;
+                end
+                
                 % select a subset of channels
                 if ~isempty(opts.miscOptCfg.doSIFT.channelSubset)
                     [dummy eeg_chunk] = evalc('hlp_scope({''disable_expressions'',1},@flt_selchans,''signal'',eeg_chunk,''channels'',opts.miscOptCfg.doSIFT.channelSubset,''arg_direct'',true)');
@@ -286,6 +315,29 @@ while ~opts.exitPipeline
 
                 % update the BrainMovie3D
                 tic
+                
+                if COLOR_SOURCE_ROI 
+                    BG_COLOR = [0.1 0.1 0.1];
+                    
+                    if BMCFG.BMopts.Layers.custom.arg_selection
+                        BMCFG.BMopts.Layers.custom.volumefile = eeg_chunk.dipfit.surfmesh;
+                        BMCFG.BMopts.Layers.custom.meshcolor  = hlp_getROIVertexColorTable( ...
+                                size(eeg_chunk.dipfit.surfmesh.vertices,1), ...
+                                eeg_chunk.roiVertices,BG_COLOR,@(x)distinguishable_colors(x,BG_COLOR));
+                    end
+                    
+                    % if the cortex mesh is a custom mesh with 'constant'
+                    % coloring
+                    if strcmpi(BMCFG.BMopts.Layers.cortex.cortexres,'custommesh') ...
+                       && strcmp(BMCFG.BMopts.Layers.cortex.cortexcolor.arg_selection,'Constant')
+                            % ... replace the colors with ROI coloring
+                            BMCFG.BMopts.Layers.cortex.cortexcolor.colormapping = ...
+                                hlp_getROIVertexColorTable( ...
+                                    size(eeg_chunk.dipfit.surfmesh.vertices,1), ...
+                                    eeg_chunk.roiVertices,BG_COLOR,@(x)distinguishable_colors(x,BG_COLOR));
+%                         {hmObj.atlas.label, hlp_getROIColorTable(hmObj.atlas.label,eeg_chunk.roiLabels,[0.5 0.5 0.5],[1 0 0])};
+                    end
+                end
                 [BMcfg_tmp BMhandles BMout] = ...
                     vis_causalBrainMovie3D(eeg_chunk,eeg_chunk.CAT.Conn,BMCFG, ...
                         'timeRange',[], ...

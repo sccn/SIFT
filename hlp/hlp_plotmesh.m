@@ -12,10 +12,14 @@ function p1 = hlp_plotmesh(faces, vertex, normal, newfig,hax,FaceColor,colorthem
 %             z=3rd column). Each row defines a point in 3-D.
 %
 % Optional input:
-%   normal  - normal orientation for each face (for better lighting)
+%   normal    - normal orientation for each face (for better lighting)
+%   FaceColor - [1 x 3] color spec or [num_vertices x 3] matrix of colors
+%               for each vertex
+%   colortheme - a cell array with color theme options
 %
 % Author: Arnaud Delorme, SCCN/INC/UCSD, 2003
-
+% Modified: Tim Mullen, SCCN/INC/UCSD, 2011-2013
+%
 % Copyright (C) May 6, 2003 Arnaud Delorme, SCCN/INC/UCSD,
 % arno@sccn.ucsd.edu
 %
@@ -58,11 +62,21 @@ function p1 = hlp_plotmesh(faces, vertex, normal, newfig,hax,FaceColor,colorthem
     if any(any(faces == 0)), faces = faces+1; end;
  
     if isempty(normal)
-        p1 = patch('vertices', vertex, 'faces', faces, ...
-                   'facecolor', FaceColor,'parent',hax);
+        if size(FaceColor,1)==size(vertex,1)
+            p1 = patch('vertices', vertex, 'faces', faces, ...
+                       'parent',hax,'FaceVertexCdata',FaceColor,'facecolor','flat','edgecolor','flat');
+        else
+            p1 = patch('vertices', vertex, 'faces', faces, ...
+                       'facecolor', FaceColor,'parent',hax);
+        end
     else
-        p1 = patch('vertices', vertex, 'faces', faces, ...
-                   'facecolor', FaceColor, 'vertexnormals', normal,'parent',hax);
+       if size(FaceColor,1)==size(vertex,1)
+           p1 = patch('vertices', vertex, 'faces', faces, ...
+                       'vertexnormals', normal,'parent',hax,'FaceVertexCdata',FaceColor,'facecolor','flat','edgecolor','flat');
+       else
+            p1 = patch('vertices', vertex, 'faces', faces, ...
+                       'facecolor', FaceColor, 'vertexnormals', normal,'parent',hax);
+       end
     end;
     
     set(p1,'EdgeColor','none')

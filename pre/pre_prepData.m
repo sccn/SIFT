@@ -234,7 +234,7 @@ if ~isempty(EEG)
         % if EEG contains icaweights, allow components
         defSigType = [defSigType {'Components'}];
     end
-    if ~any(cellfun(@(x) isfield(x,'srcpot') && ~isempty(x.srcpot), {EEG}))
+    if any(arrayfun(@(x) isfield(x,'srcpot') && ~isempty(x.srcpot), EEG))
         % if EEG contains the field 'srcpot', allow sources
         defSigType = [defSigType {'Sources'}];
     end
@@ -337,7 +337,7 @@ switch lower(g.sigtype.arg_selection)
             'trials',  EEG.trials                  ...
             );
     case 'sources'
-        curComps = 1:size(EEG.CSD,1);
+        curComps = 1:size(EEG.srcpot,1);
         if isempty(g.varnames)
             MyComponentNames = strtrim(cellstr(num2str(curComps'))');
         else
@@ -433,6 +433,10 @@ end
 
 if any(strcmpi(defSigType,'channels'))
     arglist{end+1} = {'Channels' {arg_subtoggle({'chanlocs2dipfit','ConvertChanlocs2Dipfit'},{},@hlp_chanlocs2dipfit,['Create dipfit structure from chanlocs. If channel locations are available and coregistered to an MRI (e.g. the MNI brain), this will construct a "source" dipfit structure which in turn will enable 3D visualization of network structure.' sprintf('\n') 'NOTE: this will overwrite any existing dipfit structure in the current EEG set.'])}};
+end
+
+if any(strcmpi(defSigType,'sources'))
+    arglist{end+1} = {'Sources' {}};  %arg({'componentsToKeep','ComponentsToKeep'},[],[],'Vector of row indices of sources to keep')
 end
 
 if defaultNameOnly
