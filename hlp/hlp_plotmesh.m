@@ -64,7 +64,7 @@ function p1 = hlp_plotmesh(faces, vertex, normal, newfig,hax,FaceColor,colorthem
     if isempty(normal)
         if size(FaceColor,1)==size(vertex,1)
             p1 = patch('vertices', vertex, 'faces', faces, ...
-                       'parent',hax,'FaceVertexCdata',FaceColor,'facecolor','flat','edgecolor','flat');
+                       'parent',hax,'FaceVertexCdata',FaceColor,'facecolor','interp','edgecolor','none');
         else
             p1 = patch('vertices', vertex, 'faces', faces, ...
                        'facecolor', FaceColor,'parent',hax);
@@ -72,7 +72,7 @@ function p1 = hlp_plotmesh(faces, vertex, normal, newfig,hax,FaceColor,colorthem
     else
        if size(FaceColor,1)==size(vertex,1)
            p1 = patch('vertices', vertex, 'faces', faces, ...
-                       'vertexnormals', normal,'parent',hax,'FaceVertexCdata',FaceColor,'facecolor','flat','edgecolor','flat');
+                       'vertexnormals', normal,'parent',hax,'FaceVertexCdata',FaceColor,'facecolor','interp','edgecolor','none');
        else
             p1 = patch('vertices', vertex, 'faces', faces, ...
                        'facecolor', FaceColor, 'vertexnormals', normal,'parent',hax);

@@ -39,22 +39,29 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% 
-COLOR_SOURCE_ROI = true;
-RUN_LSL = false;
-HEAD_MODEL_NAME = 'mobilab/Cognionics_64_HeadModelObj.mat';
-GUI_CONFIG_NAME = 'DEMO_SOURCELOC_METACP_CFG.mat'; 'DARPA_DEMO_METACP_CFG_FEWCHANS.mat'; %'MetaCPopts_Pyramind.mat'; %MetaCPopts_Pyramind.mat'; %'MetaCPopts.mat';
-GUI_BRAINMOVIE_CONFIG_NAME = 'DEMO_SOURCELOC_BM_CFG.mat'; %'DARPA_DEMO_BM_CFG.mat'; %'BMCFG.mat'
 
-%% establish where we will read/write prefs, etc from
-datapath = 'data:/';  % this is relative to the BCILAB root dir
-TrainingDataFile = 'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
-TestingDataFile =  'Cognionics_64_Flanker.set'; %'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';
+%% SET UP CONFIGURATION OPTIONS
+RUN_LSL          = false;           % If RUN_LSL = true, then stream 'online' from device; If RUN_LSL=false then playback TestingDataFile (below)
 
-%% Set up the name of the stream we will write to in the workspace
+% Source reconstruction options (leave disabled)
+COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
+HEAD_MODEL_NAME  = 'mobilab/Cognionics_64_HeadModelObj_3751.mat';             % path to head model object for source reconstruction (relative to 'datapath'). Leave empty if you aren't doing source reconstruction
+
+% Establish file paths
+% NOTE: all paths are relative to 'datapath' which is a
+% platform-independent path which itself can be relative to bcilab root
+% folder (i.e. data:/ is the userdata folder in the bcilab root dir)
+datapath         = 'data:/';       % this is relative to the BCILAB root dir
+TrainingDataFile = 'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is the relative path to the calibration dataset
+TestingDataFile  = 'Cognionics_64_testing.set'; %'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is an optional path to a dataset to playback (if RUN_LSL = false)
+GUI_CONFIG_NAME  = 'DEMO_SOURCELOC_METACP_CFG.mat'; %'DARPA_DEMO_METACP_CFG_FEWCHANS.mat';             % relative path to a default pipeline configuration
+GUI_BRAINMOVIE_CONFIG_NAME = 'DEMO_SOURCELOC_BM_CFG.mat'; %'DARPA_DEMO_BM_CFG.mat';   % relative path to BrainMovie configuration
+
+% Set up the name of the stream we will write to in the workspace
 streamname              = 'EEGDATA';
-LSL_SelectionProperty   = 'type';  % 'name'
-LSL_SelectionValue      = 'EEG';   % 'Cogionics'
+LSL_SelectionProperty   = 'type';  % can also be 'name'
+LSL_SelectionValue      = 'EEG';
+
 
 %% load head model object
 if ~isempty(HEAD_MODEL_NAME)
@@ -68,7 +75,7 @@ if ~isempty(HEAD_MODEL_NAME)
 end
 
 %% load calibration recording
-raw = exp_eval(io_loadset([datapath TrainingDataFile],'markerchannel',{'remove_eventchns',false}));
+calibData = exp_eval(io_loadset([datapath TrainingDataFile],'markerchannel',{'remove_eventchns',false}));
 flt_pipeline('update');
 
 %% start LSL streaming
@@ -79,6 +86,7 @@ end
 if RUN_LSL == false
     run_readdataset('MatlabStream',streamname,'Dataset',io_loadset([datapath TestingDataFile],'markerchannel',{'remove_eventchns',false}));
 end
+
 %% initialize some variables
 [benchmarking.preproc     ...
  benchmarking.modeling    ...
@@ -86,30 +94,26 @@ end
 
 newPipeline     = true;
 newBrainmovie   = true;
-specOpts = [];
+specOpts        = [];
 
 % create a minimal moving average pipeline...
-% noflats = exp_eval_optimized(flt_movavg(flt_selchans(raw,{'FC3', 'FC4', 'FC2', 'FC1', 'C3', 'C4', 'C2', 'C1', 'CP3', 'CP4', 'CP2', 'CP1', 'P3', 'P4', 'P2', 'P1'})));
-noflats = flt_seltypes(raw,'EEG');
-%noflats = exp_eval_optimized(flt_movavg(flt_seltypes(raw,'EEG')));
-highpassed = exp_eval_optimized(flt_fir(noflats,[0.5 1],'highpass'));
+% noflats = exp_eval_optimized(flt_movavg(flt_selchans(calibData,{'FC3', 'FC4', 'FC2', 'FC1', 'C3', 'C4', 'C2', 'C1', 'CP3', 'CP4', 'CP2', 'CP1', 'P3', 'P4', 'P2', 'P1'})));
+noflats = flt_seltypes(calibData,'EEG');
+%noflats = exp_eval_optimized(flt_movavg(flt_seltypes(calibData,'EEG')));
+highpassed   = exp_eval_optimized(flt_fir(noflats,[0.5 1],'highpass'));
 goodchannels = exp_eval_optimized(flt_clean_channels('signal',highpassed,'min_corr',0.35,'ignored_quantile',0.3));
 
 
 %% initialize options
-    
 if ~isempty(GUI_CONFIG_NAME) && exist(env_translatepath([datapath GUI_CONFIG_NAME]),'file')
     % try to load a configuration file
     io_load([datapath GUI_CONFIG_NAME]);
 else
     % manually set some defaults
     opts.miscOptCfg.dispBenchmark  = true;
-    opts.miscOptCfg.doSIFT    = []; %struct(...
-                                    %'dispBrainMovie',{'adaptBrainMovieLimits', true}, ...
-                                    %'dispSpectrum',true, ...
-                                    %'winLenSec',2);
-    opts.holdPipeline   = false;
-    opts.exitPipeline   = false;
+    opts.miscOptCfg.doSIFT         = [];
+    opts.holdPipeline              = false;
+    opts.exitPipeline              = false;
 
     opts.siftPipCfg.preproc.verb = 0;
 
@@ -122,7 +126,6 @@ else
                        'DataSetting', 'drycap'), ...
                 'Rereferencing', {{}}); 
 
-               
     opts.siftPipCfg = ...
         struct('preproc', ...
                     struct('normalize', ...
@@ -132,24 +135,19 @@ else
 end
 
 % additional options regarding brainmovie node/edge adaptation
-opts.adaptation.adaptationHL = 10;  % HL of exp. win. MA in frames
-opts.adaptation.updateInterval = 1;
-opts.adaptation.bufferTime = 1;
+opts.adaptation.adaptationHL    = 10;  % HL of exp. win. MA in frames
+opts.adaptation.updateInterval  = 1;
+opts.adaptation.bufferTime      = 1;
 
+% set the arg_direct flag to true
+opts = arg_setdirect(opts,true);
 
 %% initialize the Meta Control Panel
-raw.srcpot = 1; % allow sources
-figHandles.MetaControlPanel = gui_metaControlPanel(raw,opts);
+if ~isempty(HEAD_MODEL_NAME)
+    calibData.srcpot = 1; % allow sources
+end
+figHandles.MetaControlPanel = gui_metaControlPanel(calibData,opts);
 waitfor(figHandles.MetaControlPanel,'UserData','initialized');
-
-% request if you want to save the results. It will be saved to
- % datapath folder above
-% if strcmp(questdlg('Do you want to save this configuration?','Save config?','Yes','No','No'),'Yes')
-%     if isempty(GUI_CONFIG_NAME)
-%         GUI_CONFIG_NAME = uiputfile;
-%     end
-%     io_save([datapath GUI_CONFIG_NAME],'opts');
-% end
 
 %% Initialize figures
 figHandles.specDisplay      = [];
@@ -168,20 +166,17 @@ end
 BMRenderMode = 'init_and_render';
 
 %% Main loop
-
-
-
+% -------------------------------------------------------------------------
 while ~opts.exitPipeline
     
     try
     
         if newPipeline
-            % create a new pipeline
+            % create a new pipeline on training data
             fprintf('Pipeline changed\n');
-%             keyboard;
-            cleaned_data = exp_eval(flt_pipeline('signal',raw,opts.fltPipCfg));
-            pipeline = onl_newpipeline(cleaned_data,streamname);
-            newPipeline = false;
+            cleaned_data = exp_eval(flt_pipeline('signal',calibData,opts.fltPipCfg));
+            pipeline     = onl_newpipeline(cleaned_data,streamname);
+            newPipeline  = false;
             
 %             disp('profile on');
 %             profile -memory on
@@ -193,19 +188,18 @@ while ~opts.exitPipeline
             continue;
         end
 
-        % grab a chunk of data from the stream
+        % grab a chunk of data from the stream and preprocess it
         % ---------------------------------------------------------------------
-        tic;
+        prepbench = tic;
         [eeg_chunk,pipeline] = onl_filtered(pipeline, ...
                                             round(opts.miscOptCfg.winLenSec*cleaned_data.srate), ...
                                             opts.miscOptCfg.suppress_console_output, ...
-                                            fastif(opts.fltPipCfg.psourceLocalize.arg_selection,{'srcpot'},{}));
-        benchmarking.preproc = toc; 
+                                            fastif(isfield(opts.fltPipCfg,'psourceLocalize') && opts.fltPipCfg.psourceLocalize.arg_selection,{'srcpot'},{}));
+        benchmarking.preproc = toc(prepbench); 
 
-        % process the chunk via sift
+        % model the chunk via sift
         % ---------------------------------------------------------------------
         if opts.miscOptCfg.doSIFT.arg_selection
-            tic;
             try
                 % force the modeling window length to agree with chunk length
                 opts.siftPipCfg.modeling.winlen = opts.miscOptCfg.winLenSec;
@@ -218,11 +212,12 @@ while ~opts.exitPipeline
                 % select a subset of channels
                 if ~isempty(opts.miscOptCfg.doSIFT.channelSubset)
                     [dummy eeg_chunk] = evalc('hlp_scope({''disable_expressions'',1},@flt_selchans,''signal'',eeg_chunk,''channels'',opts.miscOptCfg.doSIFT.channelSubset,''arg_direct'',true)');
-                    %[dummy eeg_chunk] = evalc('exp_eval(flt_selchans(''signal'',eeg_chunk,''channels'',opts.miscOptCfg.doSIFT.channelSubset))');
                 end
+                
                 % run the SIFT modeling pipeline
+                siftbench = tic;
                 [eeg_chunk cfg] = hlp_scope({'is_online',1},@onl_siftpipeline,'EEG',eeg_chunk,opts.siftPipCfg);
-                % [eeg_chunk cfg] = onl_siftpipeline('EEG',eeg_chunk,opts.siftPipCfg);
+                benchmarking.modeling = toc(siftbench);
                 
                 if eeg_chunk.pnts == 0
                     fprintf('No data!\n');
@@ -235,12 +230,9 @@ while ~opts.exitPipeline
                 pause(0.1);
                 continue;
             end
-            benchmarking.modeling = toc;
-        
-
-
+            
             % visualize the brainmovie
-            % ---------------------------------------------------------------------
+            % -------------------------------------------------------------
             if opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection
 
                 if newBrainmovie ...
@@ -257,65 +249,37 @@ while ~opts.exitPipeline
                     waitfor(figHandles.BMControlPanel,'UserData','newBrainmovie');
 
                     % set the closing behavior
-                    set(figHandles.BMControlPanel, ...
-                        'CloseRequestFcn', ...
-                        'evalin(''base'',''figHandles.BMControlPanel = [];''); delete(gcbf);');
+                    set(figHandles.BMControlPanel,'CloseRequestFcn','evalin(''base'',''figHandles.BMControlPanel = [];''); delete(gcbf);');
 
-                    BM_CFG_CHANGED = true;
-                    newBrainmovie = false;
+                    BM_CFG_CHANGED       = true;
+                    newBrainmovie        = false;
                     figHandles.BMDisplay = [];
-                    BMStateVars = [];
+                    BMStateVars          = [];
                 end
 
                 if BM_CFG_CHANGED
-                    BMRenderMode = 'init_and_render';
-                    BM_CFG_CHANGED = false;
-                    BMStateVars = [];
-
-                    % reset the limits
-                    numberOfRunsSoFar = 0;
+                    BMRenderMode    = 'init_and_render';
+                    BMStateVars     = [];
                     
-                    adapt_nodeSizeDataRange  = isempty(BMCFG.BMopts.graphColorAndScaling.nodeSizeDataRange);
-                    adapt_edgeSizeDataRange  = isempty(BMCFG.BMopts.graphColorAndScaling.edgeSizeDataRange);
-                    adapt_nodeColorDataRange = isempty(BMCFG.BMopts.graphColorAndScaling.nodeColorDataRange);
-                    adapt_edgeColorDataRange = isempty(BMCFG.BMopts.graphColorAndScaling.edgeColorDataRange);
+                    % determine whether to adapt limits
+                    adapt_nodeSizeDataRange  = isempty(BMCFG.BMopts.graphColorAndScaling.nodeSizeDataRange)  && opts.miscOptCfg.doSIFT.dispBrainMovie.adaptBrainMovieLimits;
+                    adapt_edgeSizeDataRange  = isempty(BMCFG.BMopts.graphColorAndScaling.edgeSizeDataRange)  && opts.miscOptCfg.doSIFT.dispBrainMovie.adaptBrainMovieLimits;
+                    adapt_nodeColorDataRange = isempty(BMCFG.BMopts.graphColorAndScaling.nodeColorDataRange) && opts.miscOptCfg.doSIFT.dispBrainMovie.adaptBrainMovieLimits;
+                    adapt_edgeColorDataRange = isempty(BMCFG.BMopts.graphColorAndScaling.edgeColorDataRange) && opts.miscOptCfg.doSIFT.dispBrainMovie.adaptBrainMovieLimits;
+                    
+                    % clear state
+                    nodeSizeState   = [];
+                    nodeColorState  = [];
+                    edgeSizeState   = [];
+                    edgeColorState  = [];
+                    
+                    
+                    % reset flag
+                    BM_CFG_CHANGED = false;
                 end
-                
-                
-                
-                % update the scaling limits for brainmovie
-                if opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection ...
-                   && opts.miscOptCfg.doSIFT.dispBrainMovie.adaptBrainMovieLimits ...
-                   && numberOfRunsSoFar > 0
-               
-                    if adapt_nodeSizeDataRange
-                        BMCFG.BMopts.graphColorAndScaling.nodeSizeDataRange  = [lastNodeSizeMin lastNodeSizeMax];
-                    end
-                    if adapt_edgeSizeDataRange
-                        BMCFG.BMopts.graphColorAndScaling.edgeSizeDataRange  = [lastEdgeSizeMin lastEdgeSizeMax];
-                    end
-                    if adapt_nodeColorDataRange
-                        BMCFG.BMopts.graphColorAndScaling.nodeColorDataRange = [lastNodeColorMin lastNodeColorMax];
-                    end
-                    if adapt_edgeColorDataRange
-                        BMCFG.BMopts.graphColorAndScaling.edgeColorDataRange = [lastEdgeColorMin lastEdgeColorMax];
-                    end
-                else
-                    BMCFG.BMopts.graphColorAndScaling.nodeSizeDataRange  = [];
-                    BMCFG.BMopts.graphColorAndScaling.edgeSizeDataRange  = [];
-                    BMCFG.BMopts.graphColorAndScaling.nodeColorDataRange = [];
-                    BMCFG.BMopts.graphColorAndScaling.edgeColorDataRange = [];
-
-                    % initialize
-                    [lastNodeSizeMin lastNodeSizeMax ...
-                     lastEdgeSizeMin lastEdgeSizeMax ...
-                     lastNodeColorMin lastNodeColorMax ...
-                     lastEdgeColorMin lastEdgeColorMax] = deal(0);
-                end
-
-                % update the BrainMovie3D
-                tic
-                
+    
+                % Handle special rendering of source meshes and colors
+                % ---------------------------------------------------------
                 if COLOR_SOURCE_ROI 
                     BG_COLOR = [0.1 0.1 0.1];
                     
@@ -327,7 +291,7 @@ while ~opts.exitPipeline
                     end
                     
                     % if the cortex mesh is a custom mesh with 'constant'
-                    % coloring
+                    % coloring...
                     if strcmpi(BMCFG.BMopts.Layers.cortex.cortexres,'custommesh') ...
                        && strcmp(BMCFG.BMopts.Layers.cortex.cortexcolor.arg_selection,'Constant')
                             % ... replace the colors with ROI coloring
@@ -338,6 +302,10 @@ while ~opts.exitPipeline
 %                         {hmObj.atlas.label, hlp_getROIColorTable(hmObj.atlas.label,eeg_chunk.roiLabels,[0.5 0.5 0.5],[1 0 0])};
                     end
                 end
+                
+                % Render the Brain Movie
+                % ---------------------------------------------------------
+                bmbench = tic;
                 [BMcfg_tmp BMhandles BMout] = ...
                     vis_causalBrainMovie3D(eeg_chunk,eeg_chunk.CAT.Conn,BMCFG, ...
                         'timeRange',[], ...
@@ -346,64 +314,64 @@ while ~opts.exitPipeline
                                     'RenderMode',BMRenderMode, ...
                                     'speedy',true, ...
                                     'InternalStateVariables',BMStateVars));
-                benchmarking.brainmovie = toc;
+                benchmarking.brainmovie = toc(bmbench);
 
+                if isempty(BMStateVars)
+                    set(figHandles.BMDisplay, 'MenuBar','figure', ...
+                                'CloseRequestFcn','evalin(''base'',''figHandles.BMDisplay = [];''); delete(gcbf);', ...
+                                'ToolBar','none', 'Name','BrainMovie3D');
+                end
+                    
                 % save figure handle and state
                 figHandles.BMDisplay = BMhandles.figurehandle;
                 BMStateVars          = BMcfg_tmp.BMopts.vars;
                 BMRenderMode         = 'render';
 
                 % adapt the node and edge color/size limits
+                % ---------------------------------------------------------
                 if opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection ...
                    && opts.miscOptCfg.doSIFT.dispBrainMovie.adaptBrainMovieLimits
                
-                    [lastNodeSizeMin lastNodeSizeMax] ...
-                        = hlp_scaleLimits(BMout.NodeSize,   ...
-                                        lastNodeSizeMin,    ...
-                                        lastNodeSizeMax,    ...
-                                        numberOfRunsSoFar,  ...
-                                        opts.adaptation);
-
-                    [lastEdgeSizeMin lastEdgeSizeMax] ...
-                        = hlp_scaleLimits(BMout.EdgeSize,   ...
-                                        lastEdgeSizeMin,    ...
-                                        lastEdgeSizeMax,    ...
-                                        numberOfRunsSoFar,  ...
-                                        opts.adaptation);
-
-                    [lastNodeColorMin lastNodeColorMax] ...
-                        = hlp_scaleLimits(BMout.NodeColor,  ...
-                                        lastNodeColorMin,   ...
-                                        lastNodeColorMax,   ...
-                                        numberOfRunsSoFar,  ...
-                                        opts.adaptation);
-
-                    [lastEdgeColorMin lastEdgeColorMax] ...
-                        = hlp_scaleLimits(BMout.EdgeColor,  ...
-                                        lastEdgeColorMin,   ...
-                                        lastEdgeColorMax,   ...
-                                        numberOfRunsSoFar,  ...
-                                        opts.adaptation);
-                end
-
-                numberOfRunsSoFar = numberOfRunsSoFar + 1;
-
-                if numberOfRunsSoFar == 1
-                    set(figHandles.BMDisplay, 'MenuBar','figure', ...
-                        'CloseRequestFcn','evalin(''base'',''figHandles.BMDisplay = [];''); delete(gcbf);', ...
-                        'ToolBar','none', 'Name','BrainMovie3D');
-                end
-
-            else
-                % close the brainmovie figure as well
+                    % adapt BrainMovie node/edge limits
+                    if adapt_nodeSizeDataRange
+                        [BMCFG.BMopts.graphColorAndScaling.nodeSizeDataRange, nodeSizeState] ...
+                            = hlp_adaptMinMaxLimits('values',   BMout.NodeSize,     ...
+                                                    'state',    nodeSizeState,      ...
+                                                    'adaptOpts',opts.adaptation);
+                    end
+                    if adapt_nodeColorDataRange
+                        [BMCFG.BMopts.graphColorAndScaling.nodeColorDataRange, nodeColorState] ...
+                            = hlp_adaptMinMaxLimits('values',   BMout.NodeColor,     ...
+                                                    'state',    nodeColorState,      ...
+                                                    'adaptOpts',opts.adaptation);
+                    end
+                    if adapt_edgeSizeDataRange
+                        [BMCFG.BMopts.graphColorAndScaling.edgeSizeDataRange, edgeSizeState] ...
+                            = hlp_adaptMinMaxLimits('values',   BMout.EdgeSize,     ...
+                                                    'state',    edgeSizeState,      ...
+                                                    'adaptOpts',opts.adaptation);
+                    end
+                    if adapt_edgeColorDataRange
+                        [BMCFG.BMopts.graphColorAndScaling.edgeColorDataRange, edgeColorState] ...
+                            = hlp_adaptMinMaxLimits('values',   BMout.EdgeColor,     ...
+                                                    'state',    edgeColorState,      ...
+                                                    'adaptOpts',opts.adaptation);
+                    end
+                    
+                end % adaptBrainMovieLimits
+                
+            else % dispBrainMovie == false
+                % close the brainmovie figure if control panel is closed
                 if isempty(figHandles.BMControlPanel) ...
                         || ~ishandle(figHandles.BMControlPanel) ...
                         && ishandle(figHandles.BMDisplay)
                     close(figHandles.BMDisplay);
                 end
+                benchmarking.brainmovie = NaN;
             end
-
+                
             % display the VAR spectrum
+            % -------------------------------------------------------------
             if opts.miscOptCfg.doSIFT.dispSpectrum
                 try
                     if ishandle(figHandles.specDisplay)
@@ -426,6 +394,8 @@ while ~opts.exitPipeline
                 end
             end
 
+        else
+            benchmarking.modeling = NaN;
         end
         
         if opts.miscOptCfg.dispBenchmark
