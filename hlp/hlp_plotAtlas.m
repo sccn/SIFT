@@ -68,7 +68,7 @@ if strcmpi(colormode,'LONI_Atlas') && isfield(Surface,'label')
     colors = colors./(sqrt(sum(colors.^2,2))*[1 1 1]);
     
     h = patch('vertices',Surface.vertices,'faces',Surface.faces, ...
-        'LineStyle','none','parent',hax,'FaceVertexCdata',colors,'facecolor','flat','edgecolor','flat',theme{:});
+        'LineStyle','none','parent',hax,'FaceVertexCdata',colors,'facecolor','interp','edgecolor','none',theme{:});
     
 elseif isnumeric(color) && isvector(color) && length(color)==3
     % color cortex using a single RGB color
@@ -78,7 +78,7 @@ elseif isnumeric(color) && ismatrix(color) && size(color,1)==size(Surface.vertic
     % color each vertex based on RGB color in corresponding row of colors
     % matrix
     h = patch('vertices',Surface.vertices,'faces',Surface.faces, ...
-        'FaceVertexCdata',color,'facecolor','flat','edgecolor','flat', ...
+        'FaceVertexCdata',color,'facecolor','interp','edgecolor','none', ...
         'LineStyle','none','parent',hax,theme{:});
 else
     error('SIFT:hlp_plotAtlas','Invalid color scheme for cortex');
