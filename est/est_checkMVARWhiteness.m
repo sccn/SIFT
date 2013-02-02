@@ -1,5 +1,5 @@
 
-function [stats acv params] = est_checkMVARWhiteness(varargin)
+function [stats residVar params] = est_checkMVARWhiteness(varargin)
 
 % Tests for whiteness of residuals of VAR model. Residuals are 'white' if
 % they are statistically uncorrelated (e.g. a white noise process). White
@@ -36,7 +36,7 @@ function [stats acv params] = est_checkMVARWhiteness(varargin)
 %       .value:     values of the statistic
 %       .fullname:  original name of test statistic
 %       .winStartTime: start times of each window (sec)
-%   acv:     [nchs x nchs x 2*numLagsAcf+1 x numwins] matrix of autocorrelation
+%   racvf:     [nchs x nchs x 2*numLagsAcf+1 x numwins] matrix of autocorrelation
 %            coeffs for lags 0:numLagsAcf
 %   params:  struct of options used
 %
@@ -102,7 +102,7 @@ elseif (g.numAcfLags > maxLagAcf)
 end
 
 % initialize outputs
-[stats acv] = deal([]);
+[stats residVar] = deal([]);
 if nargout > 2, params = g; end
 
 if any(ismember(lower(EEG.CAT.MODEL.algorithm),{'kalman','dekf'}))
@@ -110,9 +110,11 @@ if any(ismember(lower(EEG.CAT.MODEL.algorithm),{'kalman','dekf'}))
 end
 
 % convert whiteness criteria names into valid variable names
-g.whitenessCriteria = lower(hlp_variableize(g.whitenessCriteria));
-if ~iscell(g.whitenessCriteria)
-    g.whitenessCriteria = {g.whitenessCriteria}; 
+if ~isempty(g.whitenessCriteria)
+    g.whitenessCriteria = lower(hlp_variableize(g.whitenessCriteria));
+    if ~iscell(g.whitenessCriteria)
+        g.whitenessCriteria = {g.whitenessCriteria}; 
+    end
 end
 morder = MODEL.morder;
 
@@ -155,72 +157,74 @@ end
 
 for t=1:numWins
     
-    if any(ismember(g.whitenessCriteria,{'acf','ljungbox','boxpierce','limcleod'}))
-        
-        % get the array index of the window we are working with
-        winArrIdx = g.winArrayIndex(t);
-        
-        % get the estimated mean of the process
-        if ~isfield(MODEL,'mu')
-            mu = zeros(1,EEG.CAT.nbchan);
-        else
-            mu = MODEL.mu{winArrIdx};
-        end
+    % calculate residuals
+    % ---------------------------------------------------------------------
     
-        % calculate residuals
-        residuals = est_mvarResiduals(squeeze(EEG.CAT.srcdata(:,g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1,:)), ...
-                                      MODEL.AR{winArrIdx}, mu);
+    % get the array index of the window we are working with
+    winArrIdx = g.winArrayIndex(t);
+    
+    % get the estimated mean of the process
+    if ~isfield(MODEL,'mu')
+        mu = zeros(1,EEG.CAT.nbchan);
+    else
+        mu = MODEL.mu{winArrIdx};
     end
     
+    % calc residuals
+    residuals = est_mvarResiduals(squeeze(EEG.CAT.srcdata(:,g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1,:)), ...
+                                  MODEL.AR{winArrIdx}, mu);
     
-    % calculate autocovariance and autocorrelation matrices
-    if any(ismember(g.whitenessCriteria,{'ljungbox','acf','boxpierce','limcleod'}))
- 
-        % first calculate autocovariance/correlation for each trial ...
-        [acvf{t} acf{t}] = deal(zeros(ntr,nchs,nchs*(g.numAcfLags+1)));
-        for tr=1:ntr
-            % R = [Rs1s1 Rs1s2 Rs1s3 Rs2s1 Rs2s2 Rs2s3 Rs3s1 Rs3s2 Rs3s3]
-            tmpacvf = xcov(squeeze(residuals(:,:,tr))',g.numAcfLags,'biased');
-            
-            % extract positive lags
-            tmpacvf = tmpacvf(g.numAcfLags+1:end,:);         
-            for lag = 1:g.numAcfLags+1
-                acvf{t}(tr,:,(1:nchs)+nchs*(lag-1)) = reshape(squeeze(tmpacvf(lag,:)),[nchs nchs])';
-            end
+                              
+    % calculate residual autocovariance and autocorrelation matrices
+    % ---------------------------------------------------------------------
+    [racvf{t} racf{t}] = deal(zeros(ntr,nchs,nchs*(g.numAcfLags+1))); % residual autocov, autocorr
+    resvar{t}          = zeros(ntr,nchs);  % residual variance
+    
+    % first calculate autocovariance/autocorrelation for each trial ...
+    for tr=1:ntr
+        % R = [Rs1s1 Rs1s2 Rs1s3 Rs2s1 Rs2s2 Rs2s3 Rs3s1 Rs3s2 Rs3s3]
+        tmpacvf = xcov(squeeze(residuals(:,:,tr))',g.numAcfLags,'biased');
 
-            % convert autocov to autocorrelation function
-            D = diag(1./sqrt(diag(squeeze(acvf{t}(tr,1:nchs,1:nchs)))));
-            for lag = 1:g.numAcfLags+1
-                acf{t}(tr,:,(1:nchs)+nchs*(lag-1)) = D*squeeze(acvf{t}(tr,:,(1:nchs)+nchs*(lag-1)))*D;
-            end
+        % extract positive lags
+        tmpacvf = tmpacvf(g.numAcfLags+1:end,:);         
+        for lag = 1:g.numAcfLags+1
+            racvf{t}(tr,:,(1:nchs)+nchs*(lag-1)) = reshape(squeeze(tmpacvf(lag,:)),[nchs nchs])';
         end
 
-        % ... finally average autocovariance/correlation matrices across trials
-        acf{t} = squeeze(mean(acf{t},1));
-        acvf{t} = squeeze(mean(acvf{t},1));
+        % convert autocov to autocorrelation function
+        rvar{t}(tr,:) = 1./sqrt(diag(squeeze(racvf{t}(tr,1:nchs,1:nchs))));
+        D = diag(rvar{t}(tr,:));
+        for lag = 1:g.numAcfLags+1
+            racf{t}(tr,:,(1:nchs)+nchs*(lag-1)) = D*squeeze(racvf{t}(tr,:,(1:nchs)+nchs*(lag-1)))*D;
+        end
     end
+    % ... finally average autocovariance/correlation matrices across trials
+    racf{t}      = squeeze(mean(racf{t},1));
+    racvf{t}     = squeeze(mean(racvf{t},1));
+    rvar{t}      = squeeze(mean(rvar{t},1));
     
     % compute whiteness criteria
+    % ---------------------------------------------------------------------
     % TODO: performance can be improved by avoiding recomputation of similar statistics 
     for i=1:length(g.whitenessCriteria)
         switch lower(g.whitenessCriteria{i})
             
             case 'acf'
                 % test residual autocorrelations
-                sigthresh = 1.96/sqrt(npntsTotal);    % 0.95 confidence interval for acvf
-                numNonSigCoeffs = sum(sum(abs(acf{t}(:,nchs+1:end))<sigthresh));    % count how many coefficients are within the bounds for 'white' residuals
-                numCoeffs = numel(acf{t}(:,nchs+1:end));                            % count the total number of coefficients
-                stats.acf.pval(t) = numNonSigCoeffs / numCoeffs;                    % estimate the probability for a coefficient to be inside the bounds (probability of whiteness)
+                sigthresh = 1.96/sqrt(npntsTotal);    % 0.95 confidence interval for acf
+                numNonSigCoeffs = sum(sum(abs(racf{t}(:,nchs+1:end))<sigthresh));    % count how many coefficients are within the bounds for 'white' residuals
+                numCoeffs = numel(racf{t}(:,nchs+1:end));                            % count the total number of coefficients
+                stats.acf.pval(t) = numNonSigCoeffs / numCoeffs;                     % estimate the probability for a coefficient to be inside the bounds (probability of whiteness)
                 stats.acf.w(t) = stats.acf.pval(t) > 1-g.alpha;                       
-                stats.acf.acffun{t} = acf{t};
+                stats.acf.acffun{t} = racf{t};
                 stats.acf.fullname = 'ACF';
                 stats.acf.winStartTimes = g.winStartIdx*EEG.srate;
             case 'ljungbox' 
                 % ljung-box (modified portmanteau) test for residual autocorrelation up to lag h
                 Qh=0;
-                C0inv = inverse(acvf{t}(1:nchs,1:nchs));
+                C0inv = inverse(racvf{t}(1:nchs,1:nchs));
                 for k=1:g.numAcfLags
-                    Qh = Qh + 1/(npntsTotal-k) * trace(acvf{t}(1:nchs,(1:nchs)+k*nchs)'*C0inv*acvf{t}(1:nchs,(1:nchs)+k*nchs)*C0inv);
+                    Qh = Qh + 1/(npntsTotal-k) * trace(racvf{t}(1:nchs,(1:nchs)+k*nchs)'*C0inv*racvf{t}(1:nchs,(1:nchs)+k*nchs)*C0inv);
                 end
                 stats.ljungbox.value(t) = Qh*npntsTotal*(npntsTotal+2);
                 stats.ljungbox.pval(t) = 1-chi2cdf(stats.ljungbox.value(t),(nchs^2)*(g.numAcfLags-morder));
@@ -230,9 +234,9 @@ for t=1:numWins
             case 'boxpierce' 
                 % box-pierce portmanteau test for residual autocorrelation up to lag h
                 Qh=0;
-                C0inv = inverse(acvf{t}(1:nchs,1:nchs));
+                C0inv = inverse(racvf{t}(1:nchs,1:nchs));
                 for k=1:g.numAcfLags
-                    Qh = Qh + trace(acvf{t}(1:nchs,(1:nchs)+k*nchs)'*C0inv*acvf{t}(1:nchs,(1:nchs)+k*nchs)*C0inv);
+                    Qh = Qh + trace(racvf{t}(1:nchs,(1:nchs)+k*nchs)'*C0inv*racvf{t}(1:nchs,(1:nchs)+k*nchs)*C0inv);
                 end
                 stats.boxpierce.value(t) = Qh*npntsTotal;   % Qh*npntsTotal^2  is the modified portmanteau test (Lutkepohl, p.171)
                 stats.boxpierce.pval(t) = 1-chi2cdf(stats.boxpierce.value(t),(nchs^2)*(g.numAcfLags-morder));
@@ -242,12 +246,12 @@ for t=1:numWins
             case 'limcleod'
                 % Li-McLeod portmanteau test for residual autocorrelation up to lag h
                 Qh=0;
-                C0inv = inverse(acvf{t}(1:nchs,1:nchs));
+                C0inv = inverse(racvf{t}(1:nchs,1:nchs));
                 for k=1:g.numAcfLags
-                    Qh = Qh + trace(acvf{t}(1:nchs,(1:nchs)+k*nchs)'*C0inv*acvf{t}(1:nchs,(1:nchs)+k*nchs)*C0inv);
+                    Qh = Qh + trace(racvf{t}(1:nchs,(1:nchs)+k*nchs)'*C0inv*racvf{t}(1:nchs,(1:nchs)+k*nchs)*C0inv);
                 end
                 stats.limcleod.value(t) = Qh*npntsTotal + nchs^2*g.numAcfLags*(g.numAcfLags+1)/(2*npntsTotal);
-                stats.limcleod.pval(:,t) = 1-chi2cdf(stats.limcleod.value(t),(nchs^2)*(g.numAcfLags-morder));
+                stats.limcleod.pval(t) = 1-chi2cdf(stats.limcleod.value(t),(nchs^2)*(g.numAcfLags-morder));
                 stats.limcleod.w(t) = stats.limcleod.pval(t) > g.alpha;    % using bonferroni correction for multiple tests (across channels)
                 stats.limcleod.fullname = 'Li-McLeod';
                 stats.limcleod.winStartTimes = g.winStartIdx*EEG.srate;
@@ -261,16 +265,21 @@ for t=1:numWins
         drawnow;
         cancel = multiWaitbar(waitbarTitle,t/numWins);
         if cancel && hlp_confirmWaitbarCancel(waitbarTitle)
-            [stats acv] = deal([]);
+            [stats, residVar] = deal([]);
             return;
         end
     end
                 
 end
 
-stats.winStartIdx = g.winStartIdx;
-stats.winStartTimes = MODEL.winStartTimes(g.winArrayIndex);
-stats.winArrayIndex = g.winArrayIndex;
+residVar.autocorrelation = racf;
+residVar.autocovariance  = racvf;
+residVar.variance        = rvar;
+residVar.numAcfLags      = g.numAcfLags;
+
+stats.winStartIdx        = g.winStartIdx;
+stats.winStartTimes      = MODEL.winStartTimes(g.winArrayIndex);
+stats.winArrayIndex      = g.winArrayIndex;
 stats.alpha = g.alpha;
 
 % clean up

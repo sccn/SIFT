@@ -1,4 +1,4 @@
-function [whitestats PCstats stabilitystats] = est_validateMVAR(varargin)
+function [whitestats PCstats stabilitystats residualstats] = est_validateMVAR(varargin)
 %
 % Validate a fitted VAR model. With two inputs, this function generates a
 % GUI where the validation scheme can be specified. Validation consists of
@@ -100,6 +100,7 @@ prctWinToSample = arg_extract(varargin,{'prctWinToSample','WindowSamplePercent'}
 g = arg_define([0 1],varargin, ...
         arg_norep({'EEG','ALLEEG'},mandatory,[],'EEGLAB dataset'), ...
         arg_subtoggle({'checkWhiteness','CheckResidualWhiteness'},{'verb',verb,'prctWinToSample',prctWinToSample},@est_checkMVARWhiteness,sprintf('Check residual whiteness. \nResiduals are "white" if they are uncorrelated.'),'cat','Validation Methods','suppress',{'prctWinToSample','VerbosityLevel'}), ...
+        arg_subtoggle({'checkResidualVariance','CheckResidualVariance'},{'verb',verb,'prctWinToSample',prctWinToSample,'whitenessCriteria',{}},@est_checkMVARWhiteness,'Compute residual autocorrelation and variance','cat','Validation Methods','suppress',{'WhitenessCriteria','MultipleComparisonsCorrection','SignificanceLevel','prctWinToSample','VerbosityLevel'}), ...
         arg_subtoggle({'checkConsistency','CheckConsistency'},{'verb',verb,'prctWinToSample',prctWinToSample},@est_checkMVARConsistency,sprintf('Check model consistency. \nA "consistent" model is able to generate data with similar covariance structure as the original data'),'cat','Validation Methods','suppress',{'prctWinToSample','VerbosityLevel'}), ...
         arg_subtoggle({'checkStability','CheckStability'},{'verb',verb},@est_checkMVARStability,sprintf('Check model stability. \nA stable model is one that cannot "blow up" (e.g. generate data that increases to infinity) -- this is a requirement for causal modeling.'),'cat','Validation Methods','suppress',{'prctWinToSample','VerbosityLevel'}), ... 
         arg({'prctWinToSample','WindowSamplePercent'},100,[1 100],'Percent of windows to sample','cat','Data Reduction'), ...
@@ -114,7 +115,7 @@ g = arg_define([0 1],varargin, ...
 % clear data;
 
 % initialize default output
-[whitestats PCstats stabilitystats] = deal([]);
+[whitestats PCstats stabilitystats residualstats] = deal([]);
 
 if ~isfield(g.EEG.CAT,'MODEL')
     error('SIFT:est_validateMVAR:NoModel','g.EEG.CAT.MODEL must be present in the dataset');
@@ -162,7 +163,7 @@ curcheck  = 0;
 % check residual whiteness 
 % -------------------------------------------------------------------------
 if g.checkWhiteness.arg_selection
-    whitestats = est_checkMVARWhiteness('EEG',g.EEG,'MODEL',MODEL,g.checkWhiteness,'winStartIdx',g.winStartIdx,'prctWinToSample',g.prctWinToSample,'verb',g.verb);
+    [whitestats residualstats] = est_checkMVARWhiteness('EEG',g.EEG,'MODEL',MODEL,g.checkWhiteness,'winStartIdx',g.winStartIdx,'prctWinToSample',g.prctWinToSample,'verb',g.verb);
     if isempty(whitestats)
         % whiteness checks cancelled
         g.checkWhiteness.arg_selection = false;
@@ -173,6 +174,14 @@ if g.checkWhiteness.arg_selection
     end
 end
 
+% check residual variance
+% -------------------------------------------------------------------------
+if g.checkResidualVariance.arg_selection
+    if ~g.checkWhiteness.arg_selection
+      [~, residualstats] = est_checkMVARWhiteness('EEG',g.EEG,'MODEL',MODEL,g.checkResidualVariance,'whitenessCriteria',{},'winStartIdx',g.winStartIdx,'prctWinToSample',g.prctWinToSample,'verb',g.verb);
+    end
+end
+        
 % check model consistency
 % -------------------------------------------------------------------------
 if g.checkConsistency.arg_selection
