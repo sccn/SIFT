@@ -39,22 +39,25 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Tip: to create an evaluable list of good channels (for flt_selchans) try this:
+% hlp_tostring(setdiff({signal.chanlocs.labels},badchannels))
 
 %% SET UP CONFIGURATION OPTIONS
+TRAIN_ONLY       = true;
 RUN_LSL          = false;           % If RUN_LSL = true, then stream 'online' from device; If RUN_LSL=false then playback TestingDataFile (below)
 
 % Source reconstruction options (leave disabled)
 COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
-HEAD_MODEL_NAME  = 'resources:/headmodels/standard-Colin27-385ch.mat';             % path to head model object for source reconstruction (relative to 'datapath'). Leave empty if you aren't doing source reconstruction
+HEAD_MODEL_NAME  = 'data:/mobilab/Cognionics_64_HeadModelObj_3751.mat'; %'resources:/headmodels/standard-Colin27-385ch.mat';             % path to head model object for source reconstruction (relative to 'datapath'). Leave empty if you aren't doing source reconstruction
 
 % Establish file paths
 % NOTE: all paths are relative to 'datapath' which is a
 % platform-independent path which itself can be relative to bcilab root
 % folder (i.e. data:/ is the userdata folder in the bcilab root dir)
 datapath         = 'data:/';       % this is relative to the BCILAB root dir
-TrainingDataFile = 'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is the relative path to the calibration dataset
+TrainingDataFile = 'Cognionics_64_Flanker.set'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is the relative path to the calibration dataset
 TestingDataFile  = 'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_testing.set'; %'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is an optional path to a dataset to playback (if RUN_LSL = false)
-GUI_CONFIG_NAME  = 'DEMO_SOURCELOC_METACP_CFG_CombineROIs.mat'; %'DARPA_DEMO_METACP_CFG_FEWCHANS.mat';             % relative path to a default pipeline configuration
+GUI_CONFIG_NAME  = 'DEMO_SOURCELOC_METACP_CFG_CombineROIs_nodelay_manyROIs.mat'; %'DEMO_SOURCELOC_METACP_CFG_AllVertices.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs.mat'; %'DARPA_DEMO_METACP_CFG_FEWCHANS.mat';             % relative path to a default pipeline configuration
 GUI_BRAINMOVIE_CONFIG_NAME = 'DEMO_SOURCELOC_BM_CFG.mat'; %'DARPA_DEMO_BM_CFG.mat';   % relative path to BrainMovie configuration
 
 % Set up the name of the stream we will write to in the workspace
@@ -164,6 +167,12 @@ catch
 end
 
 BMRenderMode = 'init_and_render';
+
+% Only run a pass through calibration data
+if TRAIN_ONLY
+    cleaned_data = exp_eval(flt_pipeline('signal',calibData,opts.fltPipCfg));
+    return;
+end
 
 %% Main loop
 % -------------------------------------------------------------------------

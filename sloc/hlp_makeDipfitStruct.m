@@ -1,4 +1,4 @@
-function dipfit = hlp_makeDipfitStruct(sourceSpace,roiVertices,CSD)
+function dipfit = hlp_makeDipfitStruct(sourceSpace,roiVertices,reducedSpace,CSD)
 % create dipfit structure containing the locations (.posxyz) and moments 
 % (.momxyz) of a set of dipoles located at each vertex of the source space.  
 % Alternately, one can provide a cell array of integers (roiVertices) where
@@ -37,6 +37,9 @@ if nargin<2
     roiVertices = {};
 end
 if nargin<3
+    reducedSpace = [];
+end
+if nargin<4
     CSD = [];
 end
 
@@ -91,6 +94,7 @@ end
 dipfit.hdmfile  = '';
 dipfit.mrifile  = '';
 dipfit.surfmesh = sourceSpace;
+dipfit.reducedMesh = reducedSpace;
 dipfit.chanfile = '';
 dipfit.chansel  = [];
 dipfit.coordformat = 'MNI';
