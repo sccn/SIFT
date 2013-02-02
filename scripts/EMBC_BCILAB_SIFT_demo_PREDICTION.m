@@ -45,7 +45,7 @@ RUN_LSL          = false;           % If RUN_LSL = true, then stream 'online' fr
 
 % Source reconstruction options (leave disabled)
 COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
-HEAD_MODEL_NAME  = 'mobilab/Cognionics_64_HeadModelObj_3751.mat';             % path to head model object for source reconstruction (relative to 'datapath'). Leave empty if you aren't doing source reconstruction
+HEAD_MODEL_NAME  = 'resources:/headmodels/Cognionics_64_HeadModelObj_3751.mat';             % path to head model object for source reconstruction. Leave empty if you aren't doing source reconstruction
 
 % Establish file paths
 % NOTE: all paths are relative to 'datapath' which is a
@@ -65,7 +65,7 @@ LSL_SelectionValue      = 'EEG';
 
 %% load head model object
 if ~isempty(HEAD_MODEL_NAME)
-    hmObj = headModel.loadFromFile(env_translatepath([datapath HEAD_MODEL_NAME]));
+    hmObj = headModel.loadFromFile(env_translatepath(HEAD_MODEL_NAME));
     % load meshes for visualization
     surfData    = load(hmObj.surfaces);
     surfData    = surfData.surfData;
