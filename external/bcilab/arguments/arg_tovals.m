@@ -28,7 +28,7 @@ function res = arg_tovals(spec,direct)
 %                                2010-10-18
 
 if ~exist('direct','var')
-    direct = true; end
+    direct = false; end
 
 % remove unassigned specifiers
 spec = spec(~strcmp(unassigned,{spec.value}));

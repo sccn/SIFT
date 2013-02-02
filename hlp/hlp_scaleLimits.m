@@ -1,4 +1,6 @@
 function [newMin newMax] = hlp_scaleLimits(varargin)
+% this function implements an exponential window moving average to
+% adapt a set of [min max] limits based on incoming data
 
 arg_define([0 4],varargin, ...
     arg_norep({'values'},mandatory,[],'data values'), ...
