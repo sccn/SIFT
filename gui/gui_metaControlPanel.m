@@ -355,6 +355,9 @@ opts    = handles.opts;
 
 % select the path/file for saving configs
 [fname fpath] = uiputfile('*.mat','Save Config File');
+if ~fname
+    return;
+end
 % save the opts structure
 save(fullfile(fpath,fname),'opts');
 
@@ -374,6 +377,9 @@ function mnu_LoadCfg_Callback(hObject, eventdata, handles)
 
 % load the configs
 [fname fpath] = uigetfile('*.mat','Load Config File');
+if ~fname
+    return;
+end
 tmp = load(fullfile(fpath,fname),'opts');
 handles.opts = tmp.opts;
 
