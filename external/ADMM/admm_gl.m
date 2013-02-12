@@ -1,4 +1,4 @@
-function [z, history] = admm_gl(varargin)
+function [z, u, history] = admm_gl(varargin)
 
 % group_lasso  Solve group lasso problem via ADMM
 %
@@ -42,6 +42,7 @@ g = arg_define([0 3],varargin, ...
                 arg({'rho','AugLagrangParamRho','AugmentedLagrangianParam'},1.0,[0 Inf],'Initial value of augmented Lagrangian parameter (rho)'), ...
                 arg({'alpha','OverRelaxationParamAlpha','OverRelaxationParam','Alpha'},1.7,[0 Inf],'Over-relaxation parameter (alpha). Typical values are between 1.5 and 1.8'), ...
                 arg_nogui({'z_init','InitialState','initAR'},[],[],'Initial state vector','shape','matrix'), ...
+                arg_nogui({'u_init','InitialDual'},[],[],'Initial value of u','shape','matrix'), ...
                 arg({'verb','Verbosity'},false,[],'Verbose output'), ...
                 arg({'max_iter','MaxIterations'},1000,[],'Maximum number of iterations'), ...
                 arg({'compute_objval','ComputeObjectiveValue'},false,[],'Compute objective value function. Slower processing. Useful mainly for diagnostics'), ...
@@ -155,7 +156,11 @@ end
 %% ADMM solver
 
 x = zeros(n,1);
-u = zeros(n,1);
+if isempty(u_init)
+    u = zeros(n,1);
+else
+    u = u_init;
+end
 if isempty(z_init)
     z = zeros(n,1);  
 else
@@ -220,7 +225,10 @@ for k = 1:max_iter
             start_ind = cum_part(i) + 1;
         end
     end
-          
+    
+    % u-update
+    u = u + (x_hat - z);
+    
     % diagnostics, reporting, termination checks
     if strcmp(x_update.arg_selection,'iterative')
         history.lsqr_iters(k) = iters;

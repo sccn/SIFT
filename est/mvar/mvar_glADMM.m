@@ -116,7 +116,7 @@ g = arg_define([0 1],varargin, ...
                 arg({'morder','ModelOrder'},10,[],'VAR Model order'), ...
                 arg_subtoggle({'warmStart','WarmStart'},[], ...
                 {...
-                    arg({'initState','InitialState'},[],[],'Initial ADMM state vector. The dimension is [morder*(nchs^2) x 1]. If empty, the first state is initialized to zeros.') ...
+                    arg({'initState','InitialState'},[],[],'Initial ADMM state. This is a structure with fields ''z_init'' and ''u_init'', which represent, respectively, the initial state vector and dual vector and are both of dimension [morder*(nchs^2) x 1]. If empty, the first state is initialized to zeros.') ...
                 },'Warm start. The previously estimated state will be used as a starting estimate for successive operations. Alternately, you may provide an non-empty initial state structure via the ''InitialState'' argument.'), ...
                 arg({'normcols','NormCols'},'none',{'none','norm','zscore'},'Normalize columns of dictionary'), ...
                 arg({'groupDiags','GroupAutoConnections','GroupDiags'},false,[],'Group auto-connections. All auto-connections for all channels will be penalized jointly as a separate group. Note, this can slow down model estimation as the design matrix will not longer be diagonal block-toeplitz so we cannot (yet) exploit block-redundancy in the design matrix'), ...
@@ -131,17 +131,24 @@ p = g.morder;
 blkrows   = npnts-p;
 blkcols   = p*nchs;
 
+if isempty(initAR)
+    initAR.z = [];
+    initAR.u = [];
+end
+
 % initialize state
 if g.warmStart.arg_selection && ~isempty(g.warmStart.initState)
     initAR = g.warmStart.initState;
 elseif ~g.warmStart.arg_selection
     % reset initAR
-    initAR = zeros(p*nchs^2,1);
+    initAR.z = zeros(p*nchs^2,1);
+    initAR.u = zeros(p*nchs^2,1);
 end
-if size(initAR,1) ~= p*nchs^2
+if size(initAR.z,1) ~= p*nchs^2
     % dimensions have changed, reset state
     fprintf('mvar_glADMM: model dimensions changed -- resetting state\n');
-    initAR = zeros(p*nchs^2,1);
+    initAR.z = zeros(p*nchs^2,1);
+    initAR.u = zeros(p*nchs^2,1);
 end
 
 % -------------------------------------------------------------------------
@@ -191,20 +198,21 @@ end
 % -------------------------------------------------------------------------
 % group penalize AR coefficients with different time-lags
 % between sources (nchs*(nchs-1) groups of size p). 
-[initAR] = admm_gl('A',X,  ...
-                   'y',Y, ...
-                   'blks',blks, ...
-                   g.admm_args, ...
-                   'z_init',initAR, ...
-                   'designMatrixBlockSize',fastif(g.groupDiags,[],[blkrows*ntr blkcols]));
+[initAR.z initAR.u] = admm_gl('A',X,  ...
+                       'y',Y, ...
+                       'blks',blks, ...
+                       g.admm_args, ...
+                       'z_init',initAR.z, ...
+                       'u_init',initAR.u, ...
+                       'designMatrixBlockSize',fastif(g.groupDiags,[],[blkrows*ntr blkcols]));
 
 % assemble coefficient matrices
 AR = zeros(p,nchs,nchs);
 if g.groupDiags
-    AR(offDiagIdx) = vec(initAR(1:(p*nchs*(nchs-1))));          % non-diagonal elements
-    AR(diagIdx) = vec(initAR(((p*nchs*(nchs-1))+1):end));       % diagonal elements
+    AR(offDiagIdx) = vec(initAR.z(1:(p*nchs*(nchs-1))));          % non-diagonal elements
+    AR(diagIdx)    = vec(initAR.z(((p*nchs*(nchs-1))+1):end));       % diagonal elements
 else
-    AR(:) = initAR;
+    AR(:) = initAR.z;
 end
 
 AR = permute(full(AR), [3 2 1]);   % the recovered (nchs x nchs x p) connectivity matrix
