@@ -463,7 +463,7 @@ while ~opts.exitPipeline
         benchmarking.serialization = [];
     end
     
-    pause(0.005);
+    pause(0.05); %was: 0.005
     
 end
 
