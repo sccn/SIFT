@@ -47,7 +47,7 @@ MAX_AGE         = 1;
 MAX_BUFFERED    = 5;
 MIN_MEM_LIMIT   = 500; % min memory threshold (MB)
 TRAIN_ONLY      = false;
-ROTATE90        = true;
+ROTATE90        = false;
 
 % Source reconstruction options (leave disabled)
 COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
