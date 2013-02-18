@@ -43,28 +43,32 @@
 % hlp_tostring(setdiff({signal.chanlocs.labels},badchannels))
 
 %% SET UP CONFIGURATION OPTIONS
+CALIB_EPOCH      = []; %[0 10]; %[0 10]; % time range (sec) to extract from calibration dataset for training
 TRAIN_ONLY       = false;
-RUN_LSL          = false;           % If RUN_LSL = true, then stream 'online' from device; If RUN_LSL=false then playback TestingDataFile (below)
+RUN_LSL          = true;           % If RUN_LSL = true, then stream 'online' from device; If RUN_LSL=false then playback TestingDataFile (below)
+STREAM_TO_LSL    = true;
 
 % Source reconstruction options (leave disabled)
 COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
-HEAD_MODEL_NAME  = 'data:/mobilab/Cognionics_64_HeadModelObj_3751.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_11997.mat';  %'resources:/headmodels/standard-Colin27-385ch.mat';             % path to head model object for source reconstruction (relative to 'datapath'). Leave empty if you aren't doing source reconstruction
+HEAD_MODEL_NAME  = 'resources:/headmodels/standard-Colin27-385ch.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_3751.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_11997.mat';  %'resources:/headmodels/standard-Colin27-385ch.mat';             % path to head model object for source reconstruction (relative to 'datapath'). Leave empty if you aren't doing source reconstruction
 
 % Establish file paths
 % NOTE: all paths are relative to 'datapath' which is a
 % platform-independent path which itself can be relative to bcilab root
 % folder (i.e. data:/ is the userdata folder in the bcilab root dir)
 datapath         = 'data:/';       % this is relative to the BCILAB root dir
-TrainingDataFile = 'Cognionics_64_training.set'; %'Cognionics_64_Flanker_85_265.set';  %'Cognionics_64_Flanker.set';  %'Cognionics_64_Flanker_0_10.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is the relative path to the calibration dataset
-TestingDataFile  = 'Cognionics_64_testing.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_testing.set'; %'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is an optional path to a dataset to playback (if RUN_LSL = false)
-GUI_CONFIG_NAME  = 'DEMO_SOURCELOC_METACP_CFG_CombineROIs_nodelay_manyROIs_autochansel.mat'; %'DEMO_SOURCELOC_METACP_CFG_AllVertices.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs.mat'; %'DARPA_DEMO_METACP_CFG_FEWCHANS.mat';             % relative path to a default pipeline configuration
-GUI_BRAINMOVIE_CONFIG_NAME = 'DEMO_SOURCELOC_BM_CFG.mat'; %'DARPA_DEMO_BM_CFG.mat';   % relative path to BrainMovie configuration
+TrainingDataFile = 'calibration.xdf'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; 'Cognionics_64_SIMULATION_one_source.set'; %'Cognionics_64_Flanker_85_265.set';  %'Cognionics_64_Flanker.set';  %'Cognionics_64_Flanker_0_10.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is the relative path to the calibration dataset
+TestingDataFile  = 'Cognionics_64_Flanker.set';  %'calibration_old1.xdf'; %'Cognionics_64_testing.set'; %'Cognionics_64_SIMULATION_manysources_nocsdsaved.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_SIMULATION.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_testing.set'; %'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is an optional path to a dataset to playback (if RUN_LSL = false)
+GUI_CONFIG_NAME  = 'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'BMCFG_RECORD_STABILITY_TEST_VBLORETA.mat'; %'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'EMBC_PAPER_METACP_OPTS_NOSOURCES.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs_nodelay_manyROIs_autochansel.mat'; %'SIMULATION_TEST_LORETA.mat'; %'DEMO_SOURCELOC_METACP_CFG_AllVertices.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs.mat'; %'DARPA_DEMO_METACP_CFG_FEWCHANS.mat';             % relative path to a default pipeline configuration
+GUI_BRAINMOVIE_CONFIG_NAME = 'DARPA_DEMO_BM_CFG.mat'; %'DEMO_SOURCELOC_BM_CFG.mat'; %'DARPA_DEMO_BM_CFG.mat';   % relative path to BrainMovie configuration
 
 % Set up the name of the stream we will write to in the workspace
 streamname              = 'EEGDATA';
 LSL_SelectionProperty   = 'type';  % can also be 'name'
 LSL_SelectionValue      = 'EEG';
 
+% this is the name of the stream that carries SIFT models
+outstream_name = 'SIFT-Models';
 
 %% load head model object
 if ~isempty(HEAD_MODEL_NAME)
@@ -78,7 +82,11 @@ if ~isempty(HEAD_MODEL_NAME)
 end
 
 %% load calibration recording
-calibData = exp_eval(io_loadset([datapath TrainingDataFile],'markerchannel',{'remove_eventchns',false}));
+if ~isempty(CALIB_EPOCH)
+    calibData = pop_select(exp_eval(io_loadset([datapath TrainingDataFile],'markerchannel',{'remove_eventchns',false})),'time',CALIB_EPOCH);
+else
+    calibData = exp_eval(io_loadset([datapath TrainingDataFile],'markerchannel',{'remove_eventchns',false}));
+end
 flt_pipeline('update');
 
 %% start LSL streaming
@@ -89,6 +97,9 @@ end
 if RUN_LSL == false
     run_readdataset('MatlabStream',streamname,'Dataset',io_loadset([datapath TestingDataFile],'markerchannel',{'remove_eventchns',false}));
 end
+
+%% initialize the output stream
+stream_outlet = onl_lslsend_init(outstream_name);
 
 %% initialize some variables
 [benchmarking.preproc     ...
@@ -102,8 +113,8 @@ gobj            = [];
 
 % create a minimal moving average pipeline...
 % noflats = exp_eval_optimized(flt_movavg(flt_selchans(calibData,{'FC3', 'FC4', 'FC2', 'FC1', 'C3', 'C4', 'C2', 'C1', 'CP3', 'CP4', 'CP2', 'CP1', 'P3', 'P4', 'P2', 'P1'})));
-noflats = flt_seltypes(calibData,'EEG');
-%noflats = exp_eval_optimized(flt_movavg(flt_seltypes(calibData,'EEG')));
+% noflats = flt_seltypes(calibData,'EEG');
+noflats = exp_eval_optimized(flt_movavg(flt_seltypes(calibData,'EEG')));
 highpassed   = exp_eval_optimized(flt_fir(noflats,[0.5 1],'highpass'));
 goodchannels = exp_eval_optimized(flt_clean_channels('signal',highpassed,'min_corr',0.35,'ignored_quantile',0.3));
 
@@ -187,9 +198,11 @@ while ~opts.exitPipeline
             cleaned_data = exp_eval(flt_pipeline('signal',calibData,opts.fltPipCfg));
             pipeline     = onl_newpipeline(cleaned_data,streamname);
             newPipeline  = false;
-            
-%             disp('profile on');
-%             profile -memory on
+
+            if STREAM_TO_LSL
+                % send the options structure
+                onl_lslsend(opts,stream_outlet);
+            end
         end
 
         if opts.holdPipeline
@@ -201,17 +214,29 @@ while ~opts.exitPipeline
         % grab a chunk of data from the stream and preprocess it
         % ---------------------------------------------------------------------
         prepbench = tic;
+        timeSeriesFields = {};
+        if isfield(opts.fltPipCfg,'psourceLocalize') && opts.fltPipCfg.psourceLocalize.arg_selection
+            timeSeriesFields =  [timeSeriesFields {'srcpot'}];
+        end
+        if isfield(opts.fltPipCfg,'psourceLocalize') && opts.fltPipCfg.psourceLocalize.keepFullCsd
+            timeSeriesFields =  [timeSeriesFields {'srcpot_all'}];
+        end
         [eeg_chunk,pipeline] = onl_filtered(pipeline, ...
                                             round(opts.miscOptCfg.winLenSec*cleaned_data.srate), ...
                                             opts.miscOptCfg.suppress_console_output, ...
-                                            fastif(isfield(opts.fltPipCfg,'psourceLocalize') && opts.fltPipCfg.psourceLocalize.arg_selection,{'srcpot'},{}));
+                                            timeSeriesFields);
         benchmarking.preproc = toc(prepbench); 
-
+        
         % visualize the current source density
         if opts.fltPipCfg.psourceLocalize.arg_selection && opts.miscOptCfg.dispCSD.arg_selection
             viscsdbench = tic;
-            gobj = vis_csd(opts.miscOptCfg.dispCSD,'hmObj',eeg_chunk.hmObj,'signal',eeg_chunk,'gobj',gobj,'times',linspace(eeg_chunk.xmin,eeg_chunk.xmax,eeg_chunk.pnts));
+            if size(eeg_chunk.data,2) ~= size(eeg_chunk.srcpot_all,2)
+                keyboard;
+            end
+            gobj = vis_csd(opts.miscOptCfg.dispCSD,'hmObj',eeg_chunk.hmObj,'signal',eeg_chunk,'gobj',gobj,'cortexMesh',eeg_chunk.dipfit.reducedMesh);
             benchmarking.viscsd = toc(viscsdbench);
+        elseif ishandle(gobj)
+            gobj = [];
         end
         
         % model the chunk via sift
@@ -228,7 +253,7 @@ while ~opts.exitPipeline
                 
                 % select a subset of channels
                 if ~isempty(opts.miscOptCfg.doSIFT.channelSubset)
-                    [dummy eeg_chunk] = evalc('hlp_scope({''disable_expressions'',1},@flt_selchans,''signal'',eeg_chunk,''channels'',opts.miscOptCfg.doSIFT.channelSubset,''arg_direct'',true)');
+                    [dummy eeg_chunk] = evalc('hlp_scope({''disable_expressions'',1},@flt_selchans,''signal'',eeg_chunk,''channels'',opts.miscOptCfg.doSIFT.channelSubset,''orderPreservation'',''dataset-order'',''arg_direct'',true)');
                 end
                 
                 % run the SIFT modeling pipeline
@@ -242,6 +267,8 @@ while ~opts.exitPipeline
                     continue;
                 end
                 
+%                 fprintf('serialization (CONN+CSD): %0.6g\n',toc);
+        
             catch err
                 hlp_handleerror(err);
                 pause(0.1);
@@ -379,10 +406,13 @@ while ~opts.exitPipeline
                 
             else % dispBrainMovie == false
                 % close the brainmovie figure if control panel is closed
-                if isempty(figHandles.BMControlPanel) ...
-                        || ~ishandle(figHandles.BMControlPanel) ...
-                        && ishandle(figHandles.BMDisplay)
-                    close(figHandles.BMDisplay);
+                try
+                    if isempty(figHandles.BMControlPanel) ...
+                            || ~ishandle(figHandles.BMControlPanel) ...
+                            && ishandle(figHandles.BMDisplay)
+                        close(figHandles.BMDisplay);
+                    end
+                catch
                 end
                 benchmarking.brainmovie = NaN;
             end
@@ -424,7 +454,16 @@ while ~opts.exitPipeline
          hlp_handleerror(err);
     end
     
-    pause(0.005);
+    if STREAM_TO_LSL
+        tic
+        
+        onl_lslsend(hlp_compressTimeSeries(eeg_chunk,{'data','srcpot','srcpot_all'},'single'),stream_outlet);
+        benchmarking.serialization = toc;
+    else
+        benchmarking.serialization = [];
+    end
+    
+    pause(0.05); %was: 0.005
     
 end
 
