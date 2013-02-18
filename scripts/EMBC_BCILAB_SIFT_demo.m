@@ -46,7 +46,7 @@
 CALIB_EPOCH      = []; %[0 10]; %[0 10]; % time range (sec) to extract from calibration dataset for training
 TRAIN_ONLY       = false;
 RUN_LSL          = false;           % If RUN_LSL = true, then stream 'online' from device; If RUN_LSL=false then playback TestingDataFile (below)
-STREAM_TO_LSL    = false;
+STREAM_TO_LSL    = true;
 
 % Source reconstruction options (leave disabled)
 COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
@@ -100,8 +100,10 @@ end
 
 %% initialize the output stream
 if STREAM_TO_LSL
-    stream_outlet = onl_lslsend_init(outstream_name);
+    samplingrate = 1;
+    stream_outlet = onl_lslsend_init(outstream_name,samplingrate);
 end
+
 %% initialize some variables
 [benchmarking.preproc     ...
  benchmarking.modeling    ...
@@ -468,7 +470,7 @@ while ~opts.exitPipeline
     % ---------------------------------------------------------------------
     if STREAM_TO_LSL
         tmr_streaming = tic;
-        onl_lslsend(hlp_compressTimeSeries(eeg_chunk,{'data','srcpot','srcpot_all'},'single'),stream_outlet);
+        onl_lslsend(hlp_compressTimeSeries(eeg_chunk,{'data','srcpot','srcpot_all'},'single',{'buffer','leadFieldMatrix','srcweights','srcweights_all'}),stream_outlet);
         benchmarking.lsl = toc(tmr_streaming);
     else
         benchmarking.lsl = NaN;
