@@ -210,6 +210,8 @@ if TRAIN_ONLY
     return;
 end
 
+% profile on;
+
 %% Main loop
 % -------------------------------------------------------------------------
 while ~opts.exitPipeline
@@ -474,6 +476,8 @@ while ~opts.exitPipeline
     pause(0.0001);
     
 end
+
+% profile off;
 
 %% all done, close all open figures
 fnames = fieldnames(figHandles);
