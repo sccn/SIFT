@@ -68,7 +68,13 @@ LSL_SelectionValue      = 'EEG';
 INSTREAM_NAME = 'SIFT-Models';
 
 %% initialize the input stream
-stream_inlet = onl_lslreceive_init(INSTREAM_NAME);
+TIMEOUT = 5;
+stream_inlet = onl_lslreceive_init(INSTREAM_NAME,TIMEOUT);
+if isempty(stream_inlet)
+    fprintf('Timeout expired. Could not resolve stream\n');
+    return;
+end
+pause(1);
 
 %% load head model object
 if ~isempty(HEAD_MODEL_NAME)
@@ -127,7 +133,7 @@ fprintf('Waiting for a connection...\n');
 haveDataChunk  = false;
 haveOptsStruct = false;
 while 1
-    [newchunk,age] = onl_lslreceive(stream_inlet,-1);
+    [newchunk,age] = onl_lslreceive(stream_inlet,-1,1);
     if isfield(newchunk,'data')
         % this is an EEG chunk
         eeg_chunk = newchunk;
@@ -143,7 +149,7 @@ while 1
     if haveDataChunk && haveOptsStruct
         break;
     end
-    pause(0.1);
+    pause(eps);
 end
 fprintf('Connected!\n');
 
@@ -207,15 +213,20 @@ while ~opts.exitPipeline
         
         % grab a chunk of data from the LSL stream
         % -----------------------------------------------------------------
-        age = 0;
-        [newchunk,age] = onl_lslreceive(stream_inlet,-1,MAX_AGE);
+        [newchunk,age] = onl_lslreceive(stream_inlet,-1,Inf);
 %         while(age > MAX_AGE)
 %             [newchunk,age] = onl_lslreceive(stream_inlet,-1,MAX_AGE);
 %         end
         if isfield(newchunk,'data')
+            fprintf('got eeg_chunk (age=%0.5g)\n',age);
+            if isequal(newchunk.data,eeg_chunk.data)
+                fprintf('nothing changed!');
+                continue;
+            end
             % this is an EEG chunk
             eeg_chunk = newchunk;
         elseif isfield(newchunk,'siftPipCfg')
+            fprintf('got opts struct (age=%0.5g)\n',age);
             % this is an opts chunk
             
             % override some configs using the values in this pipeline
