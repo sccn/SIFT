@@ -264,12 +264,20 @@ while ~opts.exitPipeline
             if size(eeg_chunk.data,2) ~= size(eeg_chunk.srcpot_all,2)
                 keyboard;
             end
+            if ~isobject(gobj)
+                gobj = [];
+            elseif ~ishandle(gobj.hFigure)
+                gobj = [];
+            end
             gobj = vis_csd(opts.miscOptCfg.dispCSD,'hmObj',eeg_chunk.hmObj,'signal',eeg_chunk,'gobj',gobj,'cortexMesh',eeg_chunk.dipfit.reducedMesh);
             benchmarking.viscsd = toc(viscsdbench);
             figHandles.csdDisplay = gobj.hFigure;
         else
-            if ishandle(gobj)
-                gobj = []; end
+            if isobject(gobj)
+                if ishandle(gobj.hFigure)
+                    close(gobj.hFigure); end
+                gobj = []; 
+            end
             benchmarking.viscsd = NaN;
         end
         
