@@ -43,8 +43,11 @@
 % hlp_tostring(setdiff({signal.chanlocs.labels},badchannels))
 
 %% SET UP CONFIGURATION OPTIONS
-MAX_AGE = 5;
-TRAIN_ONLY = false;
+MAX_AGE         = 1;
+MAX_BUFFERED    = 5;
+MIN_MEM_LIMIT   = 500; % min memory threshold (MB)
+TRAIN_ONLY      = false;
+ROTATE90        = true;
 
 % Source reconstruction options (leave disabled)
 COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
@@ -68,7 +71,13 @@ LSL_SelectionValue      = 'EEG';
 INSTREAM_NAME = 'SIFT-Models';
 
 %% initialize the input stream
-stream_inlet = onl_lslreceive_init(INSTREAM_NAME);
+stream_inlet = onl_lslreceive_init(INSTREAM_NAME,Inf,MAX_BUFFERED);
+
+if ~isempty(MIN_MEM_LIMIT)
+    % set up a timer for checking available memory
+    tmr_checkmem = timer('Period', 2,'ExecutionMode','fixedRate', ...
+        'TimerFcn',{@onl_lsl_bufmemcheck,stream_inlet,MIN_MEM_LIMIT},'StartDelay',0,'Tag','checkmem_timer');
+end
 
 %% load head model object
 if ~isempty(HEAD_MODEL_NAME)
@@ -79,12 +88,24 @@ if ~isempty(HEAD_MODEL_NAME)
     scalpMesh   = surfData(1);
     csfMesh     = surfData(2);
     cortexMesh  = surfData(3);
+    
+    if ROTATE90
+        scalpMesh.vertices = scalpMesh.vertices(:,[2 1 3]);
+        csfMesh.vertices   = csfMesh.vertices(:,[2 1 3]);
+        cortexMesh.vertices= cortexMesh.vertices(:,[2 1 3]);
+        
+        % center the head
+        scalpMesh.vertices = bsxfun(@minus,scalpMesh.vertices,mean(scalpMesh.vertices));
+        csfMesh.vertices = bsxfun(@minus,csfMesh.vertices,mean(csfMesh.vertices));
+        cortexMesh.vertices = bsxfun(@minus,cortexMesh.vertices,mean(cortexMesh.vertices));
+    end
 end
-
 %% initialize some variables
 [benchmarking.preproc     ...
  benchmarking.modeling    ...
- benchmarking.brainmovie] = deal(NaN);
+ benchmarking.brainmovie  ...
+ benchmarking.viscsd      ...
+ benchmarking.lsl] = deal(NaN);
 
 newPipeline     = true;
 newBrainmovie   = true;
@@ -145,6 +166,7 @@ while 1
     end
     pause(0.1);
 end
+start(tmr_checkmem);
 fprintf('Connected!\n');
 
 % additional options regarding brainmovie node/edge adaptation
@@ -167,6 +189,7 @@ waitfor(figHandles.MetaControlPanel,'UserData','initialized');
 figHandles.specDisplay      = [];
 figHandles.BMDisplay        = [];
 figHandles.BMControlPanel   = [];
+figHandles.csdDisplay       = [];
 
 %% try to load a BrainMovie configuration
 try 
@@ -207,14 +230,18 @@ while ~opts.exitPipeline
         
         % grab a chunk of data from the LSL stream
         % -----------------------------------------------------------------
-        age = 0;
-        [newchunk,age] = onl_lslreceive(stream_inlet,-1,MAX_AGE);
-%         while(age > MAX_AGE)
-%             [newchunk,age] = onl_lslreceive(stream_inlet,-1,MAX_AGE);
-%         end
+        tmr_age = tic;
+        [newchunk,age,ndiscarded] = onl_lslreceive(stream_inlet,-1,MAX_AGE);
+        benchmarking.lsl = toc(tmr_age);
+        if ndiscarded>0
+            fprintf('Discarded %d samples\n',ndiscarded); end
         if isfield(newchunk,'data')
             % this is an EEG chunk
             eeg_chunk = newchunk;
+            if eeg_chunk.pnts == 1
+                eeg_chunk.xmin = age;
+                eeg_chunk.xmax = age;
+            end
         elseif isfield(newchunk,'siftPipCfg')
             % this is an opts chunk
             
@@ -239,8 +266,11 @@ while ~opts.exitPipeline
             end
             gobj = vis_csd(opts.miscOptCfg.dispCSD,'hmObj',eeg_chunk.hmObj,'signal',eeg_chunk,'gobj',gobj,'cortexMesh',eeg_chunk.dipfit.reducedMesh);
             benchmarking.viscsd = toc(viscsdbench);
-        elseif ishandle(gobj)
-            gobj = [];
+            figHandles.csdDisplay = gobj.hFigure;
+        else
+            if ishandle(gobj)
+                gobj = []; end
+            benchmarking.viscsd = NaN;
         end
         
         % model the chunk via sift
@@ -431,7 +461,7 @@ while ~opts.exitPipeline
          hlp_handleerror(err);
     end
    
-    pause(0.005);
+    pause(0.0001);
     
 end
 
@@ -443,3 +473,10 @@ for f=1:length(fnames)
     end
 end
 
+%% close any streams
+stream_inlet.close_stream;
+stream_inlet.delete;
+if ~isempty(MIN_MEM_LIMIT)
+    stop(tmr_checkmem);
+    delete(tmr_checkmem);
+end

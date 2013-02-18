@@ -104,8 +104,10 @@ stream_outlet = onl_lslsend_init(outstream_name);
 %% initialize some variables
 [benchmarking.preproc     ...
  benchmarking.modeling    ...
- benchmarking.brainmovie] = deal(NaN);
-
+ benchmarking.brainmovie  ...
+ benchmarking.viscsd      ...
+ benchmarking.lsl] = deal(NaN);
+ 
 newPipeline     = true;
 newBrainmovie   = true;
 specOpts        = [];
@@ -235,8 +237,10 @@ while ~opts.exitPipeline
             end
             gobj = vis_csd(opts.miscOptCfg.dispCSD,'hmObj',eeg_chunk.hmObj,'signal',eeg_chunk,'gobj',gobj,'cortexMesh',eeg_chunk.dipfit.reducedMesh);
             benchmarking.viscsd = toc(viscsdbench);
-        elseif ishandle(gobj)
-            gobj = [];
+        else
+            if ishandle(gobj)
+                gobj = []; end
+            benchmarking.viscsd = NaN;
         end
         
         % model the chunk via sift
@@ -454,16 +458,17 @@ while ~opts.exitPipeline
          hlp_handleerror(err);
     end
     
+    % Stream result over LSL
+    % ---------------------------------------------------------------------
     if STREAM_TO_LSL
-        tic
-        
+        tmr_streaming = tic;
         onl_lslsend(hlp_compressTimeSeries(eeg_chunk,{'data','srcpot','srcpot_all'},'single'),stream_outlet);
-        benchmarking.serialization = toc;
+        benchmarking.lsl = toc(tmr_streaming);
     else
-        benchmarking.serialization = [];
+        benchmarking.lsl = NaN;
     end
     
-    pause(0.005);
+    pause(0.0001);
     
 end
 
