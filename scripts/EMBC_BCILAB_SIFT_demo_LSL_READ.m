@@ -45,7 +45,7 @@
 %% SET UP CONFIGURATION OPTIONS
 MAX_AGE         = 1;
 MAX_BUFFERED    = 5;
-MIN_MEM_LIMIT   = 500; % min memory threshold (MB)
+MIN_MEM_LIMIT   = []; % min memory threshold (MB)
 TRAIN_ONLY      = false;
 ROTATE90        = false;
 
@@ -166,7 +166,9 @@ while 1
     end
     pause(0.1);
 end
-start(tmr_checkmem);
+if ~isempty(MIN_MEM_LIMIT)
+    start(tmr_checkmem);
+end
 fprintf('Connected!\n');
 
 % additional options regarding brainmovie node/edge adaptation
