@@ -45,8 +45,8 @@
 %% SET UP CONFIGURATION OPTIONS
 CALIB_EPOCH      = []; %[0 10]; %[0 10]; % time range (sec) to extract from calibration dataset for training
 TRAIN_ONLY       = false;
-RUN_LSL          = true;           % If RUN_LSL = true, then stream 'online' from device; If RUN_LSL=false then playback TestingDataFile (below)
-STREAM_TO_LSL    = true;
+RUN_LSL          = false;           % If RUN_LSL = true, then stream 'online' from device; If RUN_LSL=false then playback TestingDataFile (below)
+STREAM_TO_LSL    = false;
 
 % Source reconstruction options (leave disabled)
 COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
@@ -99,8 +99,9 @@ if RUN_LSL == false
 end
 
 %% initialize the output stream
-stream_outlet = onl_lslsend_init(outstream_name);
-
+if STREAM_TO_LSL
+    stream_outlet = onl_lslsend_init(outstream_name);
+end
 %% initialize some variables
 [benchmarking.preproc     ...
  benchmarking.modeling    ...
@@ -220,7 +221,9 @@ while ~opts.exitPipeline
         if isfield(opts.fltPipCfg,'psourceLocalize') && opts.fltPipCfg.psourceLocalize.arg_selection
             timeSeriesFields =  [timeSeriesFields {'srcpot'}];
         end
-        if isfield(opts.fltPipCfg,'psourceLocalize') && opts.fltPipCfg.psourceLocalize.keepFullCsd
+        if isfield(opts.fltPipCfg,'psourceLocalize') ...
+                && opts.fltPipCfg.psourceLocalize.arg_selection ...
+                && opts.fltPipCfg.psourceLocalize.keepFullCsd
             timeSeriesFields =  [timeSeriesFields {'srcpot_all'}];
         end
         [eeg_chunk,pipeline] = onl_filtered(pipeline, ...
@@ -235,10 +238,13 @@ while ~opts.exitPipeline
             if size(eeg_chunk.data,2) ~= size(eeg_chunk.srcpot_all,2)
                 keyboard;
             end
+            if ~isobject(gobj)
+                gobj = [];
+            end
             gobj = vis_csd(opts.miscOptCfg.dispCSD,'hmObj',eeg_chunk.hmObj,'signal',eeg_chunk,'gobj',gobj,'cortexMesh',eeg_chunk.dipfit.reducedMesh);
             benchmarking.viscsd = toc(viscsdbench);
         else
-            if ishandle(gobj)
+            if isobject(gobj)
                 gobj = []; end
             benchmarking.viscsd = NaN;
         end
@@ -478,5 +484,9 @@ for f=1:length(fnames)
     if ishandle(figHandles.(fnames{f}))
         close(figHandles.(fnames{f}));
     end
+end
+
+if STREAM_TO_LSL
+    stream_outlet.delete;
 end
 
