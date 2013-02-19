@@ -47,7 +47,6 @@ CALIB_EPOCH      = []; %[0 10]; %[0 10]; % time range (sec) to extract from cali
 TESTING_EPOCH    = []; % time range (sec) to extract from testing dataset for playback
 TRAIN_ONLY       = false;
 RUN_LSL          = false;           % If RUN_LSL = true, then stream 'online' from device; If RUN_LSL=false then playback TestingDataFile (below)
-STREAM_TO_LSL    = true;
 
 % Source reconstruction options (leave disabled)
 COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
@@ -99,12 +98,6 @@ end
 %% ... OR read from datafile
 if RUN_LSL == false
     run_readdataset('MatlabStream',streamname,'Dataset',io_loadset([datapath TestingDataFile],'markerchannel',{'remove_eventchns',false},'timerange',TESTING_EPOCH));
-end
-
-%% initialize the output stream
-if STREAM_TO_LSL
-    samplingrate = 1;
-    stream_outlet = onl_lslsend_init(outstream_name,samplingrate);
 end
 
 %% initialize some variables
@@ -172,6 +165,12 @@ end
 figHandles.MetaControlPanel = gui_metaControlPanel(calibData,opts);
 waitfor(figHandles.MetaControlPanel,'UserData','initialized');
 
+%% initialize the output stream
+if opts.miscOptCfg.streamLSL
+    samplingrate = 1;
+    stream_outlet = onl_lslsend_init(outstream_name,samplingrate);
+end
+
 %% Initialize figures
 figHandles.specDisplay      = [];
 figHandles.BMDisplay        = [];
@@ -207,7 +206,7 @@ while ~opts.exitPipeline
             pipeline     = onl_newpipeline(cleaned_data,streamname);
             newPipeline  = false;
 
-            if STREAM_TO_LSL
+            if opts.miscOptCfg.streamLSL
                 % send the options structure
                 onl_lslsend(opts,stream_outlet);
             end
@@ -471,7 +470,7 @@ while ~opts.exitPipeline
     
     % Stream result over LSL
     % ---------------------------------------------------------------------
-    if STREAM_TO_LSL
+    if opts.miscOptCfg.streamLSL
         tmr_streaming = tic;
         onl_lslsend(hlp_compressTimeSeries(eeg_chunk,{'data','srcpot','srcpot_all'},'single',{'buffer','leadFieldMatrix','srcweights','srcweights_all'}),stream_outlet);
         benchmarking.lsl = toc(tmr_streaming);
@@ -491,7 +490,7 @@ for f=1:length(fnames)
     end
 end
 
-if STREAM_TO_LSL
+if opts.miscOptCfg.streamLSL
     stream_outlet.delete;
 end
 

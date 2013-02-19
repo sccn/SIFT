@@ -50,8 +50,9 @@ TRAIN_ONLY      = false;
 ROTATE90        = false;
 
 % Source reconstruction options (leave disabled)
-COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
-HEAD_MODEL_NAME  = 'resources:/headmodels/standard-Colin27-385ch.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_3751.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_11997.mat';  %'resources:/headmodels/standard-Colin27-385ch.mat';             % path to head model object for source reconstruction (relative to 'datapath'). Leave empty if you aren't doing source reconstruction
+%COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
+HEAD_MODEL_NAME = 'data:/mobilab/385_Channel_noseY_HeadModelObj_3751.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_3751.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_11997.mat';  %'resources:/headmodels/standard-Colin27-385ch.mat';             % path to head model object for source reconstruction (relative to 'datapath'). Leave empty if you aren't doing source reconstruction
+
 % Establish file paths
 % NOTE: all paths are relative to 'datapath' which is a
 % platform-independent path which itself can be relative to bcilab root
@@ -79,27 +80,6 @@ if ~isempty(MIN_MEM_LIMIT)
         'TimerFcn',{@onl_lsl_bufmemcheck,stream_inlet,MIN_MEM_LIMIT},'StartDelay',0,'Tag','checkmem_timer');
 end
 
-%% load head model object
-if ~isempty(HEAD_MODEL_NAME)
-    hmObj = headModel.loadFromFile(env_translatepath(HEAD_MODEL_NAME));
-    % load meshes for visualization
-    surfData    = load(hmObj.surfaces);
-    surfData    = surfData.surfData;
-    scalpMesh   = surfData(1);
-    csfMesh     = surfData(2);
-    cortexMesh  = surfData(3);
-    
-    if ROTATE90
-        scalpMesh.vertices = scalpMesh.vertices(:,[2 1 3]);
-        csfMesh.vertices   = csfMesh.vertices(:,[2 1 3]);
-        cortexMesh.vertices= cortexMesh.vertices(:,[2 1 3]);
-        
-        % center the head
-        scalpMesh.vertices = bsxfun(@minus,scalpMesh.vertices,mean(scalpMesh.vertices));
-        csfMesh.vertices = bsxfun(@minus,csfMesh.vertices,mean(csfMesh.vertices));
-        cortexMesh.vertices = bsxfun(@minus,cortexMesh.vertices,mean(cortexMesh.vertices));
-    end
-end
 %% initialize some variables
 [benchmarking.preproc     ...
  benchmarking.modeling    ...
@@ -111,37 +91,7 @@ newPipeline     = true;
 newBrainmovie   = true;
 specOpts        = [];
 gobj            = [];
-
-
-% %% initialize options
-% if ~isempty(GUI_CONFIG_NAME) && exist(env_translatepath([datapath GUI_CONFIG_NAME]),'file')
-%     % try to load a configuration file
-%     io_load([datapath GUI_CONFIG_NAME]);
-% else
-%     % manually set some defaults
-%     opts.miscOptCfg.dispBenchmark  = true;
-%     opts.miscOptCfg.doSIFT         = [];
-%     opts.holdPipeline              = false;
-%     opts.exitPipeline              = false;
-% 
-%     opts.siftPipCfg.preproc.verb = 0;
-% 
-%     % set some defaults
-%     opts.fltPipCfg = ...
-%         struct('DataCleaning', ...
-%                 struct('RetainPhases',true, ...
-%                        'HaveBursts', true, ...
-%                        'HaveChannelDropouts', false, ...
-%                        'DataSetting', 'drycap'), ...
-%                 'Rereferencing', {{}}); 
-% 
-%     opts.siftPipCfg = ...
-%         struct('preproc', ...
-%                     struct('normalize', ...
-%                         struct('verb', 0, ...
-%                                'method', {{'time'}})));
-%                            
-% end
+hmObj           = [];
 
 % wait for an opts structure to arrive
 fprintf('Waiting for a connection...\n');
@@ -229,6 +179,42 @@ while ~opts.exitPipeline
             fprintf('Pipeline changed\n');
             figHandles.MetaControlPanel = gui_metaControlPanel(eeg_chunk,opts);
             set(figHandles.MetaControlPanel,'Name','MetaControlPanel: Visualizer');
+            
+            %% load head model object and surfaces
+            if opts.fltPipCfg.psourceLocalize.arg_selection
+                
+                if ~isequal_weak(opts.fltPipCfg.psourceLocalize.hmObj,hmObj)
+                    
+                    hmObj = hlp_validateHeadModelObject(opts.fltPipCfg.psourceLocalize.hmObj);
+                
+                    % load meshes for visualization
+                    surfData    = load(hmObj.surfaces);
+                    surfData    = surfData.surfData;
+                    scalpMesh   = surfData(1);
+                    csfMesh     = surfData(2);
+                    cortexMesh  = surfData(3);
+                    NE = length(hmObj.atlas.label);
+                    cortexMesh.colortable.numEntries = NE; 
+                    cortexMesh.colortable.orig_tab   = '';
+                    cortexMesh.colortable.structNames = hmObj.atlas.label;
+                    cortexMesh.label                  = hmObj.atlas.color;
+                    cortexMesh.colortable.table       = [jet(NE) zeros(NE,1) (1:NE)'];
+                    
+                    if ROTATE90
+                        scalpMesh.vertices = scalpMesh.vertices(:,[2 1 3]);
+                        csfMesh.vertices   = csfMesh.vertices(:,[2 1 3]);
+                        cortexMesh.vertices= cortexMesh.vertices(:,[2 1 3]);
+
+                        % center the head
+                        scalpMesh.vertices = bsxfun(@minus,scalpMesh.vertices,mean(scalpMesh.vertices));
+                        csfMesh.vertices = bsxfun(@minus,csfMesh.vertices,mean(csfMesh.vertices));
+                        cortexMesh.vertices = bsxfun(@minus,cortexMesh.vertices,mean(cortexMesh.vertices));
+                    end
+                end
+                
+                hmObj = opts.fltPipCfg.psourceLocalize.hmObj;
+            end
+
             newPipeline  = false;
         end
         
@@ -274,6 +260,9 @@ while ~opts.exitPipeline
                 gobj = [];
             end
             gobj = vis_csd(opts.miscOptCfg.dispCSD,'hmObj',eeg_chunk.hmObj,'signal',eeg_chunk,'gobj',gobj,'cortexMesh',eeg_chunk.dipfit.reducedMesh);
+            % set the closing behavior
+            set(gobj.hFigure,'CloseRequestFcn','evalin(''base'',''opts.miscOptCfg.dispCSD.arg_selection = false;''); delete(gcbf);');
+
             benchmarking.viscsd = toc(viscsdbench);
             figHandles.csdDisplay = gobj.hFigure;
         else
@@ -343,25 +332,29 @@ while ~opts.exitPipeline
     
                 % Handle special rendering of source meshes and colors
                 % ---------------------------------------------------------
-                if COLOR_SOURCE_ROI 
-                    BG_COLOR = [0.1 0.1 0.1];
+                if opts.miscOptCfg.doSIFT.arg_selection ...
+                        && opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection ...
+                        && opts.miscOptCfg.doSIFT.dispBrainMovie.colorCortexByRoi.arg_selection 
                     
                     if BMCFG.BMopts.Layers.custom.arg_selection
                         BMCFG.BMopts.Layers.custom.volumefile = eeg_chunk.dipfit.surfmesh;
                         BMCFG.BMopts.Layers.custom.meshcolor  = hlp_getROIVertexColorTable( ...
-                                size(eeg_chunk.dipfit.surfmesh.vertices,1), ...
-                                eeg_chunk.roiVertices,BG_COLOR,@(x)distinguishable_colors(x,BG_COLOR));
+                                opts.miscOptCfg.doSIFT.dispBrainMovie.colorCortexByRoi, ...
+                                'numVerticesInMesh',size(eeg_chunk.dipfit.surfmesh.vertices,1), ...
+                                'roiVertices',eeg_chunk.roiVertices);
                     end
                     
-                    % if the cortex mesh is a custom mesh with 'constant'
-                    % coloring...
-                    if strcmpi(BMCFG.BMopts.Layers.cortex.cortexres,'custommesh') ...
+                    
+                    % if the cortex mesh is a custom mesh ...
+                    if isfield(BMCFG.BMopts.Layers.cortex,'cortexres') && ...
+                       strcmpi(BMCFG.BMopts.Layers.cortex.cortexres,'custommesh') ...
                        && strcmp(BMCFG.BMopts.Layers.cortex.cortexcolor.arg_selection,'Constant')
                             % ... replace the colors with ROI coloring
                             BMCFG.BMopts.Layers.cortex.cortexcolor.colormapping = ...
                                 hlp_getROIVertexColorTable( ...
-                                    size(eeg_chunk.dipfit.surfmesh.vertices,1), ...
-                                    eeg_chunk.roiVertices,BG_COLOR,@(x)distinguishable_colors(x,BG_COLOR));
+                                opts.miscOptCfg.doSIFT.dispBrainMovie.colorCortexByRoi, ...
+                                    'numVerticesInMesh',size(eeg_chunk.dipfit.surfmesh.vertices,1), ...
+                                    'roiVertices',eeg_chunk.roiVertices);
 %                         {hmObj.atlas.label, hlp_getROIColorTable(hmObj.atlas.label,eeg_chunk.roiLabels,[0.5 0.5 0.5],[1 0 0])};
                     end
                 end
@@ -379,7 +372,7 @@ while ~opts.exitPipeline
                                     'InternalStateVariables',BMStateVars));
                 benchmarking.brainmovie = toc(bmbench);
 
-                if isempty(BMStateVars)
+                if isempty(BMStateVars) % && ishandle(figHandles.BMDisplay)
                     set(figHandles.BMDisplay, 'MenuBar','figure', ...
                                 'CloseRequestFcn','evalin(''base'',''figHandles.BMDisplay = [];''); delete(gcbf);', ...
                                 'ToolBar','none', 'Name','BrainMovie3D');
@@ -427,9 +420,10 @@ while ~opts.exitPipeline
                 % close the brainmovie figure if control panel is closed
                 try
                     if isempty(figHandles.BMControlPanel) ...
-                            || ~ishandle(figHandles.BMControlPanel) ...
-                            && ishandle(figHandles.BMDisplay)
+                            || (~ishandle(figHandles.BMControlPanel) ...
+                            && ishandle(figHandles.BMDisplay))
                         close(figHandles.BMDisplay);
+                        figHandles.BMDisplay = [];
                     end
                 catch
                 end
@@ -447,7 +441,7 @@ while ~opts.exitPipeline
                         % generate a GUI and initialize SpecViewer
                         [figHandles.specDisplay specOpts] = arg_guidialog(@vis_autospectrum,'Parameters',{'stream',eeg_chunk});
 
-                        set(figHandles.specDisplay,'CloseRequestFcn','evalin(''base'',''opts.miscOptCfg.dispSpectrum=false; figHandles.specDisplay = [];''); delete(gcbf);');
+                        set(figHandles.specDisplay,'CloseRequestFcn','evalin(''base'',''opts.miscOptCfg.doSIFT.dispSpectrum=false; figHandles.specDisplay = [];''); delete(gcbf);');
                         specOpts.arg_direct = 0;
                     end
                 catch e
@@ -462,6 +456,7 @@ while ~opts.exitPipeline
 
         else
             benchmarking.modeling = NaN;
+            benchmarking.brainmovie = NaN;
         end
         
         if opts.miscOptCfg.dispBenchmark
