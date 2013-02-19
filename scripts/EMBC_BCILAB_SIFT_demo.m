@@ -45,12 +45,14 @@
 %% SET UP CONFIGURATION OPTIONS
 CALIB_EPOCH      = []; %[0 10]; %[0 10]; % time range (sec) to extract from calibration dataset for training
 TRAIN_ONLY       = false;
-RUN_LSL          = false;           % If RUN_LSL = true, then stream 'online' from device; If RUN_LSL=false then playback TestingDataFile (below)
+RUN_LSL          = true;           % If RUN_LSL = true, then stream 'online' from device; If RUN_LSL=false then playback TestingDataFile (below)
 STREAM_TO_LSL    = true;
 
 % Source reconstruction options (leave disabled)
 COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
-HEAD_MODEL_NAME  = 'resources:/headmodels/standard-Colin27-385ch.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_3751.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_11997.mat';  %'resources:/headmodels/standard-Colin27-385ch.mat';             % path to head model object for source reconstruction (relative to 'datapath'). Leave empty if you aren't doing source reconstruction
+% HEAD_MODEL_NAME  = 'resources:/headmodels/standard-Colin27-385ch.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_3751.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_11997.mat';  %'resources:/headmodels/standard-Colin27-385ch.mat';             % path to head model object for source reconstruction (relative to 'datapath'). Leave empty if you aren't doing source reconstruction
+
+HEAD_MODEL_NAME = 'data:/mobilab/385_Channel_noseY_HeadModelObj_3751.mat'; %'resources:/headmodels/nose_y_old_standard-Colin27-385ch.mat';
 
 % Establish file paths
 % NOTE: all paths are relative to 'datapath' which is a
