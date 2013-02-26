@@ -40,6 +40,11 @@ function [AR PE lambdaOpt] = mvar_ridge(varargin)
 % graph (all VAR coefficients are non-zero). Follow up
 % with statistical thresholding.
 %
+% Author Credits:
+% 
+% The ridge regression implementation (ridgeGCV.m) was
+% contributed by Alejandro Ojeda (SCCN/INC).
+%
 % Dependencies: ridgeGCV()
 %
 % ------------------------------------------------------------------------
