@@ -336,8 +336,6 @@ if ~isempty(ALLEEG)
         end
     end
     
-    clear ALLEEG
-    
 else
     sourceMarginOptions = {'none','topoplot','dipole','customtopo'};
 end
@@ -358,11 +356,11 @@ if isempty(stats)
     StatThreshMethods = {''};
 else
     usestatsdef = {};  % true
-    methods = fieldnames(stats);
+    methods = intersect(fieldnames(stats),ConnNames);
     StatThreshMethods = intersect(fieldnames(stats.(methods{1})),{'pval','thresh','logical'});
 end
 
-clear stats;
+clear stats ALLEEG;
 
 % setup the argument list
 % -----------------------------------------------------
@@ -862,10 +860,12 @@ end
 % ----------------------------------------------------------------
 % | Apply statistics and thresholding
 % ----------------------------------------------------------------
-if any(ConnMatrix(:)<0), TwoSidedThresholding = true; end
 
 switch lower(g.thresholding.arg_selection)
     case 'simple'
+        
+        if any(ConnMatrix(:)<0), TwoSidedThresholding = true; end
+        
         if ~isempty(g.thresholding.prcthresh)
             % percentile Thresholding
             
@@ -917,6 +917,16 @@ switch lower(g.thresholding.arg_selection)
         
     case 'statistics'
         
+        if ~isfield(g.stats,'tail')
+            if any(ConnMatrix(:)<0), TwoSidedThresholding = true; end
+        else
+            switch g.stats.tail
+                case {'both'}
+                    TwoSidedThresholding = true;
+                otherwise
+                    TwoSidedThresholding = false;
+            end
+        end
         
         % Use Statistics Structure for thresholding
         if nargin>3 && isfield(g.stats,CEstimator)

@@ -1,5 +1,5 @@
 function arglist = hlp_getModelingApproaches(varargin)
-% return a cell array (arglist) defining the available modling approaches
+% return a cell array (arglist) defining the available modeling approaches
 % each entry of the cell array is a cell array of the form
 % {'Approach Name' @function_handle}
 % where @function_handle is the handle to the function implementing the

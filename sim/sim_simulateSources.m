@@ -58,11 +58,6 @@ if ~isempty(g.sourceShape.roiOrdered{1})
     g.sourceShape.roiAtlasLabels = g.sourceShape.roiOrdered;
 end
 
-% simulating some Gaussian sources
-% x0 = [-81.6328 17.9887 93.8088];  % occipital l
-% x1 = [30.5384 -12.5882 117.1195]; % frontal superior r
-% x2 = [0.8625 -58.2585 78.9345];   % supra marginal r
-% x3 = [25.9583 48.3573 35.8547];   % insula l
 
 % set up model
 % -------------------------------------------------------------------------

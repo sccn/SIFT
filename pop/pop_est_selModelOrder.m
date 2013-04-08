@@ -128,6 +128,11 @@ for cnd=1:length(ALLEEG)
     % calculate the information criteria
     ALLEEG(cnd).CAT.IC = est_selModelOrder('EEG',ALLEEG(cnd),cfg);
     
+    if isempty(ALLEEG(cnd).CAT.IC)
+        % use canceled
+        return;
+    end
+    
     if ~isempty(cfg)
         % store the configuration structure
         ALLEEG(cnd).CAT.configs.(fcnName) = cfg;

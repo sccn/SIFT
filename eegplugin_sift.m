@@ -100,7 +100,7 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     BranMovie_callback      = [finalcmd catchstrs.store_and_hist];
     
-    cmd = 'EEG = pop_stat_surrogate(EEG,0);';
+    cmd = 'EEG = pop_stat_surrogateGen(EEG,0);';
     finalcmd = [ trystrs.no_check cmd ];
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     SurrogateDistrib_callback = [finalcmd catchstrs.store_and_hist];

@@ -181,6 +181,8 @@ for cond = 1:num_conds
         ax=subplot(numrows,numcols,curplot);
         if length(PCstats{cond}.PC)>1
             % more than one window -- make lineplot
+            meanpc = mean(PCstats{cond}.PC);
+            stdpc  = std(PCstats{cond}.PC);
             if ~isempty(g.windowTimes)
                 abscissa = g.windowTimes;
             else
@@ -188,11 +190,14 @@ for cond = 1:num_conds
             end
             plot(abscissa,PCstats{cond}.PC,'Marker','.');
             axes(ax);
-            text(0.98,0.9,sprintf('Mean PC: %0.2f%%',mean(PCstats{cond}.PC)), ...
+            text(0.98,0.9,sprintf('Mean PC: %0.2f+/-%0.3g%%',meanpc,stdpc), ...
                 'units','normalized','horizontalalignment','right', ...
                 'edgecolor','k','backgroundcolor','w');
             xlabel(fastif(isempty(g.windowTimes),'Window number','Time (sec)'));
             
+            set(gca,...
+            'Xlim',[abscissa(1)-abs(diff(abscissa(1:2))) abscissa(end)+abs(diff(abscissa(1:2)))], ...
+            'Ylim',[min(PCstats{cond}.PC)-50 min(max(PCstats{cond}.PC)+50,100)]);
             % make a small histogram on right side of plot
             %             axpos = get(ax,'Position');
             %             axhist = axesRelative(ax, 'Position',[1.01 0 0.1 1], 'Units','Normalized');   %axes('Position',[axpos(1)+axpos(3)+0.01 axpos(2) 0.05 axpos(4)]);
@@ -205,9 +210,7 @@ for cond = 1:num_conds
             bar(PCstats{cond}.PC);
             legend(sprintf('(%0.2f%% Consistent)',PCstats{cond}.PC));
         end
-        set(gca,...
-            'Xlim',[abscissa(1)-abs(diff(abscissa(1:2))) abscissa(end)+abs(diff(abscissa(1:2)))], ...
-            'Ylim',[min(PCstats{cond}.PC)-50 min(max(PCstats{cond}.PC)+50,100)]);
+        
         ylabel('Percent Consistency');
         axcopy(gca);
         curplot = curplot+1;
@@ -232,6 +235,8 @@ for cond = 1:num_conds
             plot(abscissa,maxlambda,'Marker','.');
             xlabel(fastif(isempty(g.windowTimes),'Window number','Time (sec)'));
             
+            set(gca,'Xlim',[abscissa(1)-abs(diff(abscissa(1:2))) abscissa(end)+abs(diff(abscissa(1:2)))], ...
+                'Ylim',[1.2*min(maxlambda(:)) max(0.01,1.3*max(maxlambda(:)))]);
         else
             % single window -- make barplot
             maxlambda = max(real(stabilitystats{cond}.lambda(:)));
@@ -240,8 +245,6 @@ for cond = 1:num_conds
         
         
         %     set(gca,'ylim',[max(0,0.7*min(abs(lambda(:)))) max(1.3,1.3*max(abs(lambda(:))))]);
-        set(gca,'Xlim',[abscissa(1)-abs(diff(abscissa(1:2))) abscissa(end)+abs(diff(abscissa(1:2)))], ...
-                'Ylim',[1.2*min(maxlambda(:)) max(0.01,1.3*max(maxlambda(:)))]);
         %     axis auto
         hl=hline(0);
         set(hl,'linestyle','--','linewidth',2);

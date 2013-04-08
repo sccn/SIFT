@@ -1,36 +1,36 @@
-function varargout = gui_stat_surrogateStats(varargin)
+function varargout = gui_stat_surrogateGen(varargin)
 %
-% GUI_STAT_SURROGATESTATS M-file for gui_stat_surrogateStats.fig
-%      GUI_STAT_SURROGATESTATS, by itself, creates a new GUI_STAT_SURROGATESTATS or raises the existing
+% GUI_STAT_SURROGATEGEN M-file for gui_stat_surrogateGen.fig
+%      GUI_STAT_SURROGATEGEN, by itself, creates a new GUI_STAT_SURROGATEGEN or raises the existing
 %      singleton*.
 %
-%      H = GUI_STAT_SURROGATESTATS returns the handle to a new GUI_STAT_SURROGATESTATS or the handle to
+%      H = GUI_STAT_SURROGATEGEN returns the handle to a new GUI_STAT_SURROGATEGEN or the handle to
 %      the existing singleton*.
 %
-%      GUI_STAT_SURROGATESTATS('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in GUI_STAT_SURROGATESTATS.M with the given input arguments.
+%      GUI_STAT_SURROGATEGEN('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in GUI_STAT_SURROGATEGEN.M with the given input arguments.
 %
-%      GUI_STAT_SURROGATESTATS('Property','Value',...) creates a new GUI_STAT_SURROGATESTATS or raises the
+%      GUI_STAT_SURROGATEGEN('Property','Value',...) creates a new GUI_STAT_SURROGATEGEN or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before gui_stat_surrogateStats_OpeningFcn gets called.  An
+%      applied to the GUI before gui_stat_surrogateGen_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to gui_stat_surrogateStats_OpeningFcn via varargin.
+%      stop.  All inputs are passed to gui_stat_surrogateGen_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help gui_stat_surrogateStats
+% Edit the above text to modify the response to help gui_stat_surrogateGen
 
-% Last Modified by GUIDE v2.5 28-Jun-2012 15:15:25
+% Last Modified by GUIDE v2.5 05-Apr-2013 14:50:48
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @gui_stat_surrogateStats_OpeningFcn, ...
-                   'gui_OutputFcn',  @gui_stat_surrogateStats_OutputFcn, ...
+                   'gui_OpeningFcn', @gui_stat_surrogateGen_OpeningFcn, ...
+                   'gui_OutputFcn',  @gui_stat_surrogateGen_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -45,15 +45,15 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before gui_stat_surrogateStats is made visible.
-function gui_stat_surrogateStats_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before gui_stat_surrogateGen is made visible.
+function gui_stat_surrogateGen_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to gui_stat_surrogateStats (see VARARGIN)
+% varargin   command line arguments to gui_stat_surrogateGen (see VARARGIN)
 
-set(hObject,'name','Compute Surrogate Statistics');
+set(hObject,'name','Compute Surrogate Distribution');
 
 handles.output = hObject;
 
@@ -62,11 +62,11 @@ handles.ExitButtonClicked = 'Cancel';
 
 % extract some data from command-line input
 if isempty(varargin)
-    error('You must pass EEG to gui_surrogateStats');
+    error('You must pass ALLEEG to gui_surrogate');
 end
 
 % Extract input parameters/data and store
-handles.ud.EEG  = varargin{1};  
+handles.ud.ALLEEG  = varargin{1};  
 varargin(1) = [];
 
 % set default EEGLAB background and text colors
@@ -118,8 +118,8 @@ drawnow
 % render the PropertyGrid in the correct panel
 handles.PropertyGridHandle = arg_guipanel( ...
                  handles.pnlPropertyGrid, ...
-                'Function',@stat_surrogateStats, ...
-                'params',{'EEG',handles.ud.EEG, varargin{:}});
+                'Function',@stat_surrogateGen, ...
+                'params',{'ALLEEG',handles.ud.ALLEEG,varargin{:}});
 
 % Update handles structure
 guidata(hObject, handles);
@@ -129,7 +129,7 @@ uiwait(handles.gui_PrepData);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = gui_stat_surrogateStats_OutputFcn(hObject, eventdata, handles) 
+function varargout = gui_stat_surrogateGen_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -165,7 +165,7 @@ guidata(hObject,handles);
 uiresume(handles.gui_PrepData);
 
 function cmdHelp_Callback(hObject, eventdata, handles)
-warndlg2('Coming soon!'); % use pophelp
+doc(stat_surrogateGen);
 
 
 function gui_PrepData_ResizeFcn(hObject, eventdata, handles)

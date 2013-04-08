@@ -58,7 +58,7 @@ cfg = [];
         
 % generate splash screen
 % initialize SIFT, etc
-StartSIFT(~strcmpi(typeproc,'nogui'));
+StartSIFT(~strcmpi(typeproc,'nogui'),true);
 
 fcnName     = strrep(mfilename,'pop_','');
 fcnHandle   = str2func(fcnName);
