@@ -241,6 +241,24 @@ for m=1:length(g.estimator)
 %                 Stats.nPDC.ci(2,:,:,:,:) = ncx2inv(1-g.alpha/2,df,(g.EEG.CAT.Conn.nPDC.*g.EEG.CAT.Conn.pdc_denom*N/scale)./g.EEG.CAT.Conn.Vpdc);  % upper bound
             end
             
+            if g.genpdf.arg_selection && nargout > 1
+               
+                % check if we are likely to exceed available memory and
+                % notify user.
+                bytesAvail = hlp_getAvailableMemory('bytes');
+                bytesReq   = 4*(2*numel(g.EEG.CAT.Conn.nPDC)*g.genpdf.numSamples);
+                
+                if bytesReq > bytesAvail
+                    res = questdlg2(sprintf('This operation will require at least %5.5g MiB. It appears you may not have sufficient memory to carry out this operation. Do you want to continue?',bytesReq/(1024^2)),'Memory check','Yes','No','No');
+                    if strcmpi(res,'no')
+                        return;
+                    end
+                end
+
+                % generate data from analytic PDF
+                nd = ndims(g.EEG.CAT.Conn.nPDC);
+                PConn.nPDC = ncx2rnd(df,repmat(g.EEG.CAT.Conn.nPDC*N,[ones(1,nd) g.genpdf.numSamples]))/N;
+            end
             
         case 'nDTF'
             

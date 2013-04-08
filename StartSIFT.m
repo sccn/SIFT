@@ -1,4 +1,4 @@
-function ok = StartSIFT(interactive)
+function ok = StartSIFT(interactive,nosplash)
 % This function initializes the Source Information Flow Toolbox (SIFT)
 % Author: Tim Mullen, 2011, SCCN/INC/UCSD
 
@@ -6,6 +6,9 @@ ok = false;
 
 if nargin<1
     interactive = false;
+end
+if nargin<2
+    nosplash = false;
 end
 
 fprintf('Initializing SIFT...\n');
@@ -29,7 +32,7 @@ if ~exist('vis_TimeFreqGrid.m','file')
 end
     
 % call up the splash screen
-if interactive
+if interactive && ~nosplash
     gui_splashscreen;
 end
 

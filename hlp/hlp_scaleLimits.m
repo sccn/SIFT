@@ -2,7 +2,7 @@ function [newMin newMax] = hlp_scaleLimits(varargin)
 % this function implements an exponential window moving average to
 % adapt a set of [min max] limits based on incoming data
 
-arg_define([0 4],varargin, ...
+g=arg_define([0 4],varargin, ...
     arg_norep({'values'},mandatory,[],'data values'), ...
     arg_norep({'lastMin','LastMin'},mandatory,[],'last mininum value'), ...
     arg_norep({'lastMax','LastMax'},mandatory,[],'last maximum value'), ...
@@ -13,21 +13,21 @@ arg_define([0 4],varargin, ...
     );
 
 % memory factor for exponential window moving average
-MEMFACTOR = 2/((adaptationHL * 2.8854)+1);
+MEMFACTOR = 2/((g.adaptationHL * 2.8854)+1);
 
-newMin = lastMin;
-newMax = lastMax;
+newMin = g.lastMin;
+newMax = g.lastMax;
 
-if (numberOfRunsSoFar < bufferTime || mod(numberOfRunsSoFar,updateInterval) == 0) && numberOfRunsSoFar < Inf
+if (g.numberOfRunsSoFar < g.bufferTime || mod(g.numberOfRunsSoFar,g.updateInterval) == 0) && g.numberOfRunsSoFar < Inf
     
-    if numberOfRunsSoFar < bufferTime
+    if g.numberOfRunsSoFar < g.bufferTime
         % min/max are based on absolute min/max for this window
-        newMin = min(values(:));
-        newMax = max(values(:));
+        newMin = min(g.values(:));
+        newMax = max(g.values(:));
     else
         % apply exponential-window moving average to calculate new min/max
-        newMin  = MEMFACTOR * min(values(:)) + (1-MEMFACTOR) * lastMin;
-        newMax  = MEMFACTOR * max(values(:)) + (1-MEMFACTOR) * lastMax;
+        newMin  = MEMFACTOR * min(g.values(:)) + (1-MEMFACTOR) * g.lastMin;
+        newMax  = MEMFACTOR * max(g.values(:)) + (1-MEMFACTOR) * g.lastMax;
     end
     
 end

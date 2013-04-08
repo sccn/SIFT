@@ -62,111 +62,93 @@ if ~isempty(res)
     error(['SIFT:' fcnName],res{1});
 end
 
-% if isfield(ALLEEG(1).CAT.configs,fcnName)
-%     % get default configuration (from prior use) and merge with varargin
-%     varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
-% end
-% 
-% % construct pointer to the PConn array
-% CAT   = [ALLEEG.CAT];
-% PConn = [CAT.PConn];
-% 
-% if strcmpi(typeproc,'nogui')
-%     % get the config from function
-%     cfg = arg_tovals(arg_report('rich',fcnHandle,[{'PConn',PConn},varargin]),false);
-% else
-%     % render the GUI
-%     [PGh figh] = feval(['gui_' fcnName],PConn,varargin{:});
-%     
-%     if isempty(PGh)
-%         % user chose to cancel
-%         cfg = [];
-%         return;
-%     end
-%     
-%     % get the specification of the PropertyGrid
-%     ps = PGh.GetPropertySpecification;
-%     cfg = arg_tovals(ps,false);
-% end
-% 
-% drawnow;
-% 
-% if strcmpi(typeproc,'cfg_only')
-%     return;
-% end
-% 
-% % execute the low-level function
-% for cnd=1:length(ALLEEG)
-%     [ALLEEG(cnd).CAT.Stats] = feval(fcnHandle,'EEG',ALLEEG(cnd),cfg);
-%     
-%     if ~isempty(cfg)
-%         % store the configuration structure
-%         ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
-%     end
-% end
-
-
-
-
-statcondargs = '';   
-
-% put CAT structures into array
-CAT = [ALLEEG.CAT];
-
-switch ALLEEG(1).CAT.PConn.mode 
-
-    case 'PhaseRand'
-        statcondargs = {'tail','one'};
-        inputargs = {'BootstrapConnectivity',[CAT.Conn],'NullDistribution',[CAT.PConn]};
-        
-    otherwise
-        statcondargs = {'tail','both'};
-        inputargs = {'BootstrapConnectivity',[CAT.PConn]};
+if isfield(ALLEEG(1).CAT.configs,fcnName)
+    % get default configuration (from prior use) and merge with varargin
+    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
 end
-    
-% render the GUI
-varargin = [varargin 'statcondargs',{statcondargs}];
-[PGh figh] = gui_surrogateStats([CAT.PConn],varargin{:});
 
-if isempty(PGh)
-    % user chose to cancel
-    cfg = [];
+if strcmpi(typeproc,'nogui')
+    % get the config from function
+    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG},varargin]),false);
+else
+    % render the GUI
+    [PGh figh] = feval(['gui_' fcnName],ALLEEG,varargin{:});
+    
+    if isempty(PGh)
+        % user chose to cancel
+        cfg = [];
+        return;
+    end
+    
+    % get the specification of the PropertyGrid
+    ps = PGh.GetPropertySpecification;
+    cfg = arg_tovals(ps,false);
+end
+
+drawnow;
+
+if strcmpi(typeproc,'cfg_only')
     return;
 end
 
-% get the specification of the PropertyGrid
-ps = PGh.GetPropertySpecification;
-cfg = arg_tovals(ps,false);
-
-drawnow
-
 % execute the low-level function
+[Stats ConnMean] = feval(fcnHandle,'EEG',ALLEEG,cfg);
+
+if isempty(Stats)
+    % user canceled
+    return;
+end
     
-% return statistics and the mean of the bootstrap estimator (if
-% available)
-[Stats ConnMean] = stat_surrogateStats(inputargs{:},cfg);
-for cnd=1:length(ALLEEG)
+% store statistics and (optionally) the mean of the bootstrap estimator
+if length(ALLEEG)>1 && any(strcmp(cfg.statTest.arg_selection,{'Hab'}))
+    % create a new dataset containing expected difference between conds
+%     EEG2         = ALLEG(2);
+%     EEG2.data    = -EEG2.data;  % invert data so average is mean ERP difference
+%     EEG2.icaact  = -EEG2.icaact;
+%     EEG_new           = pop_mergeset(ALLEEG(1),EEG2,1);
     
+
+    % FIXME: also take condition difference between 
+    % mean of EEG.data, icaact, srcpot
+    
+    EEG_new = ALLEEG(1);
+    EEG_new.data = [];
+    EEG_new.setname   = cfg.statTest.datasetOrder;
+    EEG_new.condition = cfg.statTest.datasetOrder;
+    EEG_new = eeg_checkset(EEG_new);
+    
+    EEG_new.CAT.Conn  = ConnMean;
+    EEG_new.CAT.configs.(fcnName) = cfg;
+    EEG_new.CAT.Stats = Stats;
+    
+    EEG_new.CAT.configs.vis_TimeFreqGrid = [];
+    EEG_new.CAT.configs.vis_causalBrainMovie3D = [];
+    
+    % store the new EEG dataset
+    [ALLEEG EEG_new] = eeg_store(ALLEEG,EEG_new,length(ALLEEG)+1);
+elseif length(ALLEEG)==1
+
     if ~isempty(cfg)
         % store the configuration structure
-        ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
+        ALLEEG.CAT.configs.(fcnName) = cfg;
     end
-    
-    ALLEEG(cnd).CAT.Stats = Stats;
-        
-    if ~isempty(ConnMean(cnd))
+
+    ALLEEG.CAT.Stats = Stats;
+
+    if ~isempty(ConnMean)
         % replace Conn object with mean of bootstrap distribution
         % insert missing fields into new Conn object
-
-            extrafields = setdiff(fieldnames(ALLEEG(cnd).CAT.Conn),hlp_getConnMethodNames(ALLEEG(cnd).CAT.Conn));
-            for i=1:length(extrafields)
-                ConnMean(cnd).(extrafields{i}) = ALLEEG(cnd).CAT.Conn.(extrafields{i});
-            end 
-            ALLEEG(cnd).CAT.Conn = ConnMean(cnd);
-            ALLEEG(cnd).CAT.configs.TimeFreqGrid = [];
-            ALLEEG(cnd).CAT.configs.BrainMovie3D = [];
+%         extrafields = setdiff(fieldnames(ALLEEG.CAT.Conn),hlp_getConnMethodNames(ALLEEG.CAT.Conn));
+%         for i=1:length(extrafields)
+%             ConnMean(cnd).(extrafields{i}) = ALLEEG.CAT.Conn.(extrafields{i});
+%         end 
+        ALLEEG.CAT.Conn = ConnMean;
+        
+        ALLEEG.CAT.configs.vis_TimeFreqGrid = [];
+        ALLEEG.CAT.configs.vis_causalBrainMovie3D = [];
     end
 end
+
 
 
 

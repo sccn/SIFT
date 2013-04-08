@@ -126,16 +126,17 @@ end
 if any(g.freqs<0) || any(g.freqs>EEG.srate/2)
     error('SIFT:est_mvarConnectivity','Frequencies must be within the range [%d %d] Hz',0,EEG.srate/2);
 end
-    
+
 g.winstep   = MODEL.winstep;
 g.winlen    = MODEL.winlen;
 
 if isempty(g.freqs), g.freqs = eval(defreqs); end
 
-Conn = [];
-
 numWins = length(MODEL.AR);
 nchs    = EEG.CAT.nbchan;
+
+% initialize Conn object
+Conn = hlp_sift_emptyconn;
 
 if g.verb
     % inform user of total amount of memory (megabytes) required

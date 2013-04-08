@@ -1,10 +1,26 @@
 The Source Information Flow Toolbox
 Version: 1.0-beta
 Author: Tim Mullen (tim@sccn.ucsd.edu)
-With important contributions from Arnaud Delorme and Christian Kothe
+
+Acknowledgements:
+Arnaud Delorme was instrumental in the development of the SIFT framework and integration into EEGLAB as well as contributing initial BrainMovie3D code.
+
+Christian Kothe contributed the arg() framework for function I/O and auto-GUI generation
+
+Wes Thompson consulted on statistics and methods for bayesian smoothing and multi-subject analysis
+
+Alejandro Ojeda contributed routines for fast ridge regression
+
+SIFT makes use of routines from (or is inspired by) the following open-source packages:
+ARFIT: 		(Schneider et al) 	http://www.clidyn.ethz.ch/arfit/index.html
+TSA/Biosig:	(Schlšgl et al) 	http://octave.sourceforge.net/tsa/
+Chronux:	(Mitra et al) 		http://www.chronux.org/
+DAL/SCSA: 	(Tomioka / Haufe et al) http://www.ibis.t.u-tokyo.ac.jp/ryotat/dal/
+BCILAB:		(Kothe et al) 		http://sccn.ucsd.edu/wiki/BCILAB
+
 
 Official Website: http://sccn.ucsd.edu/wiki/SIFT
-    
+
 If you find this toolbox useful for your research, PLEASE include the following citations with any publications and/or presentations which make use of SIFT:
     
 (1) Mullen, T, Delorme, A. Kothe, C, Makeig, S (2010) "An Electrophysiological Information Flow Toolbox for EEGLAB" Society for Neuroscience 2010, San Diego, CA

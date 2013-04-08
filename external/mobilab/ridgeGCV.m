@@ -37,7 +37,7 @@ if nargin < 6, plotGCV = false;end
 if nargin < 7, verb = 0; end
 if nargin < 8, lambdaLearnRule = 'grid_gcv'; end
     
-[U,S,V] = svd(K/L,'econ');
+[U,S,V] = svds(K/L,min(size(K)));
 V = L\V;
 s = diag(S);
 s2 = s.^2;

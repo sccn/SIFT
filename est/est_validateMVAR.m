@@ -118,7 +118,7 @@ g = arg_define([0 1],varargin, ...
 [whitestats PCstats stabilitystats residualstats] = deal([]);
 
 if ~isfield(g.EEG.CAT,'MODEL')
-    error('SIFT:est_validateMVAR:NoModel','g.EEG.CAT.MODEL must be present in the dataset');
+    error('est_validateMVAR:NoModel','g.EEG.CAT.MODEL must be present in the dataset');
 else
     MODEL = g.EEG.CAT.MODEL;
 end

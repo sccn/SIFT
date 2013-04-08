@@ -1,4 +1,4 @@
-function ci = stat_computeCI(PConn,alpha,tail)
+function ci = stat_computeCI(varargin)
 % compute confidence intervals across last dimension of matrix PConn
 %
 % Inputs:
@@ -44,15 +44,22 @@ function ci = stat_computeCI(PConn,alpha,tail)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-if nargin<3
-    error('SIFT:stat_computeCI','Insufficient number of arguments');
-end
+PConn,alpha,tail,mode
+
+arg_define([0 Inf],varargin, ...
+    arg_norep({'PConn','SurrogateDistrib'},mandatory,[],'Surrogate distribution.'), ...
+    arg({'alpha','Alpha'},0.05,[0 1],'Significance level. For example, a value of alpha=0.05 will produce (1-alpha)*100 = 95% confidence intervals.'), ...
+    arg({'tail','Tail'},'both',{'right','left','both','one'},'Tail. One-tailed (right-tailed) or two-tailed test. ''Right'' gives upper confidence interval. ''Left'' gives lower confidence interval. ''One'' defaults to ''right.'''), ...
+    arg({'testMethod','TestMethod'},'percentile',{'percentile','corrected percentile','normal'},sprintf('Comparison method.\nQuantile: Determines the quantile of the difference (A-B) distribution at which zero lies. From this, one derives a p-value for rejecting the hypothesis that paired samples from both conditions are equal.')), ...
+    arg_norep({'Conn','Obs'},[],[],'Estimator') ...
+    );
+
 
 if isstruct(PConn)
     % multiple connectivity methods
     connmethods = hlp_getConnMethodNames(PConn);
     for m=1:length(connmethods)
-        % recursively compute stats for all methods
+        % compute stats for all methods
         ci.(connmethods{m}) = stat_computeCI(PConn(cnd).(connmethods{m}),alpha,tail);  
     end
 else
@@ -63,17 +70,20 @@ else
     
     switch lower(tail)
         case 'both'
-            ci(1,:,:,:,:,:,:,:,:) = prctile(PConn,alpha/2,nd);      % lower
-            ci(2,:,:,:,:,:,:,:,:) = prctile(PConn,100-alpha/2,nd);  % upper
-        case 'upper'
+            lower = prctile(PConn,alpha/2,nd);      % lower
+            upper = prctile(PConn,100-alpha/2,nd);  % upper
+        case {'upper' 'left'}
             mval = mean(PConn,nd); % mean of estimator
-            ci(1,:,:,:,:,:,:,:,:) = mval;
-            ci(2,:,:,:,:,:,:,:,:) = prctile(PConn,100-alpha,nd);    % upper
-        case 'lower'
+            lower = mval;
+            upper = prctile(PConn,100-alpha,nd);    % upper
+        case {'lower' 'right'}
             mval = mean(PConn,nd); % mean of estimator
-            ci(1,:,:,:,:,:,:,:,:) = prctile(PConn,alpha,nd);        % lower
-            ci(2,:,:,:,:,:,:,:,:) = mval;
+            lower = prctile(PConn,alpha,nd);        % lower
+            upper = mval;
         otherwise
             error('SIFT:stat_computeCI','unknown tail option');
     end
+    
+    ci = [lower; upper];
 end
+

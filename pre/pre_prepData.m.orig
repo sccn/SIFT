@@ -234,7 +234,11 @@ if ~isempty(EEG)
         % if EEG contains icaweights, allow components
         defSigType = [defSigType {'Components'}];
     end
+<<<<<<< mine
+    if any(cellfun(@(x) isfield(x,'srcpot') && ~isempty(x.srcpot), {EEG}))
+=======
     if any(arrayfun(@(x) isfield(x,'srcpot') && ~isempty(x.srcpot), EEG))
+>>>>>>> theirs
         % if EEG contains the field 'srcpot', allow sources
         defSigType = [defSigType {'Sources'}];
     end
@@ -402,7 +406,7 @@ end
 
 % normalize data
 if g.normalize.arg_selection
-    EEG.CAT.srcdata = pre_normData('data',EEG.CAT.srcdata,g.normalize,'verb',g.verb);
+    EEG.icaact = pre_normData('data',EEG.CAT.srcdata,g.normalize,'verb',g.verb);
 end
 
 % convert chanlocs to dipfit if desired

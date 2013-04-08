@@ -1,5 +1,5 @@
 function Stats = stat_getSecondOrderStats(PConn,alpha)
-% Return the mean, standard deviation, and 95% confidence intervals of a
+% Return the mean, standard deviation, and confidence intervals of a
 % surrogate distribution
 %
 % Inputs:

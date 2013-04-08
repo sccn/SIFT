@@ -198,8 +198,12 @@ spec = rmfield(spec,'fmt');
 % wrap the default into a cell if necessary (note: this is convenience syntax)
 if isstruct(defaults)
     defaults = {defaults};
+elseif strcmp(defaults,'off')
+    defaults = [];
+elseif strcmp(defaults,'on')
+    defaults = {};
 elseif ~iscell(defaults) && ~isequal(defaults,[])
-    error(['It is not allowed to use anything other than a cell array, a struct, or [] as defaults of an arg_subtoggle argument (here:' spec.names{1} ')']);
+    error(['It is not allowed to use anything other than a cell array, a struct, [] or ''off'' and ''on'' as defaults of an arg_subtoggle argument (here:' spec.names{1} ')']);
 end
 % resolve the default configuration into the boolean flag and value set; this is relevant for
 % the merging option: in this case, we need to pull up the currect default and merge it with the

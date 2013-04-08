@@ -1,4 +1,4 @@
-function base = stat_getBaselineDistrib(PConn,baseline,winCenterTimes)
+function base = stat_getBaselineDistrib(PConn,baseline,winCenterTimes,noavg)
 % Return the distribution of an estimator averaged over a baseline and
 % expanded out to the same dimensions as matrices in PConn connectivity
 % object
@@ -12,9 +12,10 @@ function base = stat_getBaselineDistrib(PConn,baseline,winCenterTimes)
 %
 %       winCenterTimes: vector of times corresponding to window centers
 %                      (same units as baseline)
+%       noavg:     if true, the baseline distribution is returned 
 % Outputs:
 %
-%       base:      the baseline distribution (expanded out to same dims as 
+%       base:      the baseline mean distribution (expanded out to same dims as 
 %                  PConn)
 %
 % See Also: stat_bootstrap()
@@ -44,6 +45,10 @@ function base = stat_getBaselineDistrib(PConn,baseline,winCenterTimes)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+if nargin<4
+    noavg = false;
+end
+
 if isstruct(PConn)
     % connectivity object
     connmethods = hlp_getConnMethodNames(PConn);
@@ -54,8 +59,12 @@ if isstruct(PConn)
 
         for m=1:length(connmethods)
             sz = size(PConn(cnd).(connmethods{m}));
-            basetmp = (mean(PConn(cnd).(connmethods{m})(:,:,:,baseidx(1):baseidx(2),:),4));   % collapse baseline over timepoints
-            base.(connmethods{m}) = repmat(basetmp,[1 1 1 sz(4) 1]);  % expands out to appropriate size
+            if noavg
+                base.(connmethods{m}) = PConn(cnd).(connmethods{m})(:,:,:,baseidx(1):baseidx(2),:);
+            else
+                basetmp = (mean(PConn(cnd).(connmethods{m})(:,:,:,baseidx(1):baseidx(2),:),4));  % collapse baseline over timepoints
+                base.(connmethods{m}) = repmat(basetmp,[1 1 1 sz(4) 1]);  % expands out to appropriate size
+            end
         end
 
     end
@@ -68,8 +77,12 @@ else
     % single matrix
     baseidx = getindex(winCenterTimes,baseline);
     sz = size(PConn);
-    basetmp = (mean(PConn(:,:,:,baseidx(1):baseidx(2),:),4));   % collapse baseline over timepoints
-    base = repmat(basetmp,[1 1 1 sz(4) 1]);  % expands out to appropriate size
+    if noavg
+        base = PConn(:,:,:,baseidx(1):baseidx(2),:);
+    else
+        basetmp = (mean(PConn(:,:,:,baseidx(1):baseidx(2),:),4));   % collapse baseline over timepoints
+        base = repmat(basetmp,[1 1 1 sz(4) 1]);  % expands out to appropriate size
+    end
 end
 
     

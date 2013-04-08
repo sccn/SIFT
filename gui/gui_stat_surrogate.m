@@ -1,4 +1,4 @@
-function varargout = gui_stat_surrogate(varargin)
+function varargout = gui_stat_surrogateGen(varargin)
 %
 % GUI_STAT_SURROGATE M-file for gui_stat_surrogate.fig
 %      GUI_STAT_SURROGATE, by itself, creates a new GUI_STAT_SURROGATE or raises the existing

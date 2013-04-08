@@ -84,6 +84,12 @@ function [IC g] = est_selModelOrder(varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+if hlp_isToolboxInstalled('Parallel Computing Toolbox')
+    pardef = 'on';
+    parprofs = parallel.clusterProfiles;
+else
+    pardef = 'off';
+end
 
 g = arg_define([0 1],varargin, ...
     arg_norep({'EEG','ALLEEG'},mandatory,[],'EEGLAB dataset'), ...
@@ -95,7 +101,12 @@ g = arg_define([0 1],varargin, ...
     arg({'morderRange','ModelOrderRange','modelOrderRange'},[1 30],[],'VAR model order range.','cat','Modeling Parameters','shape','row'), ...
     arg({'downdate','Downdate'},true,[],'Downdate model. If selected (and modeling approach supports it), a model of the highest desired order will be fit and then lower-order models will be approximated by downdating. This can be much faster than successively fitting models up to the maximum order. Note however, (1) this only renders an approximation and (2) this requires that there is sufficient data to adequately fit a model of the highest order.', ...
         'cat','Modeling Parameters'), ...
-    arg({'icselector','InformationCriteria'},{'sbc','aic','fpe','hq','ris'},{'sbc','aic','fpe','hq','ris'},'Order selection criteria. This specifies the information criteria to use for order selection.','cat','Modeling Parameters','type','logical'), ...
+    arg_subtoggle({'runPll','RunInParallel'},pardef, ...
+    { ...
+    arg({'profile','ProfileName'},parprofs{1},parprofs,'Profile name'), ...
+    arg({'numWorkers','NumWorkers'},2,[1 Inf],'Number of workers') ...
+    },'Run order selection in parallel. Only applies if downdating is disabled. Requires Parallel Computing Toolbox.'), ...
+    arg({'icselector','InformationCriteria'},{'sbc','aic','hq','fpe'},{'sbc','aic','fpe','hq','ris'},sprintf('Order selection criteria. This specifies the information criteria to use for order selection.\nOptions are: \n Swartz Bayes Criterion (SBC) \n Akaike Information Criterion (AIC) \n Logarithm of Akaike''s Final Prediction Error (FPE) \n Hannan-Quinn Criterion (HQ) \n Rissanen Criterion (RIS) \nConsult the SIFT Manual for details on these criteria.'),'cat','Modeling Parameters','type','logical'), ...
     arg_nogui({'winStartIdx','WindowStartIndices'},[],[],'Starting indices for windows. This is a vector of sample points (start of windows) at which to estimate windowed VAR model','cat','Data Selection'), ...
     arg_nogui({'epochTimeLims','EpochTimeLimits'},[],[],'Epoch time limits (sec). This is relative to event time (e.g. [-1 2]). Default is the full epoch time range','cat','Data Selection'), ...
     arg({'prctWinToSample','WindowSamplePercent'},100,[1 100],'Percent of windows to sample','cat','Data Selection'), ...
@@ -103,11 +114,16 @@ g = arg_define([0 1],varargin, ...
     arg({'verb','VerbosityLevel'},2,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical') ...
     );
 
+if strcmp(pardef,'off')
+    fprintf('Parallel Computing Toolbox not installed. Cannot use parallel option.\n');
+    g.runPll.arg_selection = false;
+end
+
 % commit EEG variable to workspace
 [data g] = hlp_splitstruct(g,{'EEG'});
 arg_toworkspace(data);
 clear data;
-IC = []; 
+IC = [];
 
 % do some error checking
 if length(g.morderRange)<2
@@ -125,10 +141,6 @@ if ~isempty(g.icselector) && ischar(g.icselector)
     g.icselector = {g.icselector};
 end
 
-% if g.verb
-%     est_dispMVARParamCheck(EEG,g.modelingApproach,true);
-% end
-
 % determine whether we can downdate the model
 if g.downdate
     if strcmp(g.modelingApproach.arg_selection,'Kalman Filtering') ...
@@ -141,20 +153,6 @@ if g.downdate
     end
 end
 
-% % determine which windows to use
-% if isempty(g.winStartIdx)
-%     % starting point of each window (points)
-%     g.winStartIdx  = round(MODEL.winStartTimes*EEG.srate)+1;
-% end
-% 
-% % randomly select percentage of windows to work with
-% if g.prctWinToSample<100
-%     randwin = randperm(length(g.winStartIdx));
-%     randwin = sort(randwin(1:ceil(length(g.winStartIdx)*g.prctWinToSample/100)));
-%     g.winStartIdx = g.winStartIdx(randwin);
-%     g.prctWinToSample = 100;
-% end
-
 % get the m-file name of the function implementing the modeling approach
 modelingFuncName = hlp_getModelingApproaches('mfileNameOnly',g.modelingApproach.arg_selection);
 
@@ -162,48 +160,111 @@ if ~g.downdate
     % sequentially fit a separate MODEL for each model order
     
     if g.verb==2
-        h = waitbar(0,'Sequentially searching model order range...');
+        waitbarTitle = sprintf('Sequentially searching model order range [%d-%d]...', ...
+                               pmin,pmax);
+
+        multiWaitbar(waitbarTitle,'Reset');
+        multiWaitbar(waitbarTitle, ...
+                     'Color', hlp_getNextUniqueColor, ...
+                     'CanCancel','on', ...
+                     'CancelFcn',@(a,b) disp('[Cancel requested. Please wait...]'));
     end
-    
-    cnt = 0; tot = (pmax-pmin)+1;
-    
-    
-    if g.prctWinToSample<100
-        % initialize random number generator with a known state
-        % so that we get the same random sequence of windows for
-        % each model order
-        RandStream.setDefaultStream ...
-            (RandStream('mt19937ar','seed',sum(100*clock)));
+
+    % if parallel toolbox is selected, use it
+    if g.runPll.arg_selection
+        if g.verb, fprintf('Running parallel job (this may take a while)...\n'); end
+        % make sure pool is open
+        wasOpen = hlp_pll_openPool(g.runPll.numWorkers,g.runPll.profile);
         
-        defaultStream = RandStream.getDefaultStream;
-        savedState = defaultStream.State;
-    end
-    
-    for p=pmin:pmax
-       
         if g.prctWinToSample<100
-            % reset the state of the random number generator
-            defaultStream.State = savedState;
+            % randomly select percentage of windows to work with
+            randwin = randperm(length(g.winStartIdx));
+            randwin = sort(randwin(1:ceil(length(g.winStartIdx)*g.prctWinToSample/100)));
+            g.winStartIdx = g.winStartIdx(randwin);
+        end
+             
+        modelingApproach = g.modelingApproach;
+        verb             = g.verb;
+        epochTimeLims    = g.epochTimeLims;
+        winStartIdx      = g.winStartIdx;
+        prctWinToSample  = g.prctWinToSample;
+        
+        % create a minimal EEG dataset (to minimize overhead)
+        EEGtmp          = EEG;
+        EEGtmp.data     = [];
+        EEGtmp.icaact   = [];
+        EEGtmp.events   = [];
+        EEGtmp.chanlocs = [];
+        EEGtmp.CAT.PConn= [];
+        EEGtmp.CAT.Conn = [];
+        EEGtmp.CAT.Stats= [];
+        EEGtmp.CAT.MODEL= [];
+        
+        % execute parallel loop
+        parfor p=pmin:pmax
+            VARtmp(p) = feval(modelingFuncName,'EEG',EEGtmp,modelingApproach, ...
+                                        'ModelOrder',p,'verb',verb, ...
+                                        'epochTimeLims',epochTimeLims, ...
+                                        'winStartIdx',winStartIdx, ...
+                                        'prctWinToSample',prctWinToSample);
+        end
+        VARtmp(1:pmin-1) = [];
+        
+        % cleanup
+        if ~wasOpen
+            matlabpool('close'); end
+        
+    else % otherwise, do it the slow way...
+        
+        if g.prctWinToSample<100
+            % initialize random number generator with a known state
+            % so that we get the same random sequence of windows for
+            % each model order
+            RandStream.setDefaultStream ...
+                (RandStream('mt19937ar','seed',sum(100*clock)));
+
+            defaultStream = RandStream.getDefaultStream;
+            savedState = defaultStream.State;
+        end
+
+        cnt = 0; tot = (pmax-pmin)+1;
+        for p=pmin:pmax
+
+            if g.prctWinToSample<100
+                % reset the state of the random number generator
+                defaultStream.State = savedState;
+            end
+
+            cnt = cnt + 1;
+
+            VARtmp(p-pmin+1) = feval(modelingFuncName,'EEG',EEG,g.modelingApproach, ...
+                                    'ModelOrder',p,'verb',g.verb, ...
+                                    'epochTimeLims',g.epochTimeLims, ...
+                                    'winStartIdx',g.winStartIdx, ...
+                                    'prctWinToSample',g.prctWinToSample);
+            if g.verb==2
+                % graphical waitbar
+                cancel = multiWaitbar(waitbarTitle,cnt/tot);
+                if cancel
+                    if strcmpi('yes',questdlg2( ...
+                                    'Are you sure you want to cancel?', ...
+                                    'Model Order Estimation','Yes','No','No'));
+                        IC = [];
+                        multiWaitbar(waitbarTitle,'Close');
+                        return;
+                    else
+                        multiWaitbar(waitbarTitle,'ResetCancel',true);
+                    end
+                end
+            end
+
         end
         
-        cnt = cnt + 1;
-        
-        VARtmp(p-pmin+1) = feval(modelingFuncName,'EEG',EEG,g.modelingApproach, ...
-                                'ModelOrder',p,'verb',g.verb, ...
-                                'epochTimeLims',g.epochTimeLims, ...
-                                'winStartIdx',g.winStartIdx, ...
-                                'prctWinToSample',g.prctWinToSample);
-        
-        if g.verb==2
-            waitbar(cnt/tot,h, ...
-                sprintf('Sequentially searching model order range (%d/%d)...',cnt,tot));
-        end
     end
     
     % cleanup
     if g.verb==2
-        delete(h); 
-    end
+        multiWaitbar(waitbarTitle,'Close');  end
     
     numWins         = length(VARtmp(1).winStartTimes);
     winStartTimes   = VARtmp(1).winStartTimes;
@@ -212,9 +273,9 @@ if ~g.downdate
     % extract noise covariance matrix for each model order and window
     for t=1:numWins
         for p=pmin:pmax,
-            MODEL.PE{t}(:,p*nbchan+(1:nbchan)) = VARtmp(p-pmin+1).PE{t}(end-nbchan+1:end,1:nbchan);
+            MODEL.PE{t}(:,p*nbchan+(1:nbchan)) = VARtmp(p-pmin+1).PE{t}(1:nbchan,end-nbchan+1:end);
         end
-    end;
+    end
     MODEL.winlen = VARtmp(end).winlen;
 else
     % fit MVAR model up to maximum model order 
@@ -249,20 +310,20 @@ for t=1:numWins
     end;
     
     
-    % Schwarz's Bayesian Criterion
-    sbc(:,t) = logdp + (log(ne).*nparams./ne);   % TM
+    % Schwarz's Bayesian Criterion / Bayesian Information Criterion
+    sbc(:,t) = logdp + (log(ne).*nparams./ne);
     
     % Akaike Information Criterion
-    aic(:,t) = logdp + 2.*nparams./ne;   % TM
+    aic(:,t) = logdp + 2.*nparams./ne;
     
     % logarithm of Akaike's Final Prediction Error
-    fpe(:,t) = logdp + nbchan*log(ne.*(ne+nbchan*(pmin:pmax))./(ne-nbchan*(pmin:pmax)));  % TM
+    fpe(:,t) = logdp + nbchan*log((ne+nbchan*(pmin:pmax)+1)./(ne-nbchan*(pmin:pmax)-1));
     
     % Hannan-Quinn criterion
-    hq(:,t) = logdp + nparams.*2.*log(log(ne))./ne;  % TM
+    hq(:,t) = logdp + nparams.*2.*log(log(ne))./ne;
     
-    % Rissanen criterion
-    ris(:,t) = logdp + (nparams./ne).*log(ne);
+    % Rissanen criterion (NOTE: same as BIC/SBC)
+    ris(:,t) = logdp + (nparams./ne).*log(ne);  
     
     for i=1:length(g.icselector)
         % get index iopt of order that minimizes the order selection
