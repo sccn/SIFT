@@ -161,7 +161,6 @@ for n=1:nfreqs
     if any(strcmpi('S',methodsneeded))
         % complex spectral matrix
         Conn.S(:,:,n)  = Conn.DTF(:,:,n)*C*Conn.DTF(:,:,n)';  %/srate
-        %         S1(:,:,n) = h(:,:,n)*h(:,:,n)';
     end
     
     if any(strcmpi('Sinv',methodsneeded))

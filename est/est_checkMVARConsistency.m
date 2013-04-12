@@ -56,12 +56,14 @@ function stats = est_checkMVARConsistency(varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
 g = arg_define([0 2],varargin, ...
     arg_norep({'EEG','ALLEEG'},mandatory,[],'EEGLAB dataset'), ...
     arg_norep({'MODEL','Model'},mandatory,[],'MVAR MODEL object'), ...
     arg_nogui({'winStartIdx','WindowStartIndices'},[],[],'Starting indices for windows. This is a vector of sample points (start of windows) at which to estimate windowed VAR model. Default is empty (use all windows)','cat','Options'), ...
     arg({'prctWinToSample','WindowSamplePercent'},100,[1 100],'Percent of windows to sample','cat','Options'), ...
+    arg({'Nr','NumRealizations'},[],[],'Number of realizations (trials) to simulate. Default is the larger of 30 and the number of trials in the dataset.','type','int32'), ...
+    arg({'donorm','Normalize'},false,[],'Normalize data. This will z-score (standardize) both simulated and real data before computing correlations'), ...
+    arg({'nlags','NumLags'},[],[],'Number of correlation lags. If empty, max(10,model_order) is used.','type','int32'), ...
     arg({'verb','VerbosityLevel'},2,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical') ...
     );
 
@@ -70,6 +72,19 @@ g = arg_define([0 2],varargin, ...
 arg_toworkspace(data);
 clear data;
 
+% determine correlation lags
+if isempty(g.nlags)
+    g.nlags = max(10,MODEL.morder); 
+end
+minLagAcf = MODEL.morder;
+maxLagAcf = floor(MODEL.winlen*EEG.srate)-MODEL.morder-1;
+if (g.nlags < minLagAcf)
+    fprintf('checkMVARConsistency: Number of correlation lags is less than mininum allowed (%d lags). Will use %d lags for checks.\n',minLagAcf,minLagAcf);
+    g.nlags = minLagAcf;
+elseif (g.nlags > maxLagAcf)
+    fprintf('checkMVARConsistency: Number of correlation lags exceeds maximum allowed (%d lags). Will use %d lags for checks.\n',maxLagAcf,maxLagAcf);
+    g.nlags = maxLagAcf;
+end
 
 % window size in points
 winLenPnts = floor(MODEL.winlen*EEG.srate);
@@ -112,7 +127,7 @@ for t=1:numWins
     winArrIdx = g.winArrayIndex(t);
     
     data = squeeze(EEG.CAT.srcdata(:,g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1,:));
-    stats.PC(t)= est_consistency(data,MODEL.AR{winArrIdx},MODEL.PE{winArrIdx});
+    stats.PC(t)= est_consistency(data,MODEL.AR{winArrIdx},MODEL.PE{winArrIdx},g.donorm,g.Nr,g.nlags);
     
     if g.verb==2
         % update waitbar
@@ -126,7 +141,7 @@ for t=1:numWins
     
 end
 
-stats.winStartIdx = g.winStartIdx;
+stats.winStartIdx   = g.winStartIdx;
 stats.winStartTimes = MODEL.winStartTimes(g.winArrayIndex);
 stats.winArrayIndex = g.winArrayIndex;
 

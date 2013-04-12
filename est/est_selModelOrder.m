@@ -86,7 +86,7 @@ function [IC g] = est_selModelOrder(varargin)
 
 if hlp_isToolboxInstalled('Parallel Computing Toolbox')
     pardef = 'on';
-    parprofs = parallel.clusterProfiles;
+    parprofs = hlp_microcache('sift_domain',@parallel.clusterProfiles);
 else
     pardef = 'off';
 end

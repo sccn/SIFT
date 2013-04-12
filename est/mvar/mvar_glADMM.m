@@ -113,7 +113,7 @@ persistent initAR;
 
 g = arg_define([0 1],varargin, ...
                 arg_norep({'data','Data'},mandatory,[],'Data Matrix. Dimensions are [nchs x npnts].'), ...
-                arg({'morder','ModelOrder'},10,[],'VAR Model order'), ...
+                arg({'morder','ModelOrder','p'},10,[],'VAR Model order'), ...
                 arg_subtoggle({'warmStart','WarmStart'},[], ...
                 {...
                     arg({'initState','InitialState'},[],[],'Initial ADMM state. This is a structure with fields ''z_init'' and ''u_init'', which represent, respectively, the initial state vector and dual vector and are both of dimension [morder*(nchs^2) x 1]. If empty, the first state is initialized to zeros.') ...
@@ -210,7 +210,7 @@ end
 AR = zeros(p,nchs,nchs);
 if g.groupDiags
     AR(offDiagIdx) = vec(initAR.z(1:(p*nchs*(nchs-1))));          % non-diagonal elements
-    AR(diagIdx)    = vec(initAR.z(((p*nchs*(nchs-1))+1):end));       % diagonal elements
+    AR(diagIdx)    = vec(initAR.z(((p*nchs*(nchs-1))+1):end));    % diagonal elements
 else
     AR(:) = initAR.z;
 end
@@ -224,10 +224,6 @@ if nargout>1
     res = res(:,:);
     PE = cov(res');
 end
-
-% if nargout>2
-%     argsout.initAR = initAR;
-% end
 
 function v = vec(x)
 v = x(:);

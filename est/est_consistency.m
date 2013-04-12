@@ -1,5 +1,5 @@
 
-function PC = est_consistency(data,AR,PE)
+function PC = est_consistency(data,AR,PE,doNorm,Nr,nlags)
 %
 % Calculate the percent consistency for a fitted VAR[p] model. The
 % percent consistency [1] is an index of the ability for a VAR model, fit 
@@ -15,7 +15,8 @@ function PC = est_consistency(data,AR,PE)
 %   data    [nchs x winlen x ntr]
 %   AR      MODEL model coefficients as returned by mvar()
 %   PE      Noise covariance matrix
-%
+%   normdata  Normalize data
+%   Nr      number of realizations to simulate (default: max(30,num trials)).
 % Outputs:
 %
 %   PC      percent consistency [0 100]%
@@ -51,7 +52,6 @@ function PC = est_consistency(data,AR,PE)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
 [nchs m] = size(AR);
 p = m/nchs;    % model order
 if size(PE,2)>nchs
@@ -60,38 +60,50 @@ else
     C = PE;
 end
 
-nlags = max(20,p);  %p
+if nargin<6 || isempty(nlags)
+    nlags = max(5,p); end
 ndisc = 10^3;   % number of simulated samples to discard
-[nchs pnts ntr] = size(data);
+data = permute(data,[2 1 3]);
+[npnts nchs ntr] = size(data);
+
+if nargin<4
+    doNorm = false; end
+if nargin<5 || isempty(Nr)
+    Nr = max(30,ntr); end
 
 % simulate ntr realizations from VAR model
-datasim = tvarsim(zeros(1,nchs),AR,C,[pnts*ntr 1],ndisc);
-datasim = reshape(datasim',[nchs,pnts,ntr]);
-datasim = permute(datasim,[2 1 3]); % [pnts nchs ntr]
+% datasim = tvarsim(zeros(1,nchs),AR,C,[npnts ntr],ndisc);
+datasim = tvarsim(zeros(1,nchs),AR,C,[npnts*Nr 1],ndisc);
+datasim = reshape(datasim',[nchs,npnts,Nr]);
+datasim = permute(datasim,[2 1 3]); % [npnts nchs ntr]
 
-% convert to 2-D matrix with p nans between trials
-datasim = nanpad(datasim,p);
-data    = nanpad(permute(data,[2 1 3]),p);
-
-% pre-normalize data ignoring NaNs and zero out NaNs
-datasim = bsxfun(@minus,datasim,nanmean(datasim));
-datasim = bsxfun(@rdivide,datasim,nanstd(datasim));
-datasim(isnan(datasim)) = 0;
-
-data = bsxfun(@minus,data,nanmean(data));
-data = bsxfun(@rdivide,data,nanstd(data));
-data(isnan(data)) = 0;
+if Nr > 1
+    % convert to 2-D matrix with nlags nans between trials
+    datasim = nanpad(datasim,nlags);
+    data    = nanpad(data,nlags);
+end
+if doNorm
+    % pre-normalize data ignoring NaNs and zero out NaNs.
+    datasim = bsxfun(@minus,datasim,nanmean(datasim));
+    datasim = bsxfun(@rdivide,datasim,nanstd(datasim));
+    data    = bsxfun(@minus,data,nanmean(data));
+    data    = bsxfun(@rdivide,data,nanstd(data));
+end
+if Nr > 1
+    datasim(isnan(datasim)) = 0; 
+    data(isnan(data)) = 0;
+end
 
 % compute xcorr (taking trial boundaries into account)
 Rs = xcorr(datasim,nlags,'coeff');
 Rr = xcorr(data,nlags,'coeff');
 
-% % calculate average auto- and cross-correlation coefficients
+% % % calculate average auto- and cross-correlation coefficients
 % Rs=zeros(2*(nlags+1)-1,nchs^2);
 % Rr=Rs;
 % for tr=1:ntr
-%     Rs = Rs+xcorr(datasim(:,:,tr)',nlags,'coeff');
-%     Rr = Rr+xcorr(data(:,:,tr)',nlags,'coeff');
+%     Rs = Rs+xcorr(datasim(:,:,tr),nlags,'coeff');
+%     Rr = Rr+xcorr(data(:,:,tr),nlags,'coeff');
 % end
 % Rs=Rs./ntr;
 % Rr=Rr./ntr;

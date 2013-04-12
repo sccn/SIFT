@@ -144,7 +144,7 @@ g = arg_define([0 Inf],varargin, ...
 res = {hlp_checkeegset(g.EEG,{'pconn'})
        hlp_checkeegset(g.EEG,{'pnull'})};
 idx = ~cellfun(@isempty,res);
-if any(idx)
+if all(idx==1)
     error(res{idx}{1});
 end
 if ~ismember('mode',lower(g.statTest.statcondargs))
@@ -162,7 +162,6 @@ if ~exist('PConn','var')
         PConn(k) = EEG(k).CAT.PConn; 
     end
 end
-Stats.tail = g.statTest.tail;
 
 for m=1:length(g.connmethods)
     
@@ -170,6 +169,8 @@ for m=1:length(g.connmethods)
         case 'Hnull'
             % Our null hypothesis is Conn(i,j)=0
             % perform one-sided statistical test against null hypothesis
+            
+            Stats.tail = g.statTest.tail;
             
             if length(PConn)>1
                 error('SIFT:stat_surrogateStats','Please select a single condition for Hnull test.');
@@ -251,6 +252,9 @@ for m=1:length(g.connmethods)
             % and computing the probability
             % that a sample from the difference distribution is non-zero
             % This is a paired nonparametric test
+            
+            Stats.tail = g.statTest.tail;
+            
             if length(PConn)~=2
                 error('SIFT:stat_surrogateStats','BootstrapConnectivity object must have two conditions for difference test');
             elseif size(PConn(1).(g.connmethods{m}))~=size(PConn(2).(g.connmethods{m}))
@@ -311,6 +315,8 @@ for m=1:length(g.connmethods)
             % that a sample from this distribution is non-zero
             % This is a paired nonparametric test
             
+            Stats.tail = g.statTest.tail;
+            
             if length(g.EEG)>1
                 error('SIFT:stat_surrogateStats','Please select a single condition for Hbase test.');
             end
@@ -370,7 +376,7 @@ for m=1:length(g.connmethods)
         case 'BasicStats'
             % compute confidence intervals and means from boostrap or
             % jacknife distributions of the estimator
-            
+                        
             if length(g.EEG)>1
                 error('SIFT:stat_surrogateStats','Please select a single condition for Hbase test.');
             end
@@ -380,6 +386,36 @@ for m=1:length(g.connmethods)
                 fprintf('Computing confidence intervals and means\n');
                 fprintf('Stats are based on %s distributions\n',PConn.mode);
             end
+           
+            
+            if g.statTest.computeci.arg_selection
+                Stats.tail = g.statTest.computeci.tail;
+
+                switch g.statTest.computeci.testMethod
+                
+                    case 'quantile'
+                        % quantile test
+                        % compute the baseline deviation distribution
+                        % (Conn - baseline_mean(Conn))
+                        
+                        % compute two-sided confidence intervals
+                        Stats.(g.connmethods{m}).ci = stat_computeCI(   ...
+                                            PConn.(g.connmethods{m}),   ...
+                                            g.statTest.computeci.alpha, ...
+                                            Stats.tail);
+                    case 'stderr'
+                        %alpha = g.statTest.computeci.alpha;
+                        % return confidence intervals based on the standard error
+                        %critval = norminv([alpha/2 1-alpha/2],0,1)
+                        
+                    case 'statcond'
+                end
+            end
+            
+            % ugly hack!
+            sz = size(PConn.(g.connmethods{m}));
+            Stats.(g.connmethods{m}).pval = zeros(sz(1:end-1),'single');
+            g.statTest.alpha = g.statTest.computeci.alpha;
             
             % compute mean of the estimator
             if g.statTest.computemean && nargout>1
@@ -391,46 +427,6 @@ for m=1:length(g.connmethods)
                 end
                 nd = ndims(PConn.(g.connmethods{m}));
                 ConnNew.(g.connmethods{m}) = mean(PConn.(g.connmethods{m}),nd);
-            end
-            
-            if g.statTest.computeci
-                switch g.statTest.testMethod
-                
-                    case 'quantile'
-                        % quantile test
-                        % compute the baseline deviation distribution
-                        % (Conn - baseline_mean(Conn))
-                        if ~g.statTest.testMeans
-                            error('TestMeans must be enabled when using ''quantile'' method');
-                        end
-                        Pdiff = PConn.(g.connmethods{m}) ...
-                              - stat_getBaselineDistrib(PConn.(g.connmethods{m}), ...
-                                     g.statTest.baseline,PConn.erWinCenterTimes);
-                        sz = size(Pdiff);
-                        Stats.(g.connmethods{m}).pval = stat_surrogate_pvals( ...
-                                        Pdiff,zeros(sz(1:end-1)),Stats.tail);
-                        % compute two-sided confidence intervals
-                        Stats.(g.connmethods{m}).ci = stat_computeCI( ...
-                                        Pdiff,g.statTest.alpha,Stats.tail);
-
-                        
-                    case 'stderr'
-                        alpha = g.statTest.computeci.alpha;
-                        % return confidence intervals based on the standard error
-                        %critval = norminv([alpha/2 1-alpha/2],0,1)
-                        
-                    case 'statcond'
-                        Porig = PConn.(g.connmethods{m});
-                        Pbase = stat_getBaselineDistrib(...
-                                    PConn.(g.connmethods{m}), ...
-                                    g.statTest.baseline,      ...
-                                    PConn.erWinCenterTimes,   ...
-                                    ~g.statTest.testMeans);        
-                        [statval, df, Stats.(g.connmethods{m}).pval] = statcond(...
-                            {Porig Pbase},'mode','perm', ...
-                            'tail',Stats.tail,g.statTest.statcondargs{:});
-                end
-                
             end
             
     end
@@ -491,9 +487,6 @@ statcondargs     = hlp_varargin2struct(g.statTest.statcondargs);
 Stats.mode       = statcondargs.mode;
 Stats.correction = g.statTest.mcorrection;
 Stats.alpha      = g.statTest.alpha;
-
-
-
 
 
 % helper functions for defining allowable runtime arguments
@@ -615,13 +608,13 @@ args = arg_define(0,varargin, ...
     
 function args = tst_basicStats(varargin)
 args = arg_define(0,varargin, ...
-        arg_subtoggle({'computeci','ConfidenceIntervals'},true, ...
+        arg_subtoggle({'computeci','ConfidenceIntervals'},'on', ...
         { ...
-        arg({'testMethod','TestMethod'},'quantile',{'quantile', 'stderr'},sprintf('Test method. \n Quantile: compute asymmetric percentile confidence intervals. This is the better choice if your distribution is derived from a bootstrap or if your distribution is not symmetric.\n stderr: use standard error to derive symmetric confidence intervals. This is suitable only for jacknife or leave-k-out cross-validation.'),'cat','ConfidenceInterval'), ...
+        arg({'testMethod','TestMethod'},'quantile',{'quantile'},sprintf('Test method. \n Quantile: compute asymmetric percentile confidence intervals. This is the better choice if your distribution is derived from a bootstrap or if your distribution is not symmetric.\n stderr: use standard error to derive symmetric confidence intervals. This is suitable only for jacknife or leave-k-out cross-validation.'),'cat','ConfidenceInterval'), ...
         arg({'tail','Tail'},'both',{'both'},'Tail. Upper and lower confidence intervals will be returned','cat','ConfidenceInterval'), ...
         arg({'alpha','Alpha'},0.05,[0 1],'Significance level. For example, a value of alpha=0.05 will produce (1-alpha)*100 = 95% confidence intervals.','cat','ConfidenceInterval'), ...
-        arg({'mcorrection','MultipleComparisonCorrection'},'none',{'none','fdr','bonferonni','numvars'},'Correction for multiple comparisons. Note: ''numvars'' does a bonferonni correction considering M^2 indep. degrees of freedom, where M is the dimension of the VAR model (i.e. number of channels)','cat','ConfidenceInterval'), ...
         },'Compute percentile confidence intervals.','cat','ConfidenceInterval'), ...
+        arg_nogui({'mcorrection','MultipleComparisonCorrection'},'none',{'none'},'Correction for multiple comparisons. Note: ''numvars'' does a bonferonni correction considering M^2 indep. degrees of freedom, where M is the dimension of the VAR model (i.e. number of channels)'), ...
         arg({'computemean','Mean'},true,[],'Return mean of distribution. If you provided the boostrap, jacknife, or cross-validation distribution, this returns a plug-in for the mean of the estimator. Note the mean is returned in second function output ConnNew'), ...
         arg_nogui('statcondargs',{'mode','perm'},{},'List of paired arguments for statcond()','type','expression','shape','row') ...
         );

@@ -1,5 +1,5 @@
 
-function [MODEL cfg] = est_fitMVAR(varargin)
+function [Model cfg] = est_fitMVAR(varargin)
 %
 % Fit (adaptive) multivariate autoregressive model to EEG data. See [1] for
 % details on VAR model fitting and implementations.
@@ -7,8 +7,8 @@ function [MODEL cfg] = est_fitMVAR(varargin)
 %
 % Output:
 %
-%   MODEL structure with
-%       .MODEL          (numvars x coeffs) matrix of VAR coefficients
+%   Model structure with
+%       .Model          (numvars x coeffs) matrix of VAR coefficients
 %       .PE             (numvars x coeffs) prediction error (noise covariance) coefficients
 %       .algorithm      string denoting algorithm used for estimation
 %       .modelclass     string denoting model class (here, 'mvar')
@@ -97,7 +97,8 @@ g = arg_define([0 1],varargin, ...
     ]) ...
     } ...
     )},'Detrend or center each time window','cat','Window Preprocessing'), ...
-    arg({'timer','Timer'},false,[],'Activate timer. Times are stored in EEG.CAT.MODEL.timeelapsed'), ...
+    arg({'timer','Timer'},false,[],'Activate timer. Times are stored in EEG.CAT.Model.timeelapsed'), ...
+    arg({'setArgDirectMode','SetArgDirectMode'},true,[],'Set arg_direct mode to true. Can improve speed when number of windows is large. Disable if calling this function repeatedly in a tight loop.'), ...
     arg({'verb','VerbosityLevel'},verb,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical') ...
     );
 
@@ -150,7 +151,13 @@ if rem(g.winlen,1/EEG.srate)
         fprintf('\twindow length is now %0.5g sec\n',g.winlen);
     end
 end
-
+if g.winlen > EEG.xmax-EEG.xmin
+    g.winlen = EEG.xmax-EEG.xmin;
+    if g.verb,
+        fprintf('Window length exceeds epoch length. Adjusting window length to match epoch length\n');
+        fprintf('\twindow length is now %0.5g sec\n',g.winlen);
+    end
+end
 tidx = getindex(EEG.CAT.times,g.epochTimeLims*1000);
 if ~all(isequal(EEG.CAT.times(tidx),g.epochTimeLims*1000))
     
@@ -228,6 +235,13 @@ else
 end
 
 %% Main loop: fit MVAR models to each window
+
+if g.setArgDirectMode
+    % set the arg_direct flag
+    % to improve speed
+    g = arg_setdirect(g,true);
+end
+
 for t=1:numWins
     
     if g.timer, tic; end
@@ -267,7 +281,7 @@ for t=1:numWins
             if strcmpi('yes',questdlg2( ...
                             'Are you sure you want to cancel?', ...
                             'Model Fitting','Yes','No','No'));
-                MODEL = [];
+                Model = [];
                 multiWaitbar(waitbarTitle,'Close');
                 return;
             else
@@ -285,29 +299,29 @@ if g.verb==2
     multiWaitbar(waitbarTitle,'Close'); 
 end
 
-%% Construct MODEL object
+%% Construct Model object
 switch lower(g.algorithm.arg_selection)
     case 'group lasso dal/scsa'
-        %     MODEL.ww = ww;
-        MODEL.lambda = g.algorithm.dal_args.lambda;
+        %     Model.ww = ww;
+        Model.lambda = g.algorithm.dal_args.lambda;
     case 'group lasso (admm)'
-        MODEL.lambda = g.algorithm.admm_args.lambda;
-        MODEL.rho    = g.algorithm.admm_args.rho;
-        MODEL.alpha  = g.algorithm.admm_args.alpha;
+        Model.lambda = g.algorithm.admm_args.lambda;
+        Model.rho    = g.algorithm.admm_args.rho;
+        Model.alpha  = g.algorithm.admm_args.alpha;
 end
 
-MODEL.AR = AR;
-MODEL.PE = PE;
-MODEL.RC = RC;
-MODEL.mu = mu;
-MODEL.th = th;
-MODEL.winStartTimes = (g.winStartIdx-1)/EEG.srate; %EEG.CAT.times(g.winStartIdx)/1000;
-MODEL.morder        = g.morder;
-MODEL.winstep       = g.winstep;
-MODEL.winlen        = g.winlen;
-MODEL.algorithm     = g.algorithm.arg_selection;
-MODEL.modelclass    = 'mvar';
-MODEL.timeelapsed   = timeElapsed;
-MODEL.normalize     = g.normalize;
-MODEL.modelapproach = 'Segmentation VAR';
-MODEL.taperFcn      = g.taperfcn;
+Model.AR = AR;
+Model.PE = PE;
+Model.RC = RC;
+Model.mu = mu;
+Model.th = th;
+Model.winStartTimes = (g.winStartIdx-1)/EEG.srate; %EEG.CAT.times(g.winStartIdx)/1000;
+Model.morder        = g.morder;
+Model.winstep       = g.winstep;
+Model.winlen        = g.winlen;
+Model.algorithm     = g.algorithm.arg_selection;
+Model.modelclass    = 'mvar';
+Model.timeelapsed   = timeElapsed;
+Model.normalize     = g.normalize;
+Model.modelapproach = 'Segmentation VAR';
+Model.taperFcn      = g.taperfcn;

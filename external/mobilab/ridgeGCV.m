@@ -1,4 +1,4 @@
-function [J,lambdaOpt,Yhat] = ridgeGCV(Y,K,L,lambdaOpt,nlambda,plotGCV,verb,lambdaLearnRule)
+function [J,lambdaOpt,Yhat] = ridgeGCV(Y,K,L,lambdaOpt,nlambda,plotGCV,verb,lambdaLearnRule,blksz,U,S,V)
 %[J,lambdaOpt] = ridgeGCV(Y,K,L,nlambda,plotGCV)
 %
 % Estimates a ridge regression model, also know as Tikhonov regularization, 
@@ -11,7 +11,8 @@ function [J,lambdaOpt,Yhat] = ridgeGCV(Y,K,L,lambdaOpt,nlambda,plotGCV,verb,lamb
 % Jest: estimated parapeters
 % nlambda: maximum size of the grid for the hyperparameter lambda, default: 100
 % plotGCV: plot the GCV curve (true/false), default: false
-% 
+% blksz:   [numrows numcols] Design matrix structure. If non-empty, K 
+%          consists of identical blocks of size blksz along the main diagonal.
 % Jest = argmin(J) ||Y-K*J||^2 + lambda*||L*J||^2
 % with lambda > 0
 %
@@ -20,6 +21,7 @@ function [J,lambdaOpt,Yhat] = ridgeGCV(Y,K,L,lambdaOpt,nlambda,plotGCV,verb,lamb
 % the Cuban Neuroscience Center in 2009.
 % 
 % Author: Alejandro Ojeda, SCCN/INC/UCSD, Jul-2012
+%         Tim Mullen, SCCN/INC/UCSD, 2013
 %
 % References:
 %   Pedro A. Valdés-Hernández, Alejandro Ojeda, Eduardo Martínez-Montes, Agustín
@@ -35,13 +37,24 @@ if nargin < 4 || isempty(lambdaOpt), lambdaOpt = -1; end
 if nargin < 5, nlambda = 100;end
 if nargin < 6, plotGCV = false;end
 if nargin < 7, verb = 0; end
-if nargin < 8, lambdaLearnRule = 'grid_gcv'; end
+if nargin < 8 || isempty(lambdaLearnRule), lambdaLearnRule = 'grid_gcv'; end
+if nargin < 9, blksz = []; end
+
+if nargin < 12
+    % compute SVD
+    if isempty(blksz)
+        [U,S,V] = svds(K/L,min(size(K)));
+    else
+        warning('block optimization not yet implemented');
+        [U,S,V] = svds(K/L,min(size(K)));
+    end
     
-[U,S,V] = svds(K/L,min(size(K)));
-V = L\V;
-s = diag(S);
-s2 = s.^2;
-UtY = U'*Y;
+    V = L\V;
+    s = diag(S);
+    s2 = s.^2;
+    UtY = U'*Y;
+end
+
 
 if lambdaOpt<0 && strcmpi(lambdaLearnRule,'grid_gcv')
     % automatically find optimal lambda via grid search
@@ -60,7 +73,7 @@ if lambdaOpt<0 && strcmpi(lambdaLearnRule,'grid_gcv')
         if verb
             fprintf('no GCV minimum, finding elbow...\n');
         end
-        [dummy loc] = min(gcv); %hlp_findElbow(gcv);
+        [dummy loc] = hlp_findElbow(gcv);  % min(gcv)
     end
     loc = loc(end);
     lambdaOpt = lambda2(loc);
