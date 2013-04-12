@@ -353,11 +353,14 @@ end
 
 if isempty(stats)
     usestatsdef = [];  % false
-    StatThreshMethods = {''};
+    StatThreshMethods = {'none'};
+    def_alpha = 0.05;
 else
     usestatsdef = {};  % true
     methods = intersect(fieldnames(stats),ConnNames);
     StatThreshMethods = intersect(fieldnames(stats.(methods{1})),{'pval','thresh','logical'});
+    StatThreshMethods = [StatThreshMethods 'none'];
+    def_alpha = stats.alpha;
 end
 
 clear stats ALLEEG;
@@ -406,7 +409,7 @@ g = arg_define([0 2],varargin, ...
     {...
     arg({'plotci','PlotConfidenceIntervals'},false,[],'Plot confidence intervals (if available). Does not apply to for time-frequency images.'), ...
     arg({'sigthreshmethod','ThresholdingMethod'},StatThreshMethods{1},StatThreshMethods,'Method to use for significance masking') ...
-    arg({'alpha','AlphaSignificance'},0.05,[0 1],'P-value threshold for significance. e.g., 0.05 for p<0.05') ...
+    arg({'alpha','AlphaSignificance'},def_alpha,[0 1],'P-value threshold for significance. e.g., 0.05 for p<0.05') ...
     }, ...
     'Simple' ...
     {...
@@ -720,7 +723,8 @@ freqIndices = getindex(Conn(1).freqs,g.freqValues);
 
 % select time and frequency range from Statistics (if it exists) ...
 if willPlotStats(g,CEstimator)
-        
+    
+    
     if ~isequal(size(g.stats.(CEstimator).(g.thresholding.sigthreshmethod)),size(Conn(1).(CEstimator)))
         error('Stats matrix must be same size as Connectivity matrix');
     end
@@ -728,12 +732,12 @@ if willPlotStats(g,CEstimator)
     g.stats.(CEstimator).(g.thresholding.sigthreshmethod) ...
         = g.stats.(CEstimator).(g.thresholding.sigthreshmethod)(:,:,freqIndices,timeIndices);
     
-    % select window for confidence interval
-    if willPlotStatCI(g,CEstimator)
-        g.stats.(CEstimator).ci = g.stats.(CEstimator).ci(:,:,:,freqIndices,timeIndices);
-    end
+    
 end
-
+% ...and from confidence interval
+if willPlotStatCI(g,CEstimator)
+    g.stats.(CEstimator).ci = g.stats.(CEstimator).ci(:,:,:,freqIndices,timeIndices);
+end
 % ... and from Connectivity
 for i=1:length(Conn)
     Conn(i).(CEstimator) = Conn(i).(CEstimator)(:,:,freqIndices,timeIndices);
@@ -1019,7 +1023,6 @@ if ~isempty(g.windows)
     if ~isempty(g.stats) && isfield(g.stats.(CEstimator),'ci') && g.thresholding.plotci
         g.stats.(CEstimator).ci = g.stats.(CEstimator).ci(:,:,:,:,windowIndex);
     end
-    
 end
 
 
@@ -1031,13 +1034,13 @@ end
 if ~isempty(g.clim)
     if isscalar(g.clim)
         % use percentile colorlimits
-        if ~TwoSidedThresholding %all(ConnMatrix(~isnan(ConnMatrix))>=0)
+        if ~TwoSidedThresholding || all(ConnMatrix(~isnan(ConnMatrix))>=0)
             if 0 %willPlotStatCI(g,CEstimator) && ndims(squeeze(ConnMatrix))<4
                 g.clim=[0 prctile(g.stats.(CEstimator).ci(2,:),g.clim)];
             else
                 g.clim=[0 prctile(ConnMatrix(:),g.clim)];
             end
-        else
+        else 
             if 0 %willPlotStatCI(g,CEstimator) && ndims(squeeze(ConnMatrix))<4
                 maxprc=prctile(abs(g.stats.(CEstimator).ci(:)),g.clim);
             else
@@ -1344,8 +1347,7 @@ for ch_i=1:nch
                 % plot a set of causality x frequency traces for each time window
                 
                 % plot confidence intervals
-                if ~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics') ...
-                        && isfield(g.stats.(CEstimator),'ci') && g.thresholding.plotci
+                if willPlotStatCI(g,CEstimator)
                     ci = g.stats.(CEstimator).ci;
                     if ndims(ci)>=4 && size(ci,1)==2
                         % asymmetric confidence intervals
@@ -1747,4 +1749,4 @@ x = (~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics') ...
 % -----------------------------------------------------------------------------
 function x = willPlotStats(g,CEstimator)
 x = (~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics') ...
-     && isfield(g.stats,CEstimator));
+     && isfield(g.stats,CEstimator) && ~strcmp(g.thresholding.sigthreshmethod,'none'));

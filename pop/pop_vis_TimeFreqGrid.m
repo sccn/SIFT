@@ -132,20 +132,22 @@ if length(ALLEEG)==2 && ~cfg.plotCondDiff.arg_selection
         else
             handles{cnd} = vis_TimeFreqGrid('ALLEEG',ALLEEG(cnd),'Conn',Conn(cnd),cfg);
         end
-        
         if ~isempty(cfg)
             % store the configuration structure
             ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
         end
     end
 else
-    
     % either user wants to plot condition difference 
     % or there is only one condition
     if hasStats
             handles = vis_TimeFreqGrid('ALLEEG',ALLEEG,'Conn',Conn,'Stats',ALLEEG(1).CAT.Stats,cfg);
         else
             handles = vis_TimeFreqGrid('ALLEEG',ALLEEG,'Conn',Conn,cfg);
+    end
+    if ~isempty(cfg)
+        % store the configuration structure
+        ALLEEG.CAT.configs.(fcnName) = cfg;
     end
 end
 

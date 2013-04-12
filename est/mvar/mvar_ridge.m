@@ -90,31 +90,40 @@ function [AR PE lambdaOpt] = mvar_ridge(varargin)
 
 verb = arg_extract(varargin,{'verb','Verbosity'},[],0);
 
+if hlp_isToolboxInstalled('Parallel Computing Toolbox')
+    pardef   = 'on';
+    parprofs = hlp_microcache('sift_domain',@parallel.clusterProfiles);
+else
+    pardef = 'off';
+end
+
 g = arg_define([0 1],varargin, ...
                 arg_norep({'data','Data'},mandatory,[],'Data Matrix. Dimensions are [nchs x npnts x ntr].'), ...
-                arg({'p','ModelOrder','morder'},10,[],'VAR Model order'), ...
-                arg_subswitch({'lambdaSelMode','LambdaSelectionMode'},'automatic', ...
-                {'manual',{ ...
-                    arg({'lambda','RegularizationParam'},1,[0 Inf],'Regularization parameter (lambda)','type','denserealdouble') ...
-                    }, ...
-                 'automatic',{ ...
-                    arg({'lambdaGridSize','LambdaGridSize'},100,[0 Inf],'Grid size for regularization param search. This is used to automatically select the regularization parameter which minimizes the Generalized Cross-Validation (GCV) criteria.') ...
-                    } ...
-                 },'Selection mode for lambda. Automatic (GCV grid search) or Manual (must provide lambda)'), ...
-                arg({'varPrior','VariancePrior'},1,[0 Inf],'Parameter covariance prior (sigma). If sigma a scalar, the parameter covariance prior is taken to be a diagonal matrix with sigma (variance) on diagonals. Otherwise, sigma can be a full prior covariance matrix. A sparse matrix is advised if covariance matrix is not dense.'), ...
+                arg({'morder','ModelOrder','p'},10,[],'VAR Model order'), ...
                 arg({'normcols','NormCols'},'zscore',{'none','norm','zscore'},'Normalize data. Columns of data matrix X and target vector Y are normalized using the chosen method.'), ...
-                arg_subtoggle({'warmStart','WarmStart'},[], ...
-                {...
-                    arg({'initState','InitialState'},[],[],'Initial BSBL state object. If empty, last state will be used.') ...
-                },'Warm start. The previously estimated state will be used as a starting estimate for successive BSBL operations. Alternately, you may provide an non-empty initial state structure via the ''InitialState'' argument.'), ...
-                arg({'verb','Verbosity'},verb,[],'Verbose output','type','int32','mapper',@(x)int32(x)) ...
+                arg_subtoggle({'splitVars','DecoupleVars','SplitVars'},'on', ...
+                { ...
+                    arg_subtoggle({'runPll','RunInParallel'},'off', ...
+                    { ...
+                    arg({'profile','ProfileName'},parprofs{1},parprofs,'Profile name'), ...
+                    arg({'numWorkers','NumWorkers'},2,[1 Inf],'Number of workers') ...
+                    },'Solve blocks in parallel. Requires Parallel Computing Toolbox.'), ...
+                },'Decouple variables. Solve coefficients for each variable separately. This can improve computation speed when there are a large number of channels/variables'), ...
+                arg_sub({'ridge_args','RegressionOptions'},[],@ridge_gcv,'Ridge regression options.','suppress','verb'), ...
+                arg({'verb','Verbosity'},verb,{int32(0) int32(1) int32(2)},'Verbose output','type','int32','mapper',@(x)int32(x)) ...
                 );
 
+% arg_subtoggle({'warmStart','WarmStart'},[], ...
+%                 {...
+%                     arg({'initState','InitialState'},[],[],'Initial BSBL state object. If empty, last state will be used.') ...
+%                 },'Warm start. The previously estimated state will be used as a starting estimate for successive BSBL operations. Alternately, you may provide an non-empty initial state structure via the ''InitialState'' argument.'), ...
+%                 
 % arg({'scaled','UseScaling'},true,[],'Scaling option. If set, coefficient estimates are restored to the scale of the original data'), ...
 
 arg_toworkspace(g);
 
 [nchs npnts ntr] = size(data);
+p = morder;
 
 % % initialize state
 % if g.warmStart.arg_selection && ~isempty(g.warmStart.initState)
@@ -131,6 +140,11 @@ arg_toworkspace(g);
 
 % assemble the predictor (design) matrix and target vector
 [X Y] = hlp_mkVarPredMatrix(g.data,p);
+
+% design matrix block size (one block per variable)
+blkrows   = npnts-p;
+blkcols   = p*nchs;
+blksz = [blkrows*ntr, blkcols];
 
 % normalization
 switch lower(g.normcols)
@@ -151,24 +165,62 @@ Y = hlp_vec(Y);
 X = blkdiageye(sparse(X),nchs);
 
 
-switch g.lambdaSelMode.arg_selection
-    case 'manual'
-        lambdaOpt = g.lambdaSelMode.lambda;
-        gridSize  = 0;
-    case 'automatic'
-        gridSize  = g.lambdaSelMode.lambdaGridSize;
-        lambdaOpt = [];
+if g.splitVars.arg_selection
+    
+    AR = zeros(size(X,2),1);
+    lambdaOpt  = zeros(1,nchs);
+    
+    % solve for each variable separately
+    if g.splitVars.runPll.arg_selection
+        if g.verb
+            fprintf('Running parallel job (this may take a while)...\n'); 
+        end
+        ridge_args = g.ridge_args;
+        
+        % make sure pool is open
+        wasOpen = hlp_pll_openPool(g.splitVars.runPll.numWorkers, ...
+                                   g.splitVars.runPll.profile);
+        
+        % slice the variables
+        for k=1:nchs
+            rowidx = (k-1)*blksz(1)+1:k*blksz(1);
+            colidx = (k-1)*blksz(2)+1:k*blksz(2);
+            Xk{k}  = X(rowidx,colidx);
+        end
+        Yk = reshape(Y,blksz(1),nchs);
+        verb = g.verb;
+        % run first iteration to obtain svd_state
+        [ARk{1}, lambdaOpt(1), svd_state] = ridge_gcv('Y',Yk(:,1),'A',Xk{1}, ...
+                                                     ridge_args,'verb',verb);
+        parfor k=2:nchs
+            [ARk{k}, lambdaOpt(k)] = ridge_gcv('Y',Yk(:,k),'A',Xk{k}, ...
+                                                     ridge_args,    ...
+                                                    'svd_state',svd_state,'verb',verb);
+        end
+        % reassemble results
+        for k=1:nchs
+            AR((k-1)*blksz(2)+1:k*blksz(2)) = ARk{k};
+        end
+        % cleanup
+        if ~wasOpen
+            matlabpool('close'); end
+    else
+        svd_state = [];
+        for k=1:nchs
+            rowidx = (k-1)*blksz(1)+1:k*blksz(1);
+            colidx = (k-1)*blksz(2)+1:k*blksz(2);
+            [AR(colidx), lambdaOpt(k), svd_state] ...
+                = ridge_gcv('Y',Y(rowidx),'A',X(rowidx,colidx),g.ridge_args,   ...
+                            'blksz',[],'svd_state',svd_state,'verb',g.verb);
+        end
+    end
+    
+else
+    [AR lambdaOpt] = ridge_gcv('Y',Y,'A',X,g.ridge_args,'blksz',blksz,'verb',g.verb);
 end
-       
-if isscalar(g.varPrior)
-    g.varPrior=g.varPrior*speye(size(X,2));
-end
 
-[H2 lambdaOpt] = ridgeGCV(Y,X,g.varPrior,lambdaOpt,gridSize,false,verb);
-
-H2 = reshape(H2,[p,nchs,nchs]);
-
-AR = permute(full(H2), [3 2 1]);   % the recovered (nchs x nchs x p) connectivity matrix
+AR = reshape(AR,[p,nchs,nchs]);
+AR = permute(full(AR), [3 2 1]);   % the recovered (nchs x nchs x p) connectivity matrix
 AR = reshape(AR,[nchs nchs*p]);
 
 %% estimate noise covariance matrix

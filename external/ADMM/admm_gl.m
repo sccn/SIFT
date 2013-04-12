@@ -127,32 +127,6 @@ if isempty(g.lambda)
 end
 
 
-% if isempty(g.lambda)
-%     
-%     if g.verb, fprintf('Using heuristic g.lambda selection...'); end
-%         
-%     cum_part = cumsum(blks(1:nblks-1));
-%     
-%     % guess regularization param for 
-%     % each group of coefficients
-%     K = nblks-1;
-%     start_ind = 1;
-%     lambdas = zeros(1,K);
-%     
-%     for i = 1:K
-%         sel = start_ind:cum_part(i);
-%         lambdas(i) = norm(A(:,sel)'*y);
-%         start_ind = cum_part(i) + 1;
-%     end
-%     lambda_max = max(lambdas);
-% 
-%     % regularization parameter as fraction of 
-%     % maximum group regularization parameter
-%     g.lambda = 0.1*lambda_max;
-%     
-%     if g.verb, fprintf('...g.lambda set to %0.10g\n',g.lambda); end
-% end
-
 %% ADMM solver
 
 x = zeros(n,1);

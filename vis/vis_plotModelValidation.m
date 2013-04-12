@@ -209,6 +209,7 @@ for cond = 1:num_conds
             % single window -- make barplot
             bar(PCstats{cond}.PC);
             legend(sprintf('(%0.2f%% Consistent)',PCstats{cond}.PC));
+            set(gca,'Ylim',[min(0,PCstats{cond}.PC)-1 max(PCstats{cond}.PC,100)+1]);
         end
         
         ylabel('Percent Consistency');

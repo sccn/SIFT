@@ -6,13 +6,13 @@ function ci = stat_computeCI(varargin)
 %       PConn:     connectivity distribution object returned from stat_bootstrap()
 %                  or a matrix of distribution values for a single
 %                  estimator
-%       alpha:     alpha-significance threshold (e.g. alpha=0.05)
-%       tail:      'upper': compute only upper ci (lower is set to mean of
+%       ci_alpha:     ci_alpha-significance threshold (e.g. ci_alpha=0.05)
+%       ci_tail:      'upper': compute only upper ci (lower is set to mean of
 %                           distribution)
 %                  'lower': compute only lower ci (upper is set to mean of
 %                           distribution)
 %                  'both': compute upper and lower confidence intervals
-%                          (alpha is divided by 2)
+%                          (ci_alpha is divided by 2)
 % Outputs:
 %
 %       ci:     the mean of the distribution
@@ -44,12 +44,10 @@ function ci = stat_computeCI(varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-PConn,alpha,tail,mode
-
 arg_define([0 Inf],varargin, ...
     arg_norep({'PConn','SurrogateDistrib'},mandatory,[],'Surrogate distribution.'), ...
-    arg({'alpha','Alpha'},0.05,[0 1],'Significance level. For example, a value of alpha=0.05 will produce (1-alpha)*100 = 95% confidence intervals.'), ...
-    arg({'tail','Tail'},'both',{'right','left','both','one'},'Tail. One-tailed (right-tailed) or two-tailed test. ''Right'' gives upper confidence interval. ''Left'' gives lower confidence interval. ''One'' defaults to ''right.'''), ...
+    arg({'ci_alpha','Alpha'},0.05,[0 1],'Significance level. For example, a value of alpha=0.05 will produce (1-alpha)*100 = 95% confidence intervals.'), ...
+    arg({'ci_tail','Tail'},'both',{'right','left','both','one'},'Tail. One-tailed (right-tailed) or two-tailed test. ''Right'' gives upper confidence interval. ''Left'' gives lower confidence interval. ''One'' defaults to ''right.'''), ...
     arg({'testMethod','TestMethod'},'percentile',{'percentile','corrected percentile','normal'},sprintf('Comparison method.\nQuantile: Determines the quantile of the difference (A-B) distribution at which zero lies. From this, one derives a p-value for rejecting the hypothesis that paired samples from both conditions are equal.')), ...
     arg_norep({'Conn','Obs'},[],[],'Estimator') ...
     );
@@ -60,30 +58,32 @@ if isstruct(PConn)
     connmethods = hlp_getConnMethodNames(PConn);
     for m=1:length(connmethods)
         % compute stats for all methods
-        ci.(connmethods{m}) = stat_computeCI(PConn(cnd).(connmethods{m}),alpha,tail);  
+        ci.(connmethods{m}) = stat_computeCI(PConn(cnd).(connmethods{m}),ci_alpha,ci_tail);  
     end
 else
     % PConn is a matrix 
     sz = size(PConn);
     nd = length(sz);
-    alpha = 100*alpha;
+    ci_alpha = 100*ci_alpha;
     
-    switch lower(tail)
+    switch lower(ci_tail)
         case 'both'
-            lower = prctile(PConn,alpha/2,nd);      % lower
-            upper = prctile(PConn,100-alpha/2,nd);  % upper
-        case {'upper' 'left'}
+            lb = prctile(PConn,ci_alpha/2,nd);      % lb
+            ub = prctile(PConn,100-ci_alpha/2,nd);  % ub
+        case {'ub' 'left'}
             mval = mean(PConn,nd); % mean of estimator
-            lower = mval;
-            upper = prctile(PConn,100-alpha,nd);    % upper
-        case {'lower' 'right'}
+            lb = mval;
+            ub = prctile(PConn,100-ci_alpha,nd);    % ub
+        case {'lb' 'right'}
             mval = mean(PConn,nd); % mean of estimator
-            lower = prctile(PConn,alpha,nd);        % lower
-            upper = mval;
+            lb = prctile(PConn,ci_alpha,nd);        % lb
+            ub = mval;
         otherwise
-            error('SIFT:stat_computeCI','unknown tail option');
+            error('SIFT:stat_computeCI','unknown ci_tail option');
     end
     
-    ci = [lower; upper];
+    nd = ndims(lb);
+    ci = cat(nd+1,lb,ub);         % append ci to last dim
+    ci = permute(ci,[nd+1 1:nd]); % permute to first dim
 end
 

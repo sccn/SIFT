@@ -143,7 +143,8 @@ for m=1:length(g.estimator)
             % specify the degrees of freedom
             if g.EEG.CAT.MODEL.morder == 1
                 df = 1;
-            elseif any(EEG.CAT.Conn.freqs==[0 EEG.srate/2])
+            elseif g.EEG.CAT.Conn.freqs(1)==0 ...
+                || g.EEG.CAT.Conn.freqs(end)==g.EEG.srate/2
                 % adjust degrees of freedom at end-points
                 df = 2*ones(size(g.EEG.CAT.Conn.RPDC),'single');
                 df(:,:,[1 end],:) = 1;
