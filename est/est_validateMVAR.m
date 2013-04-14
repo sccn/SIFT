@@ -137,10 +137,6 @@ if g.prctWinToSample<100
     g.prctWinToSample = 100;
 end
 
-% if g.verb
-%     fprintf('checking condition %s...\n',g.EEG.condition);
-% end
-
 if g.verb==2
     % create waitbar
     waitbarTitle = sprintf('Validating Model %s...', ...

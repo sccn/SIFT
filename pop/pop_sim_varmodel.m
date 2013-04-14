@@ -14,7 +14,10 @@ function [ALLEEG_out cfg] = pop_sim_varmodel(typeproc,varargin)
 %
 % Output:
 %
-%   EEG:            Simulated EEG structure(s)
+%   EEG:            Simulated EEG structure(s).
+%                   Optionally this may be an array of
+%                   EEG structs with the second struct 
+%                   being the ground truth model.
 %   cfg:            Argument specification structure.
 %
 %
@@ -86,11 +89,16 @@ if strcmpi(typeproc,'cfg_only')
 end
 
 % execute the low-level function
-[ALLEEG_out] = feval(fcnHandle,cfg);
-    
+[ALLEEG_out GroundTruth] = feval(fcnHandle,cfg);
+
+if ~isempty(GroundTruth)
+    ALLEEG_out = eeg_store(ALLEEG_out,GroundTruth,2);
+end
 if ~isempty(cfg)
-    % store the configuration structure
-    ALLEEG_out.CAT.configs.(fcnName) = cfg;
+    for k=1:length(ALLEEG_out)
+        % store the configuration structure
+        ALLEEG_out(k).CAT.configs.(fcnName) = cfg;
+    end
 end
 
 

@@ -9,7 +9,9 @@ function [res]=est_mvarResiduals(X,AR,mu,downsampleFactor,instant)
 %   Inputs:
 %       
 %       X:      [M x npoints x ntrials] matrix of sensor data
-%       AR:     VAR[p] model coefficients in format AR=[A1 ... Ap]
+%       AR:     VAR[p] model coefficients in format AR=[A1 ... Ap]. Can be
+%               a cell array of length (npnts) where AR{i} are the VAR
+%               coefficients for the ith time point or window
 %       mu:     [1 x nchannels] vector of model intercepts (if no intercepts
 %               estimated, set mu = [] or mu = zeros(1,nchannels) and process mean 
 %               is assumed to be zero
@@ -24,7 +26,7 @@ function [res]=est_mvarResiduals(X,AR,mu,downsampleFactor,instant)
 %                           time-points in the past is used to predict the 
 %                           current timepoint). To obtain "instantaneous"
 %                           prediction errors, set the instant option to 1.
-%       instant:            If 1, compute "instantaneous" prediction errors
+%       instant:            If true, compute "instantaneous" prediction errors
 %                           (use the AR(t) to predict X(t)), else
 %                           compute N-step prediction error (use AR(t-d) to
 %                           predict X(t), where d = downsampleFactor)
@@ -85,7 +87,7 @@ end
       downsampleFactor = 1;
   end
   if nargin<5
-      instant = false;
+      instant = true;
   end
   
  res = nan*ones(nchs,nres,ntr);

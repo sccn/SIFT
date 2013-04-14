@@ -1070,8 +1070,8 @@ else
         case 'nodiag'
             if ~isequal(g.MatrixLayout.ut_clim,g.MatrixLayout.lt_clim)
                 fprintf('UT_ColorLimits and LT_ColorLimits cannot differ for ''msubset''=''nodiag''. Using UT_ColorLimits\n');
-                clim = g.MatrixLayout.ut_clim;
             end
+            clim = g.MatrixLayout.ut_clim;
         otherwise
             clim = [];
     end

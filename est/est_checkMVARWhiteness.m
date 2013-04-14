@@ -164,7 +164,7 @@ for t=1:numWins
     winArrIdx = g.winArrayIndex(t);
     
     % get the estimated mean of the process
-    if ~isfield(MODEL,'mu')
+    if ~isfield(MODEL,'mu') || isempty(MODEL.mu)
         mu = zeros(1,EEG.CAT.nbchan);
     else
         mu = MODEL.mu{winArrIdx};

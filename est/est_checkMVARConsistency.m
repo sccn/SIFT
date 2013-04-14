@@ -125,9 +125,13 @@ for t=1:numWins
     
     % get the array index of the window we are working with
     winArrIdx = g.winArrayIndex(t);
-    
+    if isfield(MODEL,'mu') && ~isempty(MODEL.mu)
+        mu = MODEL.mu{winArrIdx};
+    else
+        mu = [];
+    end
     data = squeeze(EEG.CAT.srcdata(:,g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1,:));
-    stats.PC(t)= est_consistency(data,MODEL.AR{winArrIdx},MODEL.PE{winArrIdx},g.donorm,g.Nr,g.nlags);
+    stats.PC(t)= est_consistency(data,MODEL.AR{winArrIdx},MODEL.PE{winArrIdx},g.donorm,g.Nr,g.nlags,mu);
     
     if g.verb==2
         % update waitbar

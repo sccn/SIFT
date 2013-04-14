@@ -146,8 +146,10 @@ else
             handles = vis_TimeFreqGrid('ALLEEG',ALLEEG,'Conn',Conn,cfg);
     end
     if ~isempty(cfg)
-        % store the configuration structure
-        ALLEEG.CAT.configs.(fcnName) = cfg;
+        for k=1:length(ALLEEG)
+            % store the configuration structure
+            ALLEEG(k).CAT.configs.(fcnName) = cfg;
+        end
     end
 end
 

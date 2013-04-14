@@ -300,15 +300,7 @@ if g.verb==2
 end
 
 %% Construct Model object
-switch lower(g.algorithm.arg_selection)
-    case 'group lasso dal/scsa'
-        %     Model.ww = ww;
-        Model.lambda = g.algorithm.dal_args.lambda;
-    case 'group lasso (admm)'
-        Model.lambda = g.algorithm.admm_args.lambda;
-        Model.rho    = g.algorithm.admm_args.rho;
-        Model.alpha  = g.algorithm.admm_args.alpha;
-end
+Model = hlp_sift_emptymodel;
 
 Model.AR = AR;
 Model.PE = PE;
@@ -325,3 +317,13 @@ Model.timeelapsed   = timeElapsed;
 Model.normalize     = g.normalize;
 Model.modelapproach = 'Segmentation VAR';
 Model.taperFcn      = g.taperfcn;
+
+switch lower(g.algorithm.arg_selection)
+    case 'group lasso dal/scsa'
+        %     Model.ww = ww;
+        Model.lambda = g.algorithm.dal_args.lambda;
+    case 'group lasso (admm)'
+        Model.lambda = g.algorithm.admm_args.lambda;
+        Model.rho    = g.algorithm.admm_args.rho;
+        Model.alpha  = g.algorithm.admm_args.alpha;
+end
