@@ -8,10 +8,10 @@ function [x,lambda_opt,svd_state,Y_hat] = ridge_gcv(varargin)
 % with lambda > 0
 %
 % 
-% [..., svd_state] = ridgeGCV(...)  returns the svd decomposition. This can
+% [..., svd_state] = ridge_gcv(...)  returns the svd decomposition. This can
 % be reused if the target vector does not change.
 %
-% [..., Y_hat] = ridgeGCV(...)  returns the predicted target vector.
+% [..., Y_hat] = ridge_gcv(...)  returns the predicted target vector.
 % Residuals can be computed via E = Y-Y_hat;
 %
 % This code is based on a previous implementation used in Valdes-Hernandez

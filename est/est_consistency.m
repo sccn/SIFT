@@ -1,5 +1,5 @@
 
-function PC = est_consistency(data,AR,PE,doNorm,Nr,nlags)
+function PC = est_consistency(data,AR,PE,doNorm,Nr,nlags,mu)
 %
 % Calculate the percent consistency for a fitted VAR[p] model. The
 % percent consistency [1] is an index of the ability for a VAR model, fit 
@@ -70,10 +70,12 @@ if nargin<4
     doNorm = false; end
 if nargin<5 || isempty(Nr)
     Nr = max(30,ntr); end
-
+if nargin<7 || isempty(mu)
+    mu = zeros(1,nchs);
+end
 % simulate ntr realizations from VAR model
 % datasim = tvarsim(zeros(1,nchs),AR,C,[npnts ntr],ndisc);
-datasim = tvarsim(zeros(1,nchs),AR,C,[npnts*Nr 1],ndisc);
+datasim = tvarsim(mu,AR,C,[npnts*Nr 1],ndisc);
 datasim = reshape(datasim',[nchs,npnts,Nr]);
 datasim = permute(datasim,[2 1 3]); % [npnts nchs ntr]
 
