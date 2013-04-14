@@ -11,8 +11,8 @@ clear;
 %% Example 1: Simple bivariate coupled oscillator example
 
 SamplingRate = 100;      % Hz
-Nl = 500;                % length of each epoch (samples)
-Nr = 100;                % number of trials (realisations)
+Nl = 50;                % length of each epoch (samples)
+Nr = 50;                % number of trials (realisations)
 ndisc = 1000;            % number of samples to discard from VAR model (startup transients)
 ModelOrder = 2;          % VAR model order
  
@@ -101,8 +101,8 @@ Aproto = sim_genVARModelFromEq(expr,ModelOrder);
 % Available at: http://www.ncbi.nlm.nih.gov/pubmed/16269188.
 
 SamplingRate = 100;         % Hz
-Nl = 500;                   % length of each epoch (samples)
-Nr = 100;                   % number of trials (realisations)
+Nl = 100;                   % length of each epoch (samples)
+Nr = 10;                   % number of trials (realisations)
 ndisc = 1000;               % number of samples to discard from VAR model (startup transients)
 ModelOrder = 4;             % VAR model order
 

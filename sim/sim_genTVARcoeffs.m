@@ -67,17 +67,24 @@ function [A stable] = sim_genTVARcoeffs(varargin)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-g = arg_define([0 3],varargin, ...
-              arg_norep('Aproto',mandatory,[],'Prototype VAR specification'), ...
-              arg('ModelOrder',mandatory,[],'The VAR model order','type','denserealdouble'), ...
-              arg({'Nl','NumSamplesToSimulate'},mandatory,[],'Number of samples to simulate (for each trial)'), ...
-              arg({'ndisc','NumSamplesToDiscard'},1000,[],'Number of samples to discard in VAR sim'), ...
-              arg({'checkStability','CheckStability'},true,[],'Check whether process is stable'), ...
-              arg({'verb','Verbose'},true,[],'Verbose','type','logical') ...
-              );
+arg_define([0 3],varargin, ...
+          arg_norep('Aproto',[],[],'Prototype VAR specification'), ...
+          arg('ModelOrder',[],[1 Inf],'The VAR model order','type','denserealdouble'), ...
+          arg({'Nl','NumSamplesToSimulate'},500,[1 Inf],'Number of samples to simulate (for each trial)'), ...
+          arg({'ndisc','NumSamplesToDiscard'},1000,[],'Number of ''burn-in'' samples to discard'), ...
+          arg({'checkStability','CheckStability'},true,[],'Check whether process is stable'), ...
+          arg({'verb','VerbosityLevel'},int32(0),{int32(0) int32(1) int32(2)},'Verbose','type','int32') ...
+          );
 
-
-arg_toworkspace(g);
+if isempty(Aproto)
+    error('SIFT:sim_GenTVARcoeffs:badParam','Aproto must be specified');
+end
+if isempty(ModelOrder)
+    error('SIFT:sim_GenTVARcoeffs:badParam','ModelOrder must be specified');
+end
+if isempty(Nl)
+    error('SIFT:sim_GenTVARcoeffs:badParam','NumSamplesToSimulate must be specified');
+end
 
 %% convert prototype time-varying VAR specification into coefficients
 
@@ -87,7 +94,20 @@ if nargout>1
     stable = ones(1,Nl+ndisc+ModelOrder);
 end
     
+
 if iscell(Aproto)
+    % Initiate progress bar
+    % ---------------------------------------------------------------------
+    if verb==1
+        fprintf('Generating coefficients: ');
+    elseif verb==2
+        waitbarTitle = sprintf('Generating coefficients...');
+        multiWaitbar(waitbarTitle, ...
+                     'Color', [1.0 0.4 0.0], ...
+                     'CanCancel','off');
+    end
+    % ---------------------------------------------------------------------
+    
     % find all the function handles
     numidx = find(cellfun(@(x)isnumeric(x),Aproto));
     funidx = setdiff(1:numel(Aproto),numidx);
@@ -99,12 +119,27 @@ if iscell(Aproto)
         fx{fun} = inline(Aproto{funidx(fun)});
     end
 
+    % total number of samples to simulate
+    nt = Nl+ndisc+ModelOrder;
     % evaluate each function handle
-    for t=1:Nl+ndisc+ModelOrder;
+    for t=1:nt;
 
-        if verb && ~mod(t,1000)
-            fprintf('%d/%d - ',t,Nl+ndisc+ModelOrder);
+        % update verbose progress
+        % -----------------------------------------------------------------
+        if verb==2
+            cancel = multiWaitbar(waitbarTitle,t/nt);
+            if cancel && hlp_confirmWaitbarCancel(waitbarTitle)
+                multiWaitbar(waitbarTitle,'Close');
+                return;
+            else
+                multiWaitbar(waitbarTitle,'ResetCancel',true);
+            end
+        elseif verb==1
+            if ~mod(t,1000)
+                fprintf('%d/%d - ',t,nt);
+            end
         end
+        % -----------------------------------------------------------------
         
         for fun = 1:length(funidx)
             A{t}{funidx(fun)} = double(fx{fun}(t));
@@ -124,11 +159,22 @@ if iscell(Aproto)
             lambda = eig(A_hat);
 
             if any(abs(lambda)>1)
-                if verb, fprintf('System is unstable at time %d! MaxLambda=%0.5g\n',t,max(abs(lambda))); end
+                if verb, fprintf('System is unstable at sample %d! MaxLambda=%0.5g\n',t,max(abs(lambda))); end
                 if nargout>1, stable(t) = 0; end
             end
         end
     end
+    
+    
+    % clean up
+    % ---------------------------------------------------------------------
+    if verb==1
+        fprintf('\n');
+    elseif verb==2
+        multiWaitbar(waitbarTitle,'Close');
+    end
+    % ---------------------------------------------------------------------
+    
 end
 
 

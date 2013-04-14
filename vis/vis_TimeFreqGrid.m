@@ -384,15 +384,20 @@ g = arg_define([0 2],varargin, ...
     {'Full', ...
     { ...
     arg({'estimator','Estimator'},ConnNames{1},ConnNames,'Estimator to visualize','shape','row') ...
+    arg({'clim','ColorLimits'},100,[],'Color/Y-axis scaling limits. If [min max], scale by [min max]. If scalar, and all(Conn>0), limits are set to [0 maxprc]. If scalar, and any(Conn<0), limits are set to [-maxprc maxprc] where maxprc is prctile(abs(Conn),scalar)','type','denserealdouble','shape','row','cat','DisplayProperties'), ...
     } ...
     'Partial', ...
     {...
     arg({'triu','UpperTriangle'},ConnNames{1},['none' ConnNames],'Estimator to render on upper triangle.','shape','row'), ...
+    arg({'ut_clim','UT_ColorLimits'},100,[],'Color/Y-axis scaling limits for upper triangle. If [min max], scale by [min max]. If scalar, and all(Conn>0), limits are set to [0 maxprc]. If scalar, and any(Conn<0), limits are set to [-maxprc maxprc] where maxprc is prctile(abs(Conn),scalar)','type','denserealdouble','shape','row','cat','DisplayProperties'), ...
     arg({'tril','LowerTriangle'},ConnNames{1},['none' ConnNames],'Estimator to render on upper triangle.','shape','row'), ...
+    arg({'lt_clim','LT_ColorLimits'},100,[],'Color/Y-axis scaling limits for lower triangle. If [min max], scale by [min max]. If scalar, and all(Conn>0), limits are set to [0 maxprc]. If scalar, and any(Conn<0), limits are set to [-maxprc maxprc] where maxprc is prctile(abs(Conn),scalar)','type','denserealdouble','shape','row','cat','DisplayProperties'), ...
     arg({'diag','Diagonal'},ConnNames{1},['none' ConnNames],'Estimator to render on diagonal.','shape','row') ...
+    arg({'d_clim','D_ColorLimits'},100,[],'Color/Y-axis scaling limits for diagonal. If [min max], scale by [min max]. If scalar, and all(Conn>0), limits are set to [0 maxprc]. If scalar, and any(Conn<0), limits are set to [-maxprc maxprc] where maxprc is prctile(abs(Conn),scalar)','type','denserealdouble','shape','row','cat','DisplayProperties'), ...
+    arg({'clim','AllColorLimits','ColorLimits'},[],[],'Color/Y-axis scaling limits for all subplots. If set, overrides all other colorlimits options. If [min max], scale by [min max]. If scalar, and all(Conn>0), limits are set to [0 maxprc]. If scalar, and any(Conn<0), limits are set to [-maxprc maxprc] where maxprc is prctile(abs(Conn),scalar)','type','denserealdouble','shape','row','cat','DisplayProperties'), ...
     }, ...
     },'Select the measure and layout','cat','DisplayProperties'), ...
-    arg({'clim','ColorLimits'},100,[],'Color/Y-axis scaling limits. If [min max], scale by [min max]. If scalar, and all(Conn>0), limits are set to [0 maxprc]. If scalar, and any(Conn<0), limits are set to [-maxprc maxprc] where maxprc is prctile(abs(Conn),scalar)','type','denserealdouble','shape','row','cat','DisplayProperties'), ...
+    arg_nogui({'clim','ColorLimits'},100,[],'Color/Y-axis scaling limits. If [min max], scale by [min max]. If scalar, and all(Conn>0), limits are set to [0 maxprc]. If scalar, and any(Conn<0), limits are set to [-maxprc maxprc] where maxprc is prctile(abs(Conn),scalar)','type','denserealdouble','shape','row','cat','DisplayProperties'), ...
     arg({'timeRange','TimesToPlot'},timedef,[],'[Min Max] Time range to image (sec). Leave blank to use all timewindows','shape','row','type','denserealdouble','cat','DisplayProperties'), ...
     arg({'freqValues','FrequenciesToPlot'},freqdef,[],'Vector of frequencies (Hz) to image. Leave blank to use all frequencies','type','expression','shape','row','cat','DisplayProperties'), ...
     arg_nogui({'windows','TimeWindowsToPlot'},[],[],'Time window centers (sec). If a vector of times, will plot a separate curve for each specified time','shape','row','cat','DisplayProperties'),...
@@ -438,9 +443,10 @@ g = arg_define([0 2],varargin, ...
     arg({'events','EventMarkers'},{{0 'r' ':' 2}},[],'Event marker time and style. Specify event markers with a cell array of {time linecolor linestyle linewidth} cell arrays. Ex. { { 0.2 ''y'' '':'' 2} { 1.5 ''r'' '':'' 2}} will render two dotted-line event makers, yellow at 200 ms and red at 1500 ms','type','expression','shape','row','cat','DisplayProperties'), ...
     arg({'freqscale','FrequencyScale'},'linear',{'linear','log'},'Make the y-scale logarithmic or linear','cat','DisplayProperties'), ...
     arg_nogui({'transform','Transform'},'linear',{'log','linear',''},'transform the data (logarithmically or other)'), ...
+    arg({'yTickLoc','YTickLabelLoc'},'right',{'left','right','both'},'Y-tick label location.','cat','TextAndFont'), ...
     arg({'titleString','TitleString'},[],[],'Figure title string','type','char','shape','row','cat','TextAndFont'), ...
     arg({'titleFontSize','TitleFontSize'},12,[],'Title Font Size','cat','TextAndFont'), ...
-    arg({'axesFontSize','AxesFontSize'},10,[],'Axes Font Size','cat','TextAndFont'), ...
+    arg({'axesFontSize','AxesFontSize'},11,[],'Axes Font Size','cat','TextAndFont'), ...
     arg({'textColor','TextColor'},[1 1 1],[],'Text color. See ''doc ColorSpec''.','type','expression','shape','row','cat','TextAndFont'), ...
     arg({'linecolor','LineColor'},[1 1 1],[],'Linecolor for lineplots','shape','row','type','denserealdouble','cat','TextAndFont'), ...
     arg({'patchcolor','PatchColor'},[1 1 1],[],'FaceColor for shaded regions','shape','row','type','denserealdouble','cat','TextAndFont'), ...
@@ -476,27 +482,32 @@ switch lower(g.MatrixLayout.arg_selection)
         layouts = {g.MatrixLayout.triu g.MatrixLayout.tril g.MatrixLayout.diag};
         if sum(~strcmpi(layouts,'none')) > 1
             % if there is more than one layout to plot...
-            if all(strcmpi(layouts,layouts{1}))
+            if 0; %all(strcmpi(layouts,layouts{1}))
                 % ... and all layouts use the same conn. estimator
                 % then just plot the full TimeFreqGrid
-                figureHandles = vis_TimeFreqGrid('ALLEEG',ALLEEG,'Conn',Conn,g,'MatrixLayout',{'Full','estimator',g.MatrixLayout.triu});
+                figureHandles = vis_TimeFreqGrid('ALLEEG',ALLEEG,'Conn',Conn,g, ...
+                                    'MatrixLayout',['Full', ...
+                                    hlp_struct2varargin(g.MatrixLayout,'suppress',{'arg_direct','arg_selection'}), ...
+                                    'estimator',g.MatrixLayout.triu]);
                 return;
             elseif ~strcmpi(g.MatrixLayout.diag,'none') ...
-                    && isequal(g.MatrixLayout.triu,g.MatrixLayout.tril)
+                   && isequal(g.MatrixLayout.triu,g.MatrixLayout.tril)
                 % same estimator on upper/lower triangles, with different
                 % estimator on diagonal
                 % ... first plot diagonals...
                 g.arg_direct = 0;
                 figureHandles = vis_TimeFreqGrid('ALLEEG',ALLEEG,'Conn',Conn,g, ...
                     'FigureHandles', [g.fighandles], ...
-                    'MatrixLayout',{'Partial','tril','none','diag',g.MatrixLayout.diag,'triu','none'});
+                    'MatrixLayout',['Partial', ...
+                                    hlp_struct2varargin(g.MatrixLayout,'suppress',{'arg_direct','arg_selection'}), ...
+                                    'tril','none','diag',g.MatrixLayout.diag,'triu','none']);
                 % then continue with off-diagonals
                 g.fighandles = [g.fighandles figureHandles];
                 g.connmethods = g.MatrixLayout.tril;
                 g.msubset = 'nodiag';
                 
             elseif strcmpi(g.MatrixLayout.diag,'none') ...
-                    && isequal(g.MatrixLayout.triu,g.MatrixLayout.tril)
+                   && isequal(g.MatrixLayout.triu,g.MatrixLayout.tril)
                 % same estimator on upper/lower triangles, with no
                 % estimator on diagonal
                 g.arg_direct = 0;
@@ -513,19 +524,25 @@ switch lower(g.MatrixLayout.arg_selection)
                     % plot upper triangle
                     figureHandles = vis_TimeFreqGrid('ALLEEG',ALLEEG,'Conn',Conn,g, ...
                         'FigureHandles', [g.fighandles figureHandles], ...
-                        'MatrixLayout',{'Partial','tril','none','diag','none','triu',g.MatrixLayout.triu});
+                        'MatrixLayout',['Partial', ...
+                                        hlp_struct2varargin(g.MatrixLayout,'suppress',{'arg_direct','arg_selection'}), ...
+                                        'tril','none','diag','none','triu',g.MatrixLayout.triu]);
                 end
                 if ~strcmpi(g.MatrixLayout.tril,'none')
                     % plot upper triangle
                     figureHandles = vis_TimeFreqGrid('ALLEEG',ALLEEG,'Conn',Conn,g, ...
                         'FigureHandles', [g.fighandles figureHandles], ...
-                        'MatrixLayout',{'Partial','triu','none','diag','none','tril',g.MatrixLayout.tril});
+                        'MatrixLayout',['Partial', ...
+                                        hlp_struct2varargin(g.MatrixLayout,'suppress',{'arg_direct','arg_selection'}), ...
+                                        'triu','none','diag','none','tril',g.MatrixLayout.tril]);
                 end
                 if ~strcmpi(g.MatrixLayout.diag,'none')
                     % plot upper triangle
                     figureHandles = vis_TimeFreqGrid('ALLEEG',ALLEEG,'Conn',Conn,g, ...
                         'FigureHandles', [g.fighandles figureHandles], ...
-                        'MatrixLayout',{'Partial','tril','none','triu','none','diag',g.MatrixLayout.diag});
+                        'MatrixLayout',['Partial', ...
+                                        hlp_struct2varargin(g.MatrixLayout,'suppress',{'arg_direct','arg_selection'}), ...
+                                        'tril','none','triu','none','diag',g.MatrixLayout.diag]);
                 end
                 
                 return;
@@ -622,8 +639,6 @@ end
 if ~isfield(Conn(1),'erWinCenterTimes') || isempty(Conn(1).erWinCenterTimes)
     error('Conn.erWinCenterTimes not found!'); end
 
-if isempty(g.clim)
-    g.clim = 100; end
 
 if isempty(g.channels)
     g.channels = 1:ALLEEG(1).CAT.nbchan; end
@@ -802,10 +817,18 @@ else
     % create a new figure
     figureHandles(end+1)  = figure('units','normalized','visible','off');
     % initialize subplot array
+    switch g.yTickLoc
+        case 'right'
+            yTickLoc = 'RightMargin';
+        case 'left'
+            yTickLoc = 'Margin';
+        case 'both'
+            yTickLoc = 'BothMargins';
+    end
     axh=subplot1(numSubplotRows,numSubplotCols, ...
         'Min',gridmargin_bot_left,'Max',gridmargin_top_right,...
         'Gap',[pmargin pmargin], ...
-        'YTickL','RightMargin');
+        'YTickL',yTickLoc,'LeftMarginCol',2);
     set(figureHandles(end),'name', g.titleString);
     set(axh,'XColor',g.textColor,'YColor',g.textColor,'ZColor',g.textColor);
     set(axh,'Color',g.backgroundColor);
@@ -1029,30 +1052,56 @@ end
 [nch nch nfreqs ntime] = size(ConnMatrix);
 
 
+% -------------------------------------------------------------------------
+% | set up the color limits
+% -------------------------------------------------------------------------
+if ~isempty(g.MatrixLayout.clim)
+    clim = g.MatrixLayout.clim;
+else
+    switch g.msubset
+        case 'all'
+            clim = g.MatrixLayout.clim;
+        case 'tril'
+            clim = g.MatrixLayout.lt_clim;
+        case 'diag'
+            clim = g.MatrixLayout.d_clim;
+        case 'triu'
+            clim = g.MatrixLayout.ut_clim;
+        case 'nodiag'
+            if ~isequal(g.MatrixLayout.ut_clim,g.MatrixLayout.lt_clim)
+                fprintf('UT_ColorLimits and LT_ColorLimits cannot differ for ''msubset''=''nodiag''. Using UT_ColorLimits\n');
+                clim = g.MatrixLayout.ut_clim;
+            end
+        otherwise
+            clim = [];
+    end
+end
 
-% set up the color limits
-if ~isempty(g.clim)
-    if isscalar(g.clim)
+if isempty(clim)
+    clim = 100; end
+
+if ~isempty(clim)
+    if isscalar(clim)
         % use percentile colorlimits
         if ~TwoSidedThresholding || all(ConnMatrix(~isnan(ConnMatrix))>=0)
             if 0 %willPlotStatCI(g,CEstimator) && ndims(squeeze(ConnMatrix))<4
-                g.clim=[0 prctile(g.stats.(CEstimator).ci(2,:),g.clim)];
+                clim=[0 prctile(g.stats.(CEstimator).ci(2,:),clim)];
             else
-                g.clim=[0 prctile(ConnMatrix(:),g.clim)];
+                clim=[0 prctile(ConnMatrix(:),clim)];
             end
         else 
             if 0 %willPlotStatCI(g,CEstimator) && ndims(squeeze(ConnMatrix))<4
-                maxprc=prctile(abs(g.stats.(CEstimator).ci(:)),g.clim);
+                maxprc=prctile(abs(g.stats.(CEstimator).ci(:)),clim);
             else
-                maxprc=prctile(abs(ConnMatrix(:)),g.clim);
+                maxprc=prctile(abs(ConnMatrix(:)),clim);
             end
-            g.clim=[-maxprc maxprc];
+            clim=[-maxprc maxprc];
         end
     end
 end
 
-if any(isnan(g.clim)) || diff(g.clim)<=0
-    g.clim = [0 1];  % clims are nan or non-increasing
+if any(isnan(clim)) || diff(clim)<=0
+    clim = [0 1];  % clims are nan or non-increasing
 end
 
 % ------------------------------------------------------------------
@@ -1072,10 +1121,14 @@ if ~strcmpi(g.topoplot,'none')
         subplot1(sub2ind([numSubplotRows,numSubplotCols],1,chidx+1));
         plotmarginal(ALLEEG,ch,g,'view',[1 0 0]); % [0 -1 0] for zeynep
         pos = get(gca,'position');
-        th=annotation('textbox',[pos(1)-0.01 pos(2) 0.01 pos(4)]);
-        set(th,'string',g.nodelabels(ch),'color',g.textColor,  ...
-            'horizontalalignment','center','fontsize',g.axesFontSize, ...
-            'verticalalignment','middle','edgecolor','none');
+        th = ylabel(g.nodelabels(ch),'color',g.textColor,  ...
+                    'horizontalalignment','center','fontsize',g.axesFontSize, ...
+                    'verticalalignment','middle','edgecolor','none', ...
+                    'rotation',0);
+%         th=annotation('textbox',[pos(1)-0.01 pos(2) 0.01 pos(4)]);
+%         set(th,'string',g.nodelabels(ch),'color',g.textColor,  ...
+%             'horizontalalignment','center','fontsize',g.axesFontSize, ...
+%             'verticalalignment','middle','edgecolor','none');
         
         % column marginals
         % ----------------
@@ -1129,11 +1182,19 @@ for ch_i=1:nch
                 'fontsize',g.axesFontSize);
         end
         if ch_j==1 && strcmpi(g.topoplot,'none')
-            pos = get(gca,'position');
-            th=annotation('textbox',[pos(1)-0.01 pos(2) 0.01 pos(4)]);
-            set(th,'string',g.nodelabels(i),'color',g.textColor,  ...
-                'horizontalalignment','center','fontsize',g.axesFontSize, ...
-                'verticalalignment','middle','edgecolor','none');
+            th = ylabel(g.nodelabels(i),'color',g.textColor,  ...
+                    'horizontalalignment','center','fontsize',g.axesFontSize, ...
+                    'verticalalignment','middle','edgecolor','none', ...
+                    'rotation',0);
+%             lbltag = sprintf('row_ylabel_%d_%d',i,j);
+%             if isempty(findall(gcf,'tag',lbltag))
+%                 pos  = get(gca,'position');
+%                 lbuf = fastif(any(strcmp(g.yTickLoc,{'both','left'})),0.05,0.01);
+%                 th=annotation('textbox',[pos(1)-lbuf pos(2) 0.02 pos(4)]);
+%                 set(th,'string',g.nodelabels(i),'color',g.textColor,  ...
+%                     'horizontalalignment','center','fontsize',g.axesFontSize, ...
+%                     'verticalalignment','middle','edgecolor','none','tag',lbltag);
+%             end
         end
         
         % check if we want to image this cell
@@ -1189,7 +1250,7 @@ for ch_i=1:nch
                 end
             end
             
-            set(gca,'Clim',g.clim,'YDir','normal');
+            set(gca,'Clim',clim,'YDir','normal');
             
             % extract the stats matrix for this pair
             if isequal(size(StatsMatrix),size(ConnMatrix))
@@ -1261,7 +1322,7 @@ for ch_i=1:nch
             subargs.axesFontSize    = g.axesFontSize;
             subargs.textColor       = g.textColor;
             subargs.backgroundColor = g.backgroundColor;
-            subargs.clim            = g.clim;
+            subargs.clim            = clim;
             subargs.thresholding    = g.thresholding;
             subargs.bidir           = fastif(i==j,false,true);
             subargs.connmethod      = CEstimator;
@@ -1351,7 +1412,7 @@ for ch_i=1:nch
                     ci = g.stats.(CEstimator).ci;
                     if ndims(ci)>=4 && size(ci,1)==2
                         % asymmetric confidence intervals
-                        ciplot(squeeze(ci(1,i,j,:,tt)),squeeze(ci(2,i,j,:,tt)),g.freqValues,[0.7 0.7 0.7],0,'Ylim',g.clim,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
+                        ciplot(squeeze(ci(1,i,j,:,tt)),squeeze(ci(2,i,j,:,tt)),g.freqValues,[0.7 0.7 0.7],0,'Ylim',clim,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
                     else
                         % symmetric confidence intervals (about zero)
                         ciplot(-squeeze(ci(i,j,:,tt)),squeeze(ci(i,j,:,tt)),g.freqValues,[0.7 0.7 0.7],1,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
@@ -1376,7 +1437,7 @@ for ch_i=1:nch
                         && strcmpi(g.thresholding.sigthreshmethod,'pval') && islogical(S)
                     % shade significant regions
                     
-                    set(gca,'Ylim',g.clim);
+                    set(gca,'Ylim',clim);
                     
                     % identify intervals of significance
                     sigidx = hlp_bittok(S,1);
@@ -1413,7 +1474,7 @@ for ch_i=1:nch
             end
                 
             
-            set(gca,'Ylim',g.clim);
+            set(gca,'Ylim',clim);
             set(gca,'Xlim',[g.freqValues(1) g.freqValues(end)]);
             set(gca,'tag','lineplot');
             
@@ -1461,7 +1522,7 @@ for ch_i=1:nch
                     ci = g.stats.(CEstimator).ci;
                     if ndims(ci)>=4 && size(ci,1)==2
                         % asymmetric confidence intervals
-                        ciplot(squeeze(ci(1,i,j,ff,:)),squeeze(ci(2,i,j,ff,:)),erWinCenterTimes,[0.7 0.7 0.7],0,'Ylim',g.clim,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
+                        ciplot(squeeze(ci(1,i,j,ff,:)),squeeze(ci(2,i,j,ff,:)),erWinCenterTimes,[0.7 0.7 0.7],0,'Ylim',clim,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
                     else
                         % symmetric confidence intervals (about zero)
                         ciplot(-squeeze(ci(i,j,ff,:)),squeeze(ci(i,j,ff,:)),erWinCenterTimes,[0.7 0.7 0.7],1,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
@@ -1486,7 +1547,7 @@ for ch_i=1:nch
                         && strcmpi(g.thresholding.sigthreshmethod,'pval') && islogical(S)
                     % shade significant regions
                     
-                    set(gca,'Ylim',g.clim);
+                    set(gca,'Ylim',clim);
                     
                     % identify intervals of significance
                     sigidx = hlp_bittok(S,1);
@@ -1524,7 +1585,7 @@ for ch_i=1:nch
             end
             
             
-            set(gca,'Ylim',g.clim); 
+            set(gca,'Ylim',clim); 
             set(gca,'Xlim',[erWinCenterTimes(1) erWinCenterTimes(end)]);
             set(gca,'tag','lineplot');
             
@@ -1567,8 +1628,8 @@ set(gcf,'color',g.backgroundColor);
 
 for ch_i=1:nch
     subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_i+numSubplotRows-nch,ch_i+numSubplotCols-nch));
-    % give diagonals a red border
-    set(gca,'color','r');
+    % give diagonals a red-ish border/background
+%     set(gca,'color','r');
     set(gca,'xcolor','r');
     set(gca,'ycolor','r');
 end

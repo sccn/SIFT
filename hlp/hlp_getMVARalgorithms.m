@@ -109,6 +109,7 @@ else
                 if ~exist(deplist{dep},'file')
                     % ... a critical dependency does not exist
                     % so we have to exclude this algorithm
+                    disp_once('WARNING: The MVAR algorithm ''%s'' depends on %s.m, which cannot be located on the path. This algorithm will not be available.',algName,deplist{dep});
                     skipAlgorithm = true;
                     break;
                 end
