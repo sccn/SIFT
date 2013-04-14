@@ -82,10 +82,10 @@ end
 % get the full argument spec for this function
 rep = arg_report('rich',func,args);
 
-helpstring = [{'Optional','Information'}; parseHelpText(rep,0,maxwrapcols)];
+helpstring = [{'Input','Information'}; parseHelpText(rep,0,maxwrapcols)];
 
 helpstring = cprintf([helpstring cell(size(helpstring,1), 1)],'-la',true,'-it',true,'-E','','-Lcs','-');
-
+helpstring = [repmat('-',[1 size(helpstring,2)]); helpstring];
 
 
 function output = parseHelpText(rep,indentlevel,maxwrapcols)
@@ -137,29 +137,34 @@ for i=1:length(rep)
     def   = rep(i).value;
     if isempty(def), def='n/a'; end
     
-    if ~strcmpi(def,'__arg_mandatory__') %~isempty(range)
+%     if ~strcmpi(def,'__arg_mandatory__') %~isempty(range)
         
-        if isempty(range), range = 'Unrestricted'; end
-        
-        if iscell(rep(i).range)
-            if ~isempty(rep(i).range), range = cell2str(rep(i).range); end %['''' strrep(cell2str(rep(i).range),',',''',''') ''''];
-            def = cell2str(def);
-            helptext = [helptext; ...
-                        sprintf('Possible values: %s', range); ...
-                        sprintf('Default value  : %s', def)];
-        elseif isnumeric(rep(i).range)
-            if ~isempty(rep(i).range), range = ['[' num2str(rep(i).range) ']']; end
-            helptext = [helptext; ...
-                        sprintf('Input Range  : %s', range); ...
-                        sprintf('Default value: %s', fastif(ischar(def),def,num2str(def)))];
-        else
-            if ~isempty(rep(i).range), range = char(rep(i).range); end
-            helptext = [helptext; ...
-                        sprintf('Possible values: %s', range); ...
-                        sprintf('Default value  : ''%s''', def)];
-        end
-        
+    def = fastif(strcmpi(def,'__arg_mandatory__'),'MANDATORY INPUT',def);
+    
+    if isempty(range), range = 'Unrestricted'; end
+
+    if iscell(rep(i).range)
+        if ~isempty(rep(i).range), range = cell2str(rep(i).range); end %['''' strrep(cell2str(rep(i).range),',',''',''') ''''];
+        def = cell2str(def);
+        helptext = [helptext; ...
+                    sprintf('Possible values: %s', range); ...
+                    sprintf('Default value  : %s', def)];
+    elseif isnumeric(rep(i).range)
+        if ~isempty(rep(i).range), range = ['[' num2str(rep(i).range) ']']; end
+        helptext = [helptext; ...
+                    sprintf('Input Range  : %s', range); ...
+                    sprintf('Default value: %s', fastif(ischar(def),def,num2str(def)))];
+    else
+        if ~isempty(rep(i).range), range = char(rep(i).range); end
+        helptext = [helptext; ...
+                    sprintf('Possible values: %s', range); ...
+                    sprintf('Default value  : ''%s''', def)];
     end
+        
+%     else
+%         helptext = [helptext; ...
+%                         'MANDATORY INPUT'];
+%     end
     
     % add the input type to help text
     type  = simplifyDataType(rep(i).type);

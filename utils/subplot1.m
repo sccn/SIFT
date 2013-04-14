@@ -22,9 +22,16 @@ function h=subplot1(M,N,varargin)
 %                        'None'   : don't plot XTickLabels in subplots.
 %           - 'YTickL' : y ticks labels option,
 %                        'Margin' : plot only YTickLabels in the
-%                                   subplot of the lowest  row (defailt).
+%                                   subplot of the leftmost  col (defailt).
 %                        'All'    : plot YTickLabels in all subplots.
 %                        'None'   : don't plot YTickLabels in subplots.
+%                        'RightMargin': plot YTickLabels on right margin
+%                        'BothMargins':  plot YTickLabels on both left and
+%                                       right margins
+%           - 'TopMarginRow':  row considered top margin
+%           - 'BotMarginRow':  row considered bottom margin
+%           - 'LeftMarginCol': row considered left margin
+%           - 'RightMarginCol': row considered right margin
 %           -  'FontS'  : axis font size, default is 10.
 %             'XScale' : scale of x axis:
 %                        'linear', default.
@@ -38,6 +45,8 @@ function h=subplot1(M,N,varargin)
 % Tested : Matlab 5.3
 %     By : Eran O. Ofek           June 2002
 %    URL : http://wise-obs.tau.ac.il/~eran/matlab.html
+% Modified: 
+%     By : Tim Mullen             2011-2013
 %-------------------------------------------------------------------------
 MinDef      = [0.10 0.10];
 MaxDef      = [0.95 0.95];
@@ -47,6 +56,14 @@ YTickLDef   = 'Margin';
 FontSDef    = 10;
 XScaleDef   = 'linear';
 YScaleDef   = 'linear';
+
+if nargin>1
+    LeftMarginCol  = 1;
+    RightMarginCol = N;
+    TopMarginRow   = 1;
+    BotMarginRow   = M;
+end
+    
 
 % set default parameters
 Min    = MinDef;
@@ -89,6 +106,14 @@ elseif (nargin>2),
  	     YScale = varargin{I+1};
           case 'FigureMargin'
          FigureMargin = varargin{I+1};
+          case 'TopMarginRow'
+         TopMarginRow = varargin{I+1};
+          case 'BotMarginRow'
+         BotMarginRow = varargin{I+1}; 
+          case 'LeftMarginCol'
+         LeftMarginCol = varargin{I+1}; 
+          case 'RightMarginCol'
+         RightMarginCol = varargin{I+1}; 
           otherwise
 	     error('Unknown keyword');
          end
@@ -182,7 +207,7 @@ switch MoveFoc
 
        switch XTickL
         case 'Margin'
-           if (Row~=M),
+           if (Row~=BotMarginRow),
               %--- erase XTickLabel ---
               set(gca,'XTickLabel',[]);
            end
@@ -196,17 +221,26 @@ switch MoveFoc
 
        switch YTickL
         case 'Margin'
-           if (Col~=1),
+           if (Col~=LeftMarginCol),
               %--- erase YTickLabel ---
               set(gca,'YTickLabel',[]);
            end   
        case 'RightMargin'
-           if (Col~=N),
+           if (Col~=RightMarginCol),
               %--- erase YTickLabel ---
               set(gca,'YTickLabel',[]);
            else
               set(gca,'yaxislocation','right');
            end
+        case 'BothMargins'
+            if (Col==RightMarginCol)
+                set(gca,'yaxislocation','right');
+            elseif (Col==LeftMarginCol)
+                set(gca,'yaxislocation','left');
+            else
+                %--- erase YTickLabel ---
+              set(gca,'YTickLabel',[]);
+            end
         case 'All'
            % do nothing
         case 'None'

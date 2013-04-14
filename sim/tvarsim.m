@@ -1,7 +1,5 @@
 function [v]=tvarsim(w,A,C,n_ntr,ndisc,beta,alpha,distribution)
-%ARSIM	Simulation of AR process.	
-%
-%  v=ARSIM(w,A,C,n) simulates n time steps of the AR(p) process
+%  v=tvarsim(w,A,C,n) simulates n time steps of the AR(p) process
 %
 %     v(k,:)' = w' + A1*v(k-1,:)' +...+ Ap*v(k-p,:)' + eta(k,:)', 
 %
@@ -23,9 +21,9 @@ function [v]=tvarsim(w,A,C,n_ntr,ndisc,beta,alpha,distribution)
 %  be equal to the mean value of the process. (The process mean is
 %  calculated from the parameters A and w.) To avoid spin-up effects,
 %  the first 10^3 time steps are discarded. Alternatively,
-%  ARSIM(w,A,C,n,ndisc) discards the first ndisc time steps.
+%  tvarsim(w,A,C,n,ndisc) discards the first ndisc time steps.
 %
-%  ARSIM(w,A,C,[n, ntr]) generates ntr realizations (trials) of
+%  tvarsim(w,A,C,[n, ntr]) generates ntr realizations (trials) of
 %  length n of the AR(p) process, which are output as the matrices
 %  v(:,:,itr) with itr=1,...,ntr. 
   

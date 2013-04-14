@@ -37,7 +37,9 @@
 
 function vers = eegplugin_sift(fig, trystrs, catchstrs)
 
-    fid = fopen([fileparts(which('StartSIFT.m')) filesep 'resources' filesep 'version.txt']);
+    siftroot = fileparts(which('StartSIFT.m'));
+    
+    fid = fopen([siftroot filesep 'resources' filesep 'version.txt']);
     version = fscanf(fid,'%s');
     fclose(fid);
 
@@ -62,11 +64,20 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     
     % menu callbacks
     % --------------
+    
+    % simulation
+    cmd = 'EEG = pop_sim_varmodel(EEG);';
+    finalcmd = [ trystrs.no_check cmd ];
+    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
+    SimVar_callback        = [finalcmd catchstrs.new_and_hist];
+    
+    % pre-processing
     cmd = 'EEG = pop_pre_prepData(EEG);';
     finalcmd = [ trystrs.no_check cmd ];
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     PreProc_callback        = [finalcmd catchstrs.new_and_hist];
     
+    % model fitting and vlisation
     cmd = 'EEG = pop_est_fitMVAR(EEG,0);';
     finalcmd = [ trystrs.no_check cmd ];
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
@@ -82,24 +93,13 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     ValidateModel_callback   = [finalcmd catchstrs.store_and_hist];
     
+    % connectivity
     cmd = 'EEG = pop_est_mvarConnectivity(EEG);';
     finalcmd = [ trystrs.no_check cmd ];
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     Connectivity_callback   = [finalcmd catchstrs.store_and_hist];
     
-    cmd = 'EEG = pop_vis_TimeFreqGrid(EEG);';
-    finalcmd = [ trystrs.no_check cmd ];
-    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
-    TFGrid_callback         = [finalcmd catchstrs.store_and_hist];
-    
-    
-    CausalProjection_callback = 'warndlg2(''Coming Soon!'')';
-    
-    cmd = 'pop_vis_causalBrainMovie3D(EEG);';
-    finalcmd = [ trystrs.no_check cmd ];
-    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
-    BranMovie_callback      = [finalcmd catchstrs.store_and_hist];
-    
+    % statistics
     cmd = 'EEG = pop_stat_surrogateGen(EEG,0);';
     finalcmd = [ trystrs.no_check cmd ];
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
@@ -117,31 +117,66 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     
     SimpleStat_callback     = 'warndlg2(''Coming Soon!'')';
     
-    AboutSIFT_callback = 'gui_splashscreen;';
-
+    
+    % visualization
+    cmd = 'EEG = pop_vis_TimeFreqGrid(EEG);';
+    finalcmd = [ trystrs.no_check cmd ];
+    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
+    TFGrid_callback         = [finalcmd catchstrs.store_and_hist];
+    
+    CausalProjection_callback = 'warndlg2(''Coming Soon!'')';
+    
+    cmd = 'pop_vis_causalBrainMovie3D(EEG);';
+    finalcmd = [ trystrs.no_check cmd ];
+    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
+    BranMovie_callback      = [finalcmd catchstrs.store_and_hist];
+    
+    % help
+    AboutSIFT_callback  = 'gui_splashscreen;';
+    SIFTManual_callback = @(hObject,eventdata) open([siftroot filesep 'documentation' filesep 'SIFT_manual.pdf']);
+    SIFTWiki_callback   = 'web(''http://sccn.ucsd.edu/wiki/SIFT'',''-browser'');';
+    
     % create menus
     % ------------
-    userdata = 'startup:off;study:on';
+    userdata = 'startup:on;study:on';
     menu = uimenu( highlevelmenu, 'label', 'SIFT', 'separator', 'on' ,'userdata', userdata);
+    set(highlevelmenu,'enable','on','userdata','startup:on;study:on');
+    
+    % Simulation
+    simmenu     = uimenu( menu, 'label', 'Simulation','userdata', userdata, 'enable','on');
+        simmenu_LDS = uimenu( simmenu, 'label', 'Linear Dynamical System','userdata', userdata);
+            uimenu( simmenu_LDS, 'label', 'Vector Autoregressive Process', 'callback', SimVar_callback,'userdata', userdata);
+    
+    % Preprocessing
     uimenu( menu, 'label', 'Pre-processing', 'callback', PreProc_callback,'userdata', userdata);
+    
+    % Model fitting
     modelmenu   = uimenu( menu, 'label', 'Model fitting and validation','userdata', userdata);
+        uimenu( modelmenu, 'label', 'Model Order Selection', 'callback', SelectModelOrder_callback ,'userdata', userdata);
+        uimenu( modelmenu, 'label', 'Fit AMVAR Model', 'callback',FitModel_callback,'userdata', userdata);
+        uimenu( modelmenu, 'label', 'Validate model', 'callback', ValidateModel_callback ,'userdata', userdata);
+    
+    % Connectivity
     connectmenu = uimenu( menu, 'label', 'Connectivity'  ,'callback',Connectivity_callback,'userdata', userdata);
+    
+    % Statistics
     statmenu    = uimenu( menu, 'label', 'Statistics','userdata', userdata);
+        uimenu( statmenu, 'label', 'Surrogate Distributions', 'callback', SurrogateDistrib_callback ,'enable','on','userdata', userdata);
+        uimenu( statmenu, 'label', 'Surrogate Statistics', 'callback', SurrogateStats_callback ,'enable','on','userdata', userdata);
+        uimenu( statmenu, 'label', 'Analytic Statistics', 'callback', AnalyticStat_callback,'separator', 'on', 'enable','on','userdata', userdata );
+        uimenu( statmenu, 'label', 'Simple Statistics', 'callback', SimpleStat_callback, 'separator', 'on' ,'enable','off');
+    
+    % Visualization
     vismenu     = uimenu( menu, 'label', 'Visualization' ,'userdata', userdata);
-    aboutmenu   = uimenu( menu, 'label', 'About SIFT' ,'callback',AboutSIFT_callback,'userdata', userdata);
+        uimenu( vismenu , 'label', 'Time-Frequency Grid', 'callback', TFGrid_callback ,'userdata', userdata);
+        uimenu( vismenu , 'label', 'BrainMovie3D', 'callback', BranMovie_callback ,'userdata', userdata);
+        uimenu( vismenu , 'label', 'Causal Projection', 'callback', CausalProjection_callback, 'enable','off' );
     
-    uimenu( vismenu , 'label', 'Time-Frequency Grid', 'callback', TFGrid_callback ,'userdata', userdata);
-    uimenu( vismenu , 'label', 'BrainMovie3D', 'callback', BranMovie_callback ,'userdata', userdata);
-    uimenu( vismenu , 'label', 'Causal Projection', 'callback', CausalProjection_callback, 'enable','off' );
-    
-    uimenu( statmenu, 'label', 'Surrogate Distributions', 'callback', SurrogateDistrib_callback ,'enable','on','userdata', userdata);
-    uimenu( statmenu, 'label', 'Surrogate Statistics', 'callback', SurrogateStats_callback ,'enable','on','userdata', userdata);
-    uimenu( statmenu, 'label', 'Analytic Statistics', 'callback', AnalyticStat_callback,'separator', 'on', 'enable','on','userdata', userdata );
-    uimenu( statmenu, 'label', 'Simple Statistics', 'callback', SimpleStat_callback, 'separator', 'on' ,'enable','off');
-    
-    uimenu( modelmenu, 'label', 'Model Order Selection', 'callback', SelectModelOrder_callback ,'userdata', userdata);
-    uimenu( modelmenu, 'label', 'Fit AMVAR Model', 'callback',FitModel_callback,'userdata', userdata);
-    uimenu( modelmenu, 'label', 'Validate model', 'callback', ValidateModel_callback ,'userdata', userdata);
+    % Help
+    helpmenu    = uimenu( menu, 'label', 'Help','userdata', userdata, 'enable','on');
+        aboutmenu   = uimenu( helpmenu, 'label', 'About SIFT' ,'callback',AboutSIFT_callback,'userdata', userdata);
+        manualmenu  = uimenu( helpmenu, 'label', 'SIFT Manual' ,'callback',SIFTManual_callback,'userdata', userdata , 'enable','on');
+        wikimenu    = uimenu( helpmenu, 'label', 'SIFT Wiki' ,'callback',SIFTWiki_callback,'userdata', userdata ,'enable','on');
 
  
 
