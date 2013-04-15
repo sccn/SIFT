@@ -144,7 +144,8 @@ numWins = length(g.winStartIdx);
 
 % initialize waitbar
 if g.verb==2
-    waitbarTitle = sprintf('Checking whiteness %s...', ...
+    waitbarTitle = sprintf('%s %s...', ...
+        fastif(isempty(g.whitenessCriteria),'Calculating residuals','Checking whiteness'), ...
         fastif(isempty(EEG.condition),'',['for ' EEG.condition]));
     
     multiWaitbar(waitbarTitle,'Reset');
@@ -171,8 +172,8 @@ for t=1:numWins
     end
     
     % calc residuals
-    residuals = est_mvarResiduals(squeeze(EEG.CAT.srcdata(:,g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1,:)), ...
-                                  MODEL.AR{winArrIdx}, mu);
+    residuals = est_mvarResiduals(squish(EEG.CAT.srcdata(:,g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1,:)), ...
+                                  MODEL.AR{winArrIdx}, mu,1,false);
     
                               
     % calculate residual autocovariance and autocorrelation matrices
@@ -183,25 +184,25 @@ for t=1:numWins
     % first calculate autocovariance/autocorrelation for each trial ...
     for tr=1:ntr
         % R = [Rs1s1 Rs1s2 Rs1s3 Rs2s1 Rs2s2 Rs2s3 Rs3s1 Rs3s2 Rs3s3]
-        tmpacvf = xcov(squeeze(residuals(:,:,tr))',g.numAcfLags,'biased');
+        tmpacvf = xcov(residuals(:,:,tr)',g.numAcfLags,'biased');
 
         % extract positive lags
         tmpacvf = tmpacvf(g.numAcfLags+1:end,:);         
         for lag = 1:g.numAcfLags+1
-            racvf{t}(tr,:,(1:nchs)+nchs*(lag-1)) = reshape(squeeze(tmpacvf(lag,:)),[nchs nchs])';
+            racvf{t}(tr,:,(1:nchs)+nchs*(lag-1)) = reshape(tmpacvf(lag,:),[nchs nchs])';
         end
 
         % convert autocov to autocorrelation function
-        rvar{t}(tr,:) = 1./sqrt(diag(squeeze(racvf{t}(tr,1:nchs,1:nchs))));
+        rvar{t}(tr,:) = 1./sqrt(diag(squish(racvf{t}(tr,1:nchs,1:nchs))));
         D = diag(rvar{t}(tr,:));
         for lag = 1:g.numAcfLags+1
-            racf{t}(tr,:,(1:nchs)+nchs*(lag-1)) = D*squeeze(racvf{t}(tr,:,(1:nchs)+nchs*(lag-1)))*D;
+            racf{t}(tr,:,(1:nchs)+nchs*(lag-1)) = D*squish(racvf{t}(tr,:,(1:nchs)+nchs*(lag-1)))*D;
         end
     end
     % ... finally average autocovariance/correlation matrices across trials
-    racf{t}      = squeeze(mean(racf{t},1));
-    racvf{t}     = squeeze(mean(racvf{t},1));
-    rvar{t}      = squeeze(mean(rvar{t},1));
+    racf{t}      = squish(mean(racf{t},1));
+    racvf{t}     = squish(mean(racvf{t},1));
+    rvar{t}      = squish(mean(rvar{t},1));
     
     % compute whiteness criteria
     % ---------------------------------------------------------------------
@@ -272,18 +273,22 @@ for t=1:numWins
                 
 end
 
-residVar.autocorrelation = racf;
-residVar.autocovariance  = racvf;
-residVar.variance        = rvar;
-residVar.numAcfLags      = g.numAcfLags;
+% clean up
+if g.verb==2
+    multiWaitbar(waitbarTitle,'Close'); 
+end
 
 stats.winStartIdx        = g.winStartIdx;
 stats.winStartTimes      = MODEL.winStartTimes(g.winArrayIndex);
 stats.winArrayIndex      = g.winArrayIndex;
 stats.alpha = g.alpha;
 
-% clean up
-if g.verb==2
-    multiWaitbar(waitbarTitle,'Close'); 
+if nargout > 1
+    residVar.autocorrelation = racf;
+    residVar.autocovariance  = racvf;
+    residVar.variance        = rvar;
+    residVar.numAcfLags      = g.numAcfLags;
+    residVar.winStartIdx     = g.winStartIdx;
+    residVar.winStartTimes   = MODEL.winStartTimes(g.winArrayIndex);
+    residVar.winArrayIndex   = g.winArrayIndex;
 end
-

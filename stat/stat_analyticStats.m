@@ -125,46 +125,61 @@ g = arg_define([0 Inf],varargin, ...
     );
 
 if isempty(g.estimator), error('You must supply an estimator!'); end
-try b=isempty(g.EEG.CAT.Conn); catch, b=1; end
-if b, error('EEG must contain a CAT.Conn structure!'); end
+% check the dataset
+res = hlp_checkeegset(g.EEG,{'conn'});
+if ~isempty(res)
+    error(['SIFT:' fcnName],res{1});
+end
+
+% abbreviate some variables
+CAT     = g.EEG.CAT;
+ModelOrder  = CAT.MODEL.morder;
+
+% number of samples
+N = CAT.trials*(g.EEG.srate*CAT.MODEL.winlen);
 
 for m=1:length(g.estimator)
     estimator = g.estimator{m};
     
     switch estimator
+        % Renormalized Partial Directed Coherence
+        % -----------------------------------------------------------------
         case 'RPDC'
             
             if g.verb
                 fprintf('Computing asymptotic statistics for RPDC. Please wait a moment...\n'); 
             end
-            
-            N = g.EEG.CAT.trials*(g.EEG.srate*g.EEG.CAT.MODEL.winlen);
-            
+                        
             % specify the degrees of freedom
-            if g.EEG.CAT.MODEL.morder == 1
+            if ModelOrder == 1
                 df = 1;
-            elseif g.EEG.CAT.Conn.freqs(1)==0 ...
-                || g.EEG.CAT.Conn.freqs(end)==g.EEG.srate/2
+            elseif CAT.Conn.freqs(1)==0 ...
+                || CAT.Conn.freqs(end)==g.EEG.srate/2
                 % adjust degrees of freedom at end-points
-                df = 2*ones(size(g.EEG.CAT.Conn.RPDC),'single');
+                df = 2*ones(size(CAT.Conn.RPDC),'single');
                 df(:,:,[1 end],:) = 1;
             else
                 df = 2;
             end
-%             df=fastif((g.EEG.CAT.MODEL.morder == 1), 1 , 2);
             
+            if any(ismember({'P-value','ConfidenceInterval'},g.statistic))
+                % test statistic
+                Q = CAT.Conn.RPDC*N;
+            end
             if ismember('P-value',g.statistic)
-                Stats.RPDC.pval = 1-chi2cdf(g.EEG.CAT.Conn.RPDC*N,df);
+                % compute p-value for rejection of null hypothesis
+                Stats.RPDC.pval = 1-chi2cdf(Q,df);
             end
-            
             if ismember('Threshold',g.statistic)
+                % critical value of null distribution
                 Stats.RPDC.thresh = chi2inv(1-g.alpha,df)/N;
-                Stats.RPDC.thresh = Stats.RPDC.thresh(ones(size(g.EEG.CAT.Conn.RPDC)));
+                Stats.RPDC.thresh = Stats.RPDC.thresh(ones(size(CAT.Conn.RPDC)));
             end
-            
             if ismember('ConfidenceInterval',g.statistic)
-                Stats.RPDC.ci(1,:,:,:,:) = ncx2inv(g.alpha/2,df,g.EEG.CAT.Conn.RPDC*N)/N;    % lower bound
-                Stats.RPDC.ci(2,:,:,:,:) = ncx2inv(1-g.alpha/2,df,g.EEG.CAT.Conn.RPDC*N)/N;  % upper bound
+                % confidence interval from critical values of noncentral
+                % chi-squared distribution
+                Stats.RPDC.ci(1,:,:,:,:,:) = ncx2inv(g.alpha/2,  df,Q)/N;  % lower bound
+                Stats.RPDC.ci(2,:,:,:,:,:) = ncx2inv(1-g.alpha/2,df,Q)/N;  % upper bound
             end
             
             if g.genpdf.arg_selection && nargout > 1
@@ -172,7 +187,7 @@ for m=1:length(g.estimator)
                 % check if we are likely to exceed available memory and
                 % notify user.
                 bytesAvail = hlp_getAvailableMemory('bytes');
-                bytesReq   = 4*(2*numel(g.EEG.CAT.Conn.RPDC)*g.genpdf.numSamples);
+                bytesReq   = 4*(2*numel(CAT.Conn.RPDC)*g.genpdf.numSamples);
                 
                 if bytesReq > bytesAvail
                     res = questdlg2(sprintf('This operation will require at least %5.5g MiB. It appears you may not have sufficient memory to carry out this operation. Do you want to continue?',bytesReq/(1024^2)),'Memory check','Yes','No','No');
@@ -182,121 +197,118 @@ for m=1:length(g.estimator)
                 end
 
                 % generate data from analytic PDF
-                nd = ndims(g.EEG.CAT.Conn.RPDC);
-                PConn.RPDC = ncx2rnd(df,repmat(g.EEG.CAT.Conn.RPDC*N,[ones(1,nd) g.genpdf.numSamples]))/N;
+                nd         = ndims(CAT.Conn.RPDC);
+                PConn.RPDC = ncx2rnd(df,repmat(CAT.Conn.RPDC*N,[ones(1,nd) g.genpdf.numSamples]))/N;
             end
             
+        % Normalized Partial Directed Coherence
+        % -----------------------------------------------------------------    
         case 'nPDC'
-            if ~isreal(g.EEG.CAT.Conn.nPDC)
+            nPDC = CAT.Conn.nPDC;
+            
+            if ~isreal(nPDC)
                 error('normalized PDC cannot be complex and must be magnitude-squared estimates. Please use hlp_absvalsq() first to obtain magnitude-squared estimates.');
             end
-            
             if g.verb
                 fprintf('Computing asymptotic statistics for nPDC. Please wait a moment...\n'); 
             end
-            
-            if g.EEG.CAT.MODEL.morder==1
+            % degrees of freedom
+            if ModelOrder==1
                 df    = 2;
                 scale = 0.5;
             else
                 df    = 1;
                 scale = 1;
             end
-            
-            N = g.EEG.CAT.trials*(g.EEG.srate*g.EEG.CAT.MODEL.winlen);
-            
             connmethods = [];
-            if ~isfield(g.EEG.CAT.Conn,'pdc_denom'),
+            if ~isfield(CAT.Conn,'pdc_denom'),
                 connmethods = {'pdc_denom'};
+            else
+                pdc_denom = CAT.Conn.pdc_denom;
             end
-            if ~isfield(g.EEG.CAT.Conn,'Vpdc')
+            if ~isfield(CAT.Conn,'Vpdc')
                 connmethods = [connmethods 'Vpdc'];
+            else
+                Cij       = CAT.Conn.Vpdc;
             end
-            
             if ~isempty(connmethods)
                 % compute required estimates
-                Conn = est_mvarConnectivity(g.EEG,g.EEG.CAT.MODEL,'connmethods',connmethods,'verb',g.verb,'freqs',g.EEG.CAT.Conn.freqs);
+                Conn = est_mvarConnectivity(g.EEG,CAT.MODEL, ...
+                                            'connmethods',connmethods,  ...
+                                            'freqs',CAT.Conn.freqs,     ...
+                                            'verb',g.verb);
                 if isempty(Conn)
                     Stats = [];
                     return;
                 end
-                g.EEG.CAT.Conn.Vpdc = Conn.Vpdc;
-                g.EEG.CAT.Conn.pdc_denom = Conn.pdc_denom;
+                Cij       = Conn.Vpdc;
+                pdc_denom = Conn.pdc_denom;
                 clear Conn;
             end
             
-            
+            if any(ismember({'P-value','ConfidenceInterval'},g.statistic))
+                % test statistic
+                Q = (nPDC.*pdc_denom*N/scale)./Cij;
+            end
             if ismember('P-value',g.statistic)
-                Stats.nPDC.pval = 1-chi2cdf((g.EEG.CAT.Conn.nPDC.*g.EEG.CAT.Conn.pdc_denom*N/scale)./g.EEG.CAT.Conn.Vpdc , df);
+                % compute p-value for rejection of null hypothesis
+                Stats.nPDC.pval = 1-chi2cdf(Q, df);
             end
-            
             if ismember('Threshold',g.statistic)
-                Stats.nPDC.thresh = bsxfun(@rdivide,g.EEG.CAT.Conn.Vpdc.*chi2inv(1-g.alpha,df)/scale,N*g.EEG.CAT.Conn.pdc_denom);
+                % critical value of null distribution
+                Stats.nPDC.thresh = bsxfun(@rdivide,Cij.*chi2inv(1-g.alpha,df)/scale,N*pdc_denom);
             end
-            
             if ismember('ConfidenceInterval',g.statistic)
-                % TODO
+                % confidence interval from critical values of noncentral
+                % chi-squared distribution (need to derive)
+                disp('Warning: Analytic confidence intervals not available for nPDC');
                 Stats.nPDC.ci = [];
-%                 
-%                 Stats.nPDC.ci(1,:,:,:,:) = ncx2inv(g.alpha/2,df,(g.EEG.CAT.Conn.nPDC.*g.EEG.CAT.Conn.pdc_denom*N/scale)./g.EEG.CAT.Conn.Vpdc);    % lower bound
-%                 Stats.nPDC.ci(2,:,:,:,:) = ncx2inv(1-g.alpha/2,df,(g.EEG.CAT.Conn.nPDC.*g.EEG.CAT.Conn.pdc_denom*N/scale)./g.EEG.CAT.Conn.Vpdc);  % upper bound
+%                 Stats.nPDC.ci(1,:,:,:,:,:) = ncx2inv(g.alpha/2,  df,Q);  % lower bound
+%                 Stats.nPDC.ci(2,:,:,:,:,:) = ncx2inv(1-g.alpha/2,df,Q);  % upper bound
             end
             
             if g.genpdf.arg_selection && nargout > 1
-               
-                % check if we are likely to exceed available memory and
-                % notify user.
-                bytesAvail = hlp_getAvailableMemory('bytes');
-                bytesReq   = 4*(2*numel(g.EEG.CAT.Conn.nPDC)*g.genpdf.numSamples);
-                
-                if bytesReq > bytesAvail
-                    res = questdlg2(sprintf('This operation will require at least %5.5g MiB. It appears you may not have sufficient memory to carry out this operation. Do you want to continue?',bytesReq/(1024^2)),'Memory check','Yes','No','No');
-                    if strcmpi(res,'no')
-                        return;
-                    end
-                end
-
-                % generate data from analytic PDF
-                nd = ndims(g.EEG.CAT.Conn.nPDC);
-                PConn.nPDC = ncx2rnd(df,repmat(g.EEG.CAT.Conn.nPDC*N,[ones(1,nd) g.genpdf.numSamples]))/N;
+               disp('Warning: Analytic PDF sampling not available for nPDC');
+               PConn.nPDC = [];
             end
-            
+        
+        % Normalized Directed Transfer Function
+        % -----------------------------------------------------------------
         case 'nDTF'
             
 %             if g.verb
 %                 fprintf('Computing asymptotic statistics for nDTF. Please wait a moment...\n'); 
 %             end
             
-            %             if ~isreal(g.EEG.CAT.Conn.nDTF)
+            %             if ~isreal(CAT.Conn.nDTF)
             %                 error('normalized PDC cannot be complex and must be magnitude-squared estimates. Please use hlp_absvalsq() first to obtain magnitude-squared estimates.');
             %             end
             %
             %
-            %             N = g.EEG.CAT.trials*(g.EEG.srate*g.EEG.CAT.MODEL.winlen);
             %
             %             connmethods = [];
-            %             if ~isfield(g.EEG.CAT.Conn,'pdc_denom'),
+            %             if ~isfield(CAT.Conn,'pdc_denom'),
             %                 connmethods = {'pdc_denom'};
             %             end
-            %             if ~isfield(g.EEG.CAT.Conn,'Vpdc')
+            %             if ~isfield(CAT.Conn,'Vpdc')
             %                 connmethods = [connmethods 'Vpdc'];
             %             end
             %
             %             if ~isempty(connmethods)
             %                 % compute required estimates
-            %                 Conn = est_mvarConnectivity(g.EEG,g.EEG.CAT.MODEL,'connmethods',connmethods,'verb',g.verb,'freqs',g.EEG.CAT.Conn.freqs);
-            %                 g.EEG.CAT.Conn.Vpdc = Conn.Vpdc;
-            %                 g.EEG.CAT.Conn.pdc_denom = Conn.pdc_denom;
+            %                 Conn = est_mvarConnectivity(g.EEG,CAT.MODEL,'connmethods',connmethods,'verb',g.verb,'freqs',CAT.Conn.freqs);
+            %                 Cij = Conn.Vpdc;
+            %                 pdc_denom = Conn.pdc_denom;
             %                 clear Conn;
             %             end
             %
             %
             %             if ismember('P-value',g.statistic)
-            %                 Stats.nDTF.pval = 1-chi2cdf((g.EEG.CAT.Conn.nDTF.*g.EEG.CAT.Conn.pdc_denom*N)./g.EEG.CAT.Conn.Vpdc , 1);
+            %                 Stats.nDTF.pval = 1-chi2cdf((CAT.Conn.nDTF.*pdc_denom*N)./Cij , 1);
             %             end
             %
             %             if ismember('Threshold',g.statistic)
-            %                 Stats.nDTF.thresh = bsxfun(@rdivide,g.EEG.CAT.Conn.Vpdc.*chi2inv(1-g.alpha,1),N*g.EEG.CAT.Conn.pdc_denom);
+            %                 Stats.nDTF.thresh = bsxfun(@rdivide,Cij.*chi2inv(1-g.alpha,1),N*pdc_denom);
             %             end
             %
             %             if ismember('ConfidenceInterval',g.statistic)
@@ -316,16 +328,16 @@ end
 
 % construct PConn object
 if ~isempty(PConn) || nargout > 2
-    PConn.winCenterTimes    = g.EEG.CAT.Conn.winCenterTimes;
-    PConn.erWinCenterTimes  = g.EEG.CAT.Conn.erWinCenterTimes;
-    PConn.freqs             = g.EEG.CAT.Conn.freqs;
+    PConn.winCenterTimes    = CAT.Conn.winCenterTimes;
+    PConn.erWinCenterTimes  = CAT.Conn.erWinCenterTimes;
+    PConn.freqs             = CAT.Conn.freqs;
     PConn.mode              = 'analytic';
     PConn.resampleTrialIdx  = [];
     connfields = hlp_getConnMethodNames(PConn);
     for m=1:length(connfields)
 %         % check dimensions
 %         szp = size(PConn.(connfields{m}));
-%         szs = size(g.EEG.CAT.Conn.(connfields{m}));
+%         szs = size(CAT.Conn.(connfields{m}));
 %         [dummy dimidx] = setdiff(szp(1:end-1),szs);
 %         if ~isempty(dimidx)
 %             % a singleton dimension was squeezed out, restore it

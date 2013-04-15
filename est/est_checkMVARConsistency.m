@@ -116,6 +116,7 @@ if g.verb==2
                  'Color', hlp_getNextUniqueColor, ...
                  'CanCancel','on', ...
                  'CancelFcn',@(a,b) disp('[Cancel requested. Please wait...]'));
+%     wb_cleanup = onCleanup(@() multiWaitbar(waitbarTitle,'Close'));
 end
 
 numWins = length(g.winStartIdx);

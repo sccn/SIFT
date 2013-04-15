@@ -88,7 +88,7 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     SelectModelOrder_callback   = [finalcmd catchstrs.store_and_hist];
     
-    cmd  = 'pop_est_validateMVAR(EEG,0);';
+    cmd  = 'EEG = pop_est_validateMVAR(EEG,0);';
     finalcmd = [ trystrs.no_check cmd ];
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     ValidateModel_callback   = [finalcmd catchstrs.store_and_hist];
@@ -163,14 +163,14 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     statmenu    = uimenu( menu, 'label', 'Statistics','userdata', userdata);
         uimenu( statmenu, 'label', 'Surrogate Distributions', 'callback', SurrogateDistrib_callback ,'enable','on','userdata', userdata);
         uimenu( statmenu, 'label', 'Surrogate Statistics', 'callback', SurrogateStats_callback ,'enable','on','userdata', userdata);
-        uimenu( statmenu, 'label', 'Analytic Statistics', 'callback', AnalyticStat_callback,'separator', 'on', 'enable','on','userdata', userdata );
-        uimenu( statmenu, 'label', 'Simple Statistics', 'callback', SimpleStat_callback, 'separator', 'on' ,'enable','off');
+        uimenu( statmenu, 'label', 'Analytic Statistics (Beta)', 'callback', AnalyticStat_callback,'separator', 'on', 'enable','on','userdata', userdata );
+        %uimenu( statmenu, 'label', 'Simple Statistics', 'callback', SimpleStat_callback, 'separator', 'on' ,'enable','off');
     
     % Visualization
     vismenu     = uimenu( menu, 'label', 'Visualization' ,'userdata', userdata);
         uimenu( vismenu , 'label', 'Time-Frequency Grid', 'callback', TFGrid_callback ,'userdata', userdata);
         uimenu( vismenu , 'label', 'BrainMovie3D', 'callback', BranMovie_callback ,'userdata', userdata);
-        uimenu( vismenu , 'label', 'Causal Projection', 'callback', CausalProjection_callback, 'enable','off' );
+        %uimenu( vismenu , 'label', 'Causal Projection', 'callback', CausalProjection_callback, 'enable','off' );
     
     % Help
     helpmenu    = uimenu( menu, 'label', 'Help','userdata', userdata, 'enable','on');
