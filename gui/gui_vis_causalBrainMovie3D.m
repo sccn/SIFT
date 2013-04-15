@@ -240,27 +240,53 @@ figh = handles.BrainMovieFigure; %findobj('tag','BrainMovieFigure');
 % end
 if ishandle(figh)
     curpos = get(findobj(figh,'tag','brain1'),'CameraPosition');
+    [curview(1) curview(2)] = view(findobj(figh,'tag','brain1'));
 else
     curpos = [];
+    curview = [];
 end
 
+if ~isempty(curview)
+    cfg.BMopts.view = curview;
+end
 % execute the brainmovie function to render this frame
-[tmp bm_handles] = vis_causalBrainMovie3D('ALLEEG',handles.ud.ALLEEG,'Conn',handles.ud.Conn,cfg,'MovieTimeRange',[minTime maxTime],'BrainMovieOptions',{cfg.BMopts,'visible','off','FigureHandle',figh,'LatenciesToRender',[],'FramesToRender',curframe,'outputFormat',{'framefolder','','moviename',''}});
+[bm_args bm_handles bm_state] = vis_causalBrainMovie3D('ALLEEG',handles.ud.ALLEEG,'Conn',handles.ud.Conn,cfg,'MovieTimeRange',[minTime maxTime],'BrainMovieOptions',{cfg.BMopts,'visible','on','FigureHandle',figh,'LatenciesToRender',[],'FramesToRender',curframe,'outputFormat',{'framefolder','','moviename',''}});
 handles.BrainMovieFigure = bm_handles.figurehandle;
-if ~isempty(curpos)
-    set(findobj(handles.BrainMovieFigure,'tag','brain1'),'CameraPosition',curpos);
+brainax = bm_args.BMopts.vars.hBrain;
+if ~isempty(curview)
+    view(brainax,curview);
 end
-set(gcf,'visible','on')
+if ~isempty(curpos)
+    set(brainax,'CameraPosition',curpos);
+end
+% update the lights
+hlp_bm_updateLights(bm_args.BMopts,bm_args.BMopts.vars.lights);
+set(handles.BrainMovieFigure,'visible','on'); 
 guidata(hObject,handles);
+set(handles.BrainMovieFigure,'WindowButtonMotionFcn',@(h,ev) updateLights(bm_args.BMopts))
+% % set the mouseReleased callback to redraw the lights
+% javaFrame = get(handles.BrainMovieFigure,'JavaFrame');
+% axisComponent = get(javaFrame,'AxisComponent');
+% axisComponent = handle(axisComponent,'CallbackProperties');
+% set(axisComponent,'MouseReleasedCallback',@(h,ev) hlp_bm_updateLights(g));
 
+function updateLights(opts)
+persistent tmr
 
+if isempty(tmr)
+    tmr = tic; end
+
+% only update once per second
+if toc(tmr) > 1
+    tmr = tic;
+    if ishandle(opts.vars.hbrainax)
+        hlp_bm_updateLights(opts,opts.vars.lights);
+    end
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ADDITIONAL CALLBACKS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
 
 % --- Executes during object creation, after setting all properties.
 function slideCurTime_CreateFcn(hObject, eventdata, handles)
