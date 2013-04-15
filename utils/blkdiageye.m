@@ -1,5 +1,5 @@
 function C = blkdiageye(X,k)
-% construct blockdiagonal matrix with k copies of X on diagonal
+% construct block-diagonal matrix with k copies of X on diagonal
 % Equivalent to C = kron(eye(k),X) but much faster
 %
 % Author: Tim Mullen, 2011 (C) SCCN/INC/UCSD

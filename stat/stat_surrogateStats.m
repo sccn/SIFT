@@ -413,8 +413,8 @@ for m=1:length(g.connmethods)
             end
             
             % ugly hack!
-            sz = size(PConn.(g.connmethods{m}));
-            Stats.(g.connmethods{m}).pval = zeros(sz(1:end-1),'single');
+%             sz = size(PConn.(g.connmethods{m}));
+%             Stats.(g.connmethods{m}).pval = zeros(sz(1:end-1),'single');
             g.statTest.alpha = g.statTest.computeci.alpha;
             
             % compute mean of the estimator
@@ -478,7 +478,7 @@ for m=1:length(g.connmethods)
             Stats.(g.connmethods{m}).thresh = hlp_insertSingletonDim(Stats.(g.connmethods{m}).thresh,dimidx+1);
         end
     else
-        Stats.(g.connmethods{m}).thresh = [];
+%         Stats.(g.connmethods{m}).thresh = [];
     end
     
 end

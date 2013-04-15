@@ -120,7 +120,7 @@ for cond = 1:num_conds
         % Plot results of residual whiteness checks
         if ~iscell(whitestats), whitestats = {whitestats}; end
         
-        subplot(numrows,numcols,curplot);
+        ax=subplot(numrows,numcols,curplot);
         for i = 1:length(g.whitenessCriteria)
             wcstr = lower(hlp_variableize(g.whitenessCriteria{i}));
             wc = whitestats{cond}.(wcstr);
@@ -139,36 +139,39 @@ for cond = 1:num_conds
             else
                 abscissa = 1:length(whitestats{cond}.winStartIdx);
             end
-            plot(abscissa,pvals','Marker','.');
-            xlabel(fastif(isempty(g.windowTimes),'Window number','Time (sec)'));
+            plot(ax,abscissa,pvals','Marker','.');
+            xlabel(ax,fastif(isempty(g.windowTimes),'Window number','Time (sec)'));
             
-            legend(lgnd);
-            set(gca, ...
+            legend(ax,lgnd);
+            set(ax, ...
                 'Xlim',[abscissa(1)-abs(diff(abscissa(1:2))) abscissa(end)+abs(diff(abscissa(1:2)))], ...
                 'Ylim',[max(0,min(pvals(:))-0.5), min(1,max(pvals(:))+0.5)]);
+            axcpystr = 'legend(''''show'''');';
         else
             % single window -- create bar plots
-            h = bar(pvals);
+            h = bar(ax,pvals);
             ch = get(h,'Children');
             
-            set(gca,'xticklabel',lgnd);
+            set(ax,'xticklabel',lgnd);
             colors = [[1 0 0];[0 0 1];[0 1 0];[0 0 0];[1 0 1];[0 1 1]];
             colors = colors(1:length(pvals),:);
             set(ch,'FaceVertexCData',colors);
             %             set(gca,'xlim',[0 length(length(g.whitenessCriteria))+1],'Ylim',[max(0,min(pvals(:))-0.5), min(1,max(pvals(:))+0.5)]);
+            axcpystr = '';
         end
         
-        hl=hline(whitestats{cond}.alpha,'b','1-p_{port}',[1.01 -0.01]);
+        hl=hline(whitestats{cond}.alpha,'b','1-p_{port}',[1.01 -0.01],ax);
         set(hl,'linestyle','--','linewidth',2);
         ylabel({'Whiteness Significance'});
-        axcopy(gca);
         
         curplot=curplot+1;
         
         if ismember('acf',lower(g.whitenessCriteria))
-            hl=hline(1-whitestats{cond}.alpha,'r','1-P_{acf}',[1.01 -0.01]);
+            hl=hline(1-whitestats{cond}.alpha,'r','1-P_{acf}',[1.01 -0.01],ax);
             set(hl,'linestyle','--','linewidth',2);
         end
+        
+        axcopy(ax,axcpystr);
     end
     
     
@@ -188,16 +191,15 @@ for cond = 1:num_conds
             else
                 abscissa = 1:1:length(PCstats{cond}.winStartIdx);
             end
-            plot(abscissa,PCstats{cond}.PC,'Marker','.');
-            axes(ax);
-            text(0.98,0.9,sprintf('Mean PC: %0.2f+/-%0.3g%%',meanpc,stdpc), ...
-                'units','normalized','horizontalalignment','right', ...
-                'edgecolor','k','backgroundcolor','w');
-            xlabel(fastif(isempty(g.windowTimes),'Window number','Time (sec)'));
-            
-            set(gca,...
+            plot(ax,abscissa,PCstats{cond}.PC,'Marker','.');
+            xlabel(ax,fastif(isempty(g.windowTimes),'Window number','Time (sec)'));
+            set(ax,...
             'Xlim',[abscissa(1)-abs(diff(abscissa(1:2))) abscissa(end)+abs(diff(abscissa(1:2)))], ...
             'Ylim',[min(PCstats{cond}.PC)-50 min(max(PCstats{cond}.PC)+50,100)]);
+            % make legend
+            text(0.98,0.9,sprintf('Mean PC: %0.2f+/-%0.3g%%',meanpc,stdpc), ...
+                    'units','normalized','horizontalalignment','right', ...
+                    'edgecolor','k','backgroundcolor','w','parent',ax);
             % make a small histogram on right side of plot
             %             axpos = get(ax,'Position');
             %             axhist = axesRelative(ax, 'Position',[1.01 0 0.1 1], 'Units','Normalized');   %axes('Position',[axpos(1)+axpos(3)+0.01 axpos(2) 0.05 axpos(4)]);
@@ -207,13 +209,18 @@ for cond = 1:num_conds
             %             set(axhist,'xdir','rev');
         else
             % single window -- make barplot
-            bar(PCstats{cond}.PC);
-            legend(sprintf('(%0.2f%% Consistent)',PCstats{cond}.PC));
-            set(gca,'Ylim',[min(0,PCstats{cond}.PC)-1 max(PCstats{cond}.PC,100)+1]);
+            bar(ax,PCstats{cond}.PC);
+            % make legend
+            text(0.98,0.9,sprintf('(%0.2f%% Consistent)',PCstats{cond}.PC), ...
+                'units','normalized','horizontalalignment','right', ...
+                'edgecolor','k','backgroundcolor','w','parent',ax);
+%             legend(sprintf('(%0.2f%% Consistent)',PCstats{cond}.PC));
+            set(ax,'Ylim',[min(0,PCstats{cond}.PC)-1 max(PCstats{cond}.PC,100)+1]);
+            set(ax,'xtick',[]);
         end
         
         ylabel('Percent Consistency');
-        axcopy(gca);
+        axcopy(ax);
         curplot = curplot+1;
     end
     
@@ -223,7 +230,7 @@ for cond = 1:num_conds
         if ~iscell(stabilitystats), stabilitystats = {stabilitystats}; end
         
         % plot stability results
-        subplot(numrows,numcols,curplot);
+        ax=subplot(numrows,numcols,curplot);
         if length(stabilitystats{cond}.stability)>1
             % more than one window -- make lineplot
             %boxplot(real(lambda)');
@@ -233,31 +240,37 @@ for cond = 1:num_conds
             else
                 abscissa = 1:length(stabilitystats{cond}.winStartIdx);
             end
-            plot(abscissa,maxlambda,'Marker','.');
-            xlabel(fastif(isempty(g.windowTimes),'Window number','Time (sec)'));
+            plot(ax,abscissa,maxlambda,'Marker','.');
+            xlabel(ax,fastif(isempty(g.windowTimes),'Window number','Time (sec)'));
             
-            set(gca,'Xlim',[abscissa(1)-abs(diff(abscissa(1:2))) abscissa(end)+abs(diff(abscissa(1:2)))], ...
-                'Ylim',[1.2*min(maxlambda(:)) max(0.01,1.3*max(maxlambda(:)))]);
+            set(ax,'Xlim',[abscissa(1)-abs(diff(abscissa(1:2))) abscissa(end)+abs(diff(abscissa(1:2)))], ...
+                   'Ylim',[1.2*min(maxlambda(:)) max(0.01,1.3*max(maxlambda(:)))]);
         else
             % single window -- make barplot
             maxlambda = max(real(stabilitystats{cond}.lambda(:)));
-            bar(maxlambda);
+            bar(ax,maxlambda);
+            set(ax,'xtick',[]);
         end
         
         
         %     set(gca,'ylim',[max(0,0.7*min(abs(lambda(:)))) max(1.3,1.3*max(abs(lambda(:))))]);
         %     axis auto
-        hl=hline(0);
+        hl=hline(0,[],[],[],ax);
         set(hl,'linestyle','--','linewidth',2);
-        ylabel({'Stability Index','(should be < 0)'});
+        ylabel(ax,{'Stability Index','(should be < 0)'});
         numstable = sum(stabilitystats{cond}.stability);
-        legend(sprintf('(%d/%d stable)',numstable,length(stabilitystats{cond}.stability)));
-        axcopy(gca);
+        % make legend
+        text(0.98,0.9,sprintf('(%d/%d stable)',numstable,length(stabilitystats{cond}.stability)), ...
+                'units','normalized','horizontalalignment','right', ...
+                'edgecolor','k','backgroundcolor','w','parent',ax);
+%         legend(ax,sprintf('(%d/%d stable)',numstable,length(stabilitystats{cond}.stability)));
+        
+        axcopy(ax);
     end
-    
-    try
-        icadefs; set(gcf, 'color', BACKCOLOR); 
-    catch
-    end;
-    
 end
+
+
+try
+    icadefs; set(handles, 'color', BACKCOLOR); 
+catch
+end;
