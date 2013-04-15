@@ -315,6 +315,7 @@ try, g.cameraMenu;          catch, g.cameraMenu = true; end                     
 try, g.plotNodeLabels;      catch; g.plotNodeLabels = true; end                     %% TM: Whether or not to plot node labels
 try, g.drawmode;            catch, g.drawmode = 'normal'; end                       %% DrawMode for brainmovie ('fast' renders brain more quickly (but poorer) than 'normal'). See Axes Properties for additional details
 try, g.footerPanelPlotMode; catch, g.footerPanelPlotMode = {'all','envelope'}; end %% Plot mode for footer panel display (plot all traces and/or envelope)
+try, g.envColor;            catch, g.envColor = [1 0 0]; end                       %% TM: evelope color
 try, g.makeCompass;         catch, g.makeCompass = false; end                       %% TM: label cardinal directions (posterior,anterior, left, right)
 try, g.windowLength;        catch; g.windowLength = []; end                        %% length of sliding window (for footer panel display)
 try, g.footerPanelData;     catch, g.footerPanelData = []; end
@@ -894,16 +895,18 @@ if ismember(lower(g.mode),{'init','init_and_render'})
             
             if any(strcmpi(g.footerPanelPlotMode,'all'))
                 % plot individual footer panel data traces
-                
-                % colors = distinguishable_colors(size(g.footerPanelData,1),[0 0 0; 1 1 1]);
-                colors = hsv(size(g.footerPanelData,1));
+
+                if any(strcmpi(g.footerPanelPlotMode,'envelope')) && size(g.footerPanelData(:,:,tmpcond),1)>1
+                    % plot envelope of footer panel data
+                    plot(g.vars.hFooterPanel(tmpcond),g.footerPanelTimes, env(g.footerPanelData(:,:,tmpcond)), 'color',g.envColor, 'linewidth', 3*g.resmult);
+                    hold(g.vars.hFooterPanel(tmpcond),'on');
+                end
+                colors = distinguishable_colors(size(g.footerPanelData,1),[0 0 0; 1 1 1; g.envColor]);
+                %colors = hsv(size(g.footerPanelData,1));
                 for k=1:size(g.footerPanelData,1)
                     plot(g.vars.hFooterPanel(tmpcond),g.footerPanelTimes,g.footerPanelData(k,:),'linewidth',g.resmult,'color',colors(k,:));
                 end
-            end
-            if any(strcmpi(g.footerPanelPlotMode,'envelope'))
-                % plot envelope of footer panel data
-                plot(g.vars.hFooterPanel(tmpcond),g.footerPanelTimes, env(g.footerPanelData(:,:,tmpcond)), 'r', 'linewidth', 2*g.resmult);
+                hold(g.vars.hFooterPanel(tmpcond),'off');
             end
             
             set(g.vars.hFooterPanel(tmpcond), 'ylim', [minordinate maxordinate]);
@@ -1189,13 +1192,14 @@ if ismember(lower(g.mode),{'init','init_and_render'})
             
             axis(g.vars.hlgnd(countl),'off');
             %                 lh(1)=camlight('left');
-            lh = camlight('right');
+            lh = light('parent',g.vars.hlgnd(countl));
+            lh = camlight(lh,'right');
             view(g.vars.hlgnd(countl),[0 0 1]);
             camorbit(g.vars.hlgnd(countl),-25,0,[0 1 0]);
             camproj(g.vars.hlgnd(countl),'perspective');
             
             %                 lh(3)=lightangle(45,0);
-            set(lh,'parent',g.vars.hlgnd(countl));
+%             set(lh,'parent',g.vars.hlgnd(countl));
             %                 lighting(g.facelighting);
             %                 material shiny;
             axis(g.vars.hlgnd(countl),'equal');
@@ -1322,7 +1326,7 @@ for indeximage = g.vars.alltimepoints
             NumNodes = length(SELECTED);
             % NOTE: we are pre-allocating memory for too many edges --
             % should only allocate for non-NaN edges
-            NumEdges = NumNodes^2-NumNodes+g.vars.NumDupNodes*(NumNodes-1); %((NumNodes+g.vars.NumDupNodes)^2)-NumNodes;
+            NumEdges = ((NumNodes+g.vars.NumDupNodes)^2)-NumNodes;  %NumNodes^2-NumNodes+g.vars.NumDupNodes*(NumNodes-1); %((NumNodes+g.vars.NumDupNodes)^2)-NumNodes;
             [xc yc zc] = deal(NaN(3*NumEdges,NumPointsCircum));
             [colorarray normals] = deal(NaN(size(xc,1), NumPointsCircum, 3));
             cylwidth = NaN(1,NumEdges);
@@ -1380,6 +1384,17 @@ for indeximage = g.vars.alltimepoints
                         q=q+3;
                     end
                     
+                    %% DEBUG
+                    g.vars.hConnections = surf(g.vars.hbrainax, xc, yc, zc, colorarray, ...
+                    'tag', 'tmpmov_connections', 'edgecolor', 'none', ...
+                    'backfacelighting', 'lit', 'facecolor', 'interp', ...
+                    'facelighting', g.facelighting, 'vertexnormals',normals, ...
+                    themeopts{:});
+                    
+                    if index1 > 6 && index2 > 5
+                        disp(''); end
+                    
+                    %% DEBUG
                 end
             end
             
@@ -1415,7 +1430,7 @@ for indeximage = g.vars.alltimepoints
         
         themeopts =  hlp_struct2varargin(g.theme.graph);
         
-        % Build the cylinders (connections/edges)
+        % Build the nodes
         q = 1;
 %         NumPointsCircum = 11; % num points around circumference of cylinder
         NumNodes = length(SELECTED);
@@ -1711,23 +1726,8 @@ for indeximage = g.vars.alltimepoints
             
         end
             
-        
         % Set the lighting options
-        % -----------------
-        lighting(g.vars.hbrainax,g.facelighting);
-        
-        % delete existing lights
-        hlights = findobj(g.vars.hbrainax,'type','light');
-        delete(hlights)
-        
-        if ~isempty(g.theme)
-            cl=feval(g.theme.lightingfcn,g.vars.hbrainax,g.theme.name);
-            set(cl,'tag','brain_camlight','parent',g.vars.hbrainax);
-        else
-            cl(1) = camlight(g.vars.hbrainax,'left');
-            cl(2) = camlight(g.vars.hbrainax,'right');
-            set(cl,'tag','brain_camlight','parent',g.vars.hbrainax);
-        end
+        g.vars.lights = hlp_bm_updateLights(g);
         
         if g.caption
             % reset text fontcolor to white

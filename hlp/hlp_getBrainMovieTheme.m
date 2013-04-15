@@ -295,27 +295,40 @@ end
 
 
 
-function handles = set_lighting(hax,theme_name)
+function handles = set_lighting(hax,theme_name,lh)
 
+if nargin<3
+    lh = []; end
+    
 handles = [];
 
 switch theme_name
     case 'classic'
         %         handles(1) = light('parent',hax,'position',
-        handles(1) = camlight('left');
-        handles(2) = camlight('right');
+        if isempty(lh)
+            lh(1) = light('parent',hax);
+            lh(2) = light('parent',hax);
+        end
+        handles(1) = camlight(lh(1),'left');
+        handles(2) = camlight(lh(2),'right');
         set(handles,'parent',hax);
         
     case {'dream', 'darkdream'}
-        handles(1) = camlight('headlight');
+        if isempty(lh)
+            lh = light('parent',hax); end
+        handles(1) = camlight(lh,'headlight');
         set(handles,'parent',hax);
         
     case 'monet'
         lighting(hax,'none');
         
     otherwise
-        handles(1) = camlight('left');
-        handles(2) = camlight('right');
+        if isempty(lh)
+            lh(1) = light('parent',hax);
+            lh(2) = light('parent',hax);
+        end
+        handles(1) = camlight(lh(1),'left');
+        handles(2) = camlight(lh(2),'right');
         set(handles,'parent',hax);
 end
 
