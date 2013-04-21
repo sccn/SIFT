@@ -1,20 +1,21 @@
-function [ALLEEG_out cfg] = pop_sim_varmodel(typeproc,varargin)
+function [EEGout cfg] = pop_sim_varmodel(EEG,typeproc,varargin)
 %
 % Preprocess EEG dataset(s) for connectivity analysis. See [1] for
 % mathematical details on preprocessing steps.
 %
 %
 % Input:
-%
-%   typeproc:       if 'nogui' don't generate GUI
-%
 % Optional:
+%
+%   EEG:            existing EEG dataset (configs will be retrived from
+%                   here)
+%   typeproc:       if 'nogui' don't generate GUI
 %
 %   <'Name',value> pairs as defined in sim_varmodel()
 %
 % Output:
 %
-%   EEG:            Simulated EEG structure(s).
+%   EEGout:         Simulated EEG structure(s).
 %                   Optionally this may be an array of
 %                   EEG structs with the second struct 
 %                   being the ground truth model.
@@ -49,16 +50,22 @@ function [ALLEEG_out cfg] = pop_sim_varmodel(typeproc,varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-if nargin<2
-    typeproc = 0;
+if nargin<1
+    EEG = [];     
 end
-
-% set default output
-ALLEEG_out = [];
-cfg = [];
+if nargin<2
+    typeproc = 0; 
+end
+EEGout = EEG;
+cfg    = [];
         
 fcnName     = strrep(mfilename,'pop_','');
 fcnHandle   = str2func(fcnName);
+
+if isempty(hlp_checkeegset(EEG,{'cat'})) && isfield(EEG.CAT.configs,fcnName)
+    % get default configuration (from prior use) and merge with varargin
+    varargin = [hlp_struct2varargin(EEG.CAT.configs.(fcnName)) varargin];
+end
 
 if strcmpi(typeproc,'nogui')
     % get the default config from function and overload supplied args
@@ -89,15 +96,15 @@ if strcmpi(typeproc,'cfg_only')
 end
 
 % execute the low-level function
-[ALLEEG_out GroundTruth] = feval(fcnHandle,cfg);
+[EEGout GroundTruth] = feval(fcnHandle,cfg);
 
 if ~isempty(GroundTruth)
-    ALLEEG_out = eeg_store(ALLEEG_out,GroundTruth,2);
+    EEGout = eeg_store(EEGout,GroundTruth,2);
 end
 if ~isempty(cfg)
-    for k=1:length(ALLEEG_out)
+    for k=1:length(EEGout)
         % store the configuration structure
-        ALLEEG_out(k).CAT.configs.(fcnName) = cfg;
+        EEGout(k).CAT.configs.(fcnName) = cfg;
     end
 end
 
