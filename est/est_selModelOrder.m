@@ -296,19 +296,19 @@ end
 [sbc fpe aic hq ris]    = deal(nan*ones(pmax-pmin+1,numWins));
 nparams = nbchan^2.*(pmin:pmax);
 
-npnts       = EEG.CAT.trials*max(1,floor(winlen*EEG.srate));
+npnts       = EEG.CAT.trials*max(1,round(winlen*EEG.srate));
 
 for t=1:numWins
     
     % CALCULATE INFORMATION CRITERIA
     
-    ne = npnts-(pmin:pmax);
+    ne    = npnts-((pmin:pmax)*EEG.CAT.trials);
     logdp = zeros(1,pmax-pmin+1);
     
     for p=pmin:pmax,
         % Get logarithm of determinant for each model order
         logdp(p-pmin+1) = log(det(MODEL.PE{t}(:,p*nbchan+(1:nbchan))*(npnts-p)));
-    end;
+    end
     
     
     % Schwarz's Bayesian Criterion / Bayesian Information Criterion
