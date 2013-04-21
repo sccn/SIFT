@@ -14,6 +14,11 @@ function [expr morder] = sim_ex_Schelter_2009_3_1(varargin)
 % x4 -> x5
 % x5 -> x4
 %
+% The dependency structure of this model can 
+% be viewed by executing the following command:
+%
+% >>hlp_viewGraphicsResource('sim/Schelter_2009_3_1.jpg');
+%
 % Author Credits:
 % 
 % Tim Mullen, 2011
