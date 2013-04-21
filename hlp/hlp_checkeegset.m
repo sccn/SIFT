@@ -7,11 +7,14 @@ function res = hlp_checkeegset(EEG,checks)
 %
 %   EEG         EEG dataset or array of datasets
 %   checks      Cell vector containing one or more checks to perform
-%               Possible checks: {'cat','conn','model'}.
+%               Possible checks: {'cat','conn','model','stats','pconn','pnull','surogdist','configs','validation','ic'}.
 % Outputs:
 %
 %   res         cell array containing results of checks where res{i} is the
 %               result of checking for checks{i}
+%
+% Note: hlp_checkeegset('supported_checks'), returns a list of supported
+%       checks
 %
 % References:
 %
@@ -40,7 +43,12 @@ function res = hlp_checkeegset(EEG,checks)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 res = {};
+narginchk(1,2);
 
+supported_checks = {'cat','conn','model','stats','pconn','pnull','surogdist','configs','validation','ic'};
+if ischar(EEG) && strcmpi(EEG,'supported_checks');
+    res = supported_checks;
+end
 if nargin<2
     checks = ['cat','conn','model'];
 end
@@ -54,7 +62,7 @@ for cnd=1:length(EEG)
         switch lower(checks{i})
             case 'cat'
                 if ~isfield(EEG(cnd),'CAT') || isempty(EEG(cnd).CAT)
-                    res = [res, sprintf(['SIFT:hlp_checkEEGset:\nEEG must contain CAT structure\n' ...
+                    res = [res, sprintf(['SIFT: \nEEG must contain CAT structure\n' ...
                         'You probably need to complete the pre-processing step first'])];
                 end
             case 'conn'
@@ -62,22 +70,38 @@ for cnd=1:length(EEG)
                     || ~isfield(EEG(cnd).CAT,'Conn') ...
                     || isempty(EEG(cnd).CAT.Conn)
                     
-                    res = [res, sprintf(['SIFT:hlp_checkEEGset:\nEEG.CAT must contain Conn structure\n' ...
+                    res = [res, sprintf(['SIFT: \nEEG.CAT must contain Conn structure\n' ...
                         'You need to estimate connectivity first'])];
                 end
             case 'model'
                 if ~isfield(EEG(cnd),'CAT') ...
                     || ~isfield(EEG(cnd).CAT,'MODEL') ...
                     || isempty(EEG(cnd).CAT.MODEL)
-                    res = [res, sprintf(['SIFT:hlp_checkEEGset:\nEEG.CAT must contain MODEL structure\n' ...
+                    res = [res, sprintf(['SIFT: \nEEG.CAT must contain MODEL structure\n' ...
                         'You need to fit a model first'])];
                 end
+            case 'validation'
+                if ~isfield(EEG(cnd),'CAT') ...
+                    || ~isfield(EEG(cnd).CAT,'VALIDATION') ...
+                    || isempty(EEG(cnd).CAT.VALIDATION)
+                    res = [res, sprintf(['SIFT: \nEEG.CAT must contain VALIDATION structure\n' ...
+                        'You need to run model validation first'])];
+                end
+            case 'ic'
+                if ~isfield(EEG(cnd),'CAT') ...
+                    || ~isfield(EEG(cnd).CAT,'IC') ...
+                    || isempty(EEG(cnd).CAT.IC)
+                    res = [res, sprintf(['SIFT: \nEEG.CAT must contain IC structure\n' ...
+                        'You need to run model order selection first'])];
+                end
+            case 'surogdist'
+                res = [res, hlp_checkeegset(EEG(cnd),{'pconn','pnull'})];
             case 'pconn'
                 if ~isfield(EEG(cnd),'CAT') ...
                     || ~isfield(EEG(cnd).CAT,'PConn') ...
                     || isempty(EEG(cnd).CAT.PConn)
                     
-                    res = [res, sprintf(['SIFT:hlp_checkEEGset. EEG.CAT must contain PConn structure\n' ...
+                    res = [res, sprintf(['SIFT: \nEEG.CAT must contain PConn structure\n' ...
                         'You need to estimate connectivity distributions first.\n' ...
                         'See stat_* functions or type ''help stat''.'])];
                 end
@@ -86,7 +110,7 @@ for cnd=1:length(EEG)
                     || ~isfield(EEG(cnd).CAT,'Pnull') ...
                     || isempty(EEG(cnd).CAT.Pnull)
                     
-                    res = [res, sprintf(['SIFT:hlp_checkEEGset. EEG.CAT must contain Pnull structure\n' ...
+                    res = [res, sprintf(['SIFT: \nEEG.CAT must contain Pnull structure\n' ...
                         'You need to estimate a null distribution first.\n' ...
                         'See stat_* functions or type ''help stat''.'])];
                 end
@@ -95,15 +119,17 @@ for cnd=1:length(EEG)
                     || ~isfield(EEG(cnd).CAT,'Stats') ...
                     || isempty(EEG(cnd).CAT.Stats)
                     
-                    res = [res, sprintf(['SIFT:hlp_checkEEGset. EEG.CAT must contain Stats structure\n' ...
+                    res = [res, sprintf(['SIFT: \nEEG.CAT must contain Stats structure\n' ...
                         'You need to estimate statistics first'])];
                 end
             case 'configs'
                 if ~isfield(EEG(cnd),'CAT') ...
                     || ~isfield(EEG.CAT,'configs') ...
                     || isempty(EEG.CAT.configs)
-                    res = [res, sprintf('SIFT:hlp_checkEEGset. EEG.CAT does not contain a configs structure\n')];
+                    res = [res, sprintf('SIFT: \nEEG.CAT does not contain a configs structure\n')];
                 end
+            otherwise
+                res = [res, sprintf('SIFT: \nUnknown field/check %s\n',checks{i})];
         end
     end
 end
