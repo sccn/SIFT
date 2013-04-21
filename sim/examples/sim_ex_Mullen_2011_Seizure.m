@@ -4,16 +4,18 @@ function [expr morder] = sim_ex_Mullen_2011_Seizure(varargin)
 % Description:  
 % 
 %   13-variate VAR[6] system of stocastically-forced, damped coupled oscillators with time-varying (non-stationary) coupling.
+%
 %   This simulation creates a simulated "seizure" with time-varying coupling between clusters of sources which switches between 4 different stages.
+%
 %   The simulation is designed to be single-trial.
 % 
 %   Recommended parameters: 
 %   Number of trials: 1
 %   Sampling Rate:    100
 %
-%   The directed graph for this model can be viewed by executing the
-%   following command:
-%   >> hlp_viewGraphicsResource('/sim/Mullen_2011_Seizure.jpg');
+%   The directed graph for this model can be viewed by executing the following command:
+%
+%   >>hlp_viewGraphicsResource('/sim/Mullen_2011_Seizure.jpg');
 %
 %
 % Author Credits:
