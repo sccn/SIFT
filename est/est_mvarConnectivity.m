@@ -214,6 +214,7 @@ for t=1:numWins
         drawnow;
         cancel = multiWaitbar(waitbarTitle,t/numWins);
         if cancel && hlp_confirmWaitbarCancel(waitbarTitle)
+            Conn = [];
             return;
         end
     end
@@ -226,6 +227,8 @@ if g.absvalsq
         fprintf('Returning squared modulus of complex measures.\n'); 
     end
     Conn = hlp_absvalsq(Conn,g.connmethods,false,g.verb);
+    % special case for iCoh
+    Conn = hlp_absvalsq(Conn,{'iCoh'},true,0);
 end
 
 if g.spectraldecibels && isfield(Conn,'S')
