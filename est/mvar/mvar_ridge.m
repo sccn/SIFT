@@ -92,7 +92,7 @@ verb = arg_extract(varargin,{'verb','Verbosity'},[],0);
 
 if hlp_isToolboxInstalled('Parallel Computing Toolbox')
     pardef   = 'on';
-    parprofs = hlp_microcache('sift_domain',@parallel.clusterProfiles);
+    [tmp parprofs] = hlp_microcache('sift_domain',@defaultParallelConfig);
 else
     pardef = 'off';
 end

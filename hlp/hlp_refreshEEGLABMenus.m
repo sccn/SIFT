@@ -27,7 +27,7 @@ if isempty(mnu_tag)
 end
 
 siftrootmnu  = findobj(findobj(0,'tag','EEGLAB'),'type','uimenu','tag','siftroot');
-siftmenus    = get(siftrootmnu,'children');
+siftmenus    = get(siftrootmnu(1),'children');
 for k=1:length(mnu_state)
     mnutag  = checks{k};
     mnu     = unique(findobj(siftmenus,'tag',mnutag));

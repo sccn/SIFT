@@ -131,8 +131,10 @@ end
 
 % now calculate connectivity
 for cnd=1:length(ALLEEG)
-    [ALLEEG(cnd).CAT.Conn] = feval(fcnHandle,'ALLEEG',ALLEEG(cnd),'MODEL',ALLEEG(cnd).CAT.MODEL,cfg);
-        
+    [Conn] = feval(fcnHandle,'ALLEEG',ALLEEG(cnd),'MODEL',ALLEEG(cnd).CAT.MODEL,cfg);
+    if ~isempty(Conn)
+        ALLEEG(cnd).CAT.Conn = Conn; 
+    end
     % clear any existing visualization GUI config files
     visFields = fieldnames(ALLEEG(cnd).CAT.configs);
     visFields = visFields(~cellfun(@isempty,strfind(visFields,'vis_')));

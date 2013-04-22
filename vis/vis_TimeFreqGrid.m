@@ -888,97 +888,92 @@ end
 % | Apply statistics and thresholding
 % ----------------------------------------------------------------
 
-if willPlotStats(g,CEstimator)
-    switch lower(g.thresholding.arg_selection)
-        case 'simple'
-
-            if any(ConnMatrix(:)<0), TwoSidedThresholding = true; end
-
-            if ~isempty(g.thresholding.prcthresh)
-                % percentile Thresholding
-
-                if length(g.thresholding.prcthresh)>1
-                    % get percentiles across a specified dimension
-                    dim=g.thresholding.prcthresh(2);
-                    sz=size(ConnMatrix); nd=length(sz);
-                    odims = setdiff(1:nd,dim);
-                    Cntmp = permute(ConnMatrix,[odims(1) dim odims(2:end)]);    % put dim in second dim (for reshape)
-                    Cntmp = reshape(Cntmp,[prod(sz(odims)) sz(dim)]);           % we'll take percentiles for ea. col
-
-                    if TwoSidedThresholding
-                        % apply two-sided thresholding
-                        StatsMatrix(2,:)= prctile(Cntmp,g.thresholding.prcthresh(1),1);             % upper limit
-                        StatsMatrix(1,:)= prctile(Cntmp,100-g.thresholding.prcthresh(1),1);         % lower limit
-
-                        % expand StatsMatrix to same size as ConnMatrix
-                        SMtmp(2,:,:,:,:,:) = repmat(StatsMatrix(2,:),[sz(odims(1)) 1 sz(odims(2:end))]);
-                        SMtmp(1,:,:,:,:,:) = repmat(StatsMatrix(1,:),[sz(odims(1)) 1 sz(odims(2:end))]);
-                        StatsMatrix = ipermute(SMtmp,[1 1+[odims(1) dim odims(2:end)]]);
-                        clear SMtmp
-                    else
-                        % apply single-sided thresholding
-                        StatsMatrix = prctile(Cntmp,g.thresholding.prcthresh(1),1);
-
-                        % expand StatsMatrix to same size as ConnMatrix
-                        StatsMatrix = repmat(StatsMatrix,[sz(odims(1)) 1 sz(odims(2:end))]);
-                        StatsMatrix = ipermute(StatsMatrix,[odims(1) dim odims(2:end)]);
-                    end
-
-                    clear Cntmp
-
-                else
-                    % get percentiles of complete data matrix
-                    if TwoSidedThresholding
-                        StatsMatrix(2,:)= prctile(ConnMatrix(:),g.thresholding.prcthresh(1),1);     % upper limit
-                        StatsMatrix(1,:)= prctile(ConnMatrix(:),100-g.thresholding.prcthresh(1),1); % lower limit
-                    else
-                        StatsMatrix = prctile(ConnMatrix(:),g.thresholding.prcthresh);
-                    end
-                end
-            end
-
-            % additonally, use absolute thresholding
-            if ~isempty(g.thresholding.absthresh)
-                % use scalar threshold
-                StatsMatrix = g.thresholding.absthresh; %*ones(size(ConnMatrix));
-            end
-
-        case 'statistics'
-
-            if ~isfield(g.stats,'tail')
-                if any(ConnMatrix(:)<0), TwoSidedThresholding = true; end
+if strcmpi(g.thresholding.arg_selection,'simple')
+    if any(ConnMatrix(:)<0), TwoSidedThresholding = true; end
+    
+    if ~isempty(g.thresholding.prcthresh)
+        % percentile Thresholding
+        
+        if length(g.thresholding.prcthresh)>1
+            % get percentiles across a specified dimension
+            dim=g.thresholding.prcthresh(2);
+            sz=size(ConnMatrix); nd=length(sz);
+            odims = setdiff(1:nd,dim);
+            Cntmp = permute(ConnMatrix,[odims(1) dim odims(2:end)]);    % put dim in second dim (for reshape)
+            Cntmp = reshape(Cntmp,[prod(sz(odims)) sz(dim)]);           % we'll take percentiles for ea. col
+            
+            if TwoSidedThresholding
+                % apply two-sided thresholding
+                StatsMatrix(2,:)= prctile(Cntmp,g.thresholding.prcthresh(1),1);             % upper limit
+                StatsMatrix(1,:)= prctile(Cntmp,100-g.thresholding.prcthresh(1),1);         % lower limit
+                
+                % expand StatsMatrix to same size as ConnMatrix
+                SMtmp(2,:,:,:,:,:) = repmat(StatsMatrix(2,:),[sz(odims(1)) 1 sz(odims(2:end))]);
+                SMtmp(1,:,:,:,:,:) = repmat(StatsMatrix(1,:),[sz(odims(1)) 1 sz(odims(2:end))]);
+                StatsMatrix = ipermute(SMtmp,[1 1+[odims(1) dim odims(2:end)]]);
+                clear SMtmp
             else
-                switch g.stats.tail
-                    case {'both'}
-                        TwoSidedThresholding = true;
-                    otherwise
-                        TwoSidedThresholding = false;
-                end
+                % apply single-sided thresholding
+                StatsMatrix = prctile(Cntmp,g.thresholding.prcthresh(1),1);
+                
+                % expand StatsMatrix to same size as ConnMatrix
+                StatsMatrix = repmat(StatsMatrix,[sz(odims(1)) 1 sz(odims(2:end))]);
+                StatsMatrix = ipermute(StatsMatrix,[odims(1) dim odims(2:end)]);
             end
-
-            % Use Statistics Structure for thresholding
-            if nargin>3 && isfield(g.stats,CEstimator)
-                if length(g.stats)>1
-                    fprintf('WARNING: Stats contains more than one structure. Taking the first one...\n');
-                    g.stats = g.stats(1);
-                end
-                if isstruct(g.stats.(CEstimator))
-                    if ~isfield(g.stats.(CEstimator),g.thresholding.sigthreshmethod)
-                        fprintf('ERROR: %s is not a field of g.stats.%s\n',g.thresholding.sigthreshmethod,CEstimator);
-                        return;
-                    end
-                    StatsMatrix = g.stats.(CEstimator).(g.thresholding.sigthreshmethod);
-                else
-                    StatsMatrix = g.stats.(CEstimator);
-                end
+            
+            clear Cntmp
+            
+        else
+            % get percentiles of complete data matrix
+            if TwoSidedThresholding
+                StatsMatrix(2,:)= prctile(ConnMatrix(:),g.thresholding.prcthresh(1),1);     % upper limit
+                StatsMatrix(1,:)= prctile(ConnMatrix(:),100-g.thresholding.prcthresh(1),1); % lower limit
             else
-                StatsMatrix = [];
+                StatsMatrix = prctile(ConnMatrix(:),g.thresholding.prcthresh);
             end
-
-            if strcmpi(g.thresholding.sigthreshmethod,'pval')
-                StatsMatrix = StatsMatrix <= g.thresholding.alpha;
+        end
+    end
+    
+    % additonally, use absolute thresholding
+    if ~isempty(g.thresholding.absthresh)
+        % use scalar threshold
+        StatsMatrix = g.thresholding.absthresh; %*ones(size(ConnMatrix));
+    end
+    
+elseif willPlotStats(g,CEstimator)
+    
+    if ~isfield(g.stats,'tail')
+        if any(ConnMatrix(:)<0), TwoSidedThresholding = true; end
+    else
+        switch g.stats.tail
+            case {'both'}
+                TwoSidedThresholding = true;
+            otherwise
+                TwoSidedThresholding = false;
+        end
+    end
+    
+    % Use Statistics Structure for thresholding
+    if nargin>3 && isfield(g.stats,CEstimator)
+        if length(g.stats)>1
+            fprintf('WARNING: Stats contains more than one structure. Taking the first one...\n');
+            g.stats = g.stats(1);
+        end
+        if isstruct(g.stats.(CEstimator))
+            if ~isfield(g.stats.(CEstimator),g.thresholding.sigthreshmethod)
+                fprintf('ERROR: %s is not a field of g.stats.%s\n',g.thresholding.sigthreshmethod,CEstimator);
+                return;
             end
-
+            StatsMatrix = g.stats.(CEstimator).(g.thresholding.sigthreshmethod);
+        else
+            StatsMatrix = g.stats.(CEstimator);
+        end
+    else
+        StatsMatrix = [];
+    end
+    
+    if strcmpi(g.thresholding.sigthreshmethod,'pval')
+        StatsMatrix = StatsMatrix <= g.thresholding.alpha;
     end
 end
 
@@ -1085,7 +1080,8 @@ if isempty(clim)
 if ~isempty(clim)
     if isscalar(clim)
         % use percentile colorlimits
-        if ~TwoSidedThresholding || all(ConnMatrix(~isnan(ConnMatrix))>=0)
+        if ~strcmpi(CEstimator,'S')...
+            && (~TwoSidedThresholding || all(ConnMatrix(~isnan(ConnMatrix))>=0))
             if 0 %willPlotStatCI(g,CEstimator) && ndims(squeeze(ConnMatrix))<4
                 clim=[0 prctile(g.stats.(CEstimator).ci(2,:),clim)];
             else
@@ -1812,4 +1808,4 @@ x = (~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics') ...
 % -----------------------------------------------------------------------------
 function x = willPlotStats(g,CEstimator)
 x = (~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics') ...
-     && isfield(g.stats,CEstimator) && ~strcmp(g.thresholding.sigthreshmethod,'none'));
+    && isfield(g.stats,CEstimator) && ~strcmp(g.thresholding.sigthreshmethod,'none'));
