@@ -119,7 +119,7 @@ end
 morder = MODEL.morder;
 
 % convert window size to points
-winLenPnts = floor(MODEL.winlen*EEG.srate); 
+winLenPnts = round(MODEL.winlen*EEG.srate); 
 [nchs npnts ntr] = size(EEG.CAT.srcdata);
 % get total number of samples used to fit model
 npntsTotal = ntr*(winLenPnts-morder);            
@@ -173,7 +173,7 @@ for t=1:numWins
     
     % calc residuals
     residuals = est_mvarResiduals(squish(EEG.CAT.srcdata(:,g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1,:)), ...
-                                  MODEL.AR{winArrIdx}, mu,1,false);
+                                  MODEL.AR{winArrIdx}, mu,1,true);
     
                               
     % calculate residual autocovariance and autocorrelation matrices
@@ -183,7 +183,7 @@ for t=1:numWins
     
     % first calculate autocovariance/autocorrelation for each trial ...
     for tr=1:ntr
-        % R = [Rs1s1 Rs1s2 Rs1s3 Rs2s1 Rs2s2 Rs2s3 Rs3s1 Rs3s2 Rs3s3]
+        % R = [Rs1s1 Rs1s2 Rs1s3 Rs2s1 Rs2s2 Rs2s3 Rs3s1 Rs3s2 Rs3s3 ...]
         tmpacvf = xcov(residuals(:,:,tr)',g.numAcfLags,'biased');
 
         % extract positive lags

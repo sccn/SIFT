@@ -23,7 +23,7 @@ function varargout = gui_vis_causalBrainMovie3D(varargin)
 
 % Edit the above text to modify the response to help gui_vis_causalBrainMovie3D
 
-% Last Modified by GUIDE v2.5 28-Jun-2012 15:13:38
+% Last Modified by GUIDE v2.5 22-Apr-2013 18:02:48
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -323,24 +323,93 @@ function gui_BrainMovie3D_KeyPressFcn(hObject, eventdata, handles)
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
 
-if strcmpi(eventdata.Key,'s') ...
-        && (strcmpi(eventdata.Modifier,'control') ...
-        || strcmpi(eventdata.Modifier,'command'))
+% if strcmpi(eventdata.Key,'s') ...
+%         && (strcmpi(eventdata.Modifier,'control') ...
+%         || strcmpi(eventdata.Modifier,'command'))
+%     
+%     varname = inputdlg2({'Enter name of variable in workspace to store configuration'}, ...
+%                         'Save GUI configuration to workspace',1,{''});
+%      
+%     if isempty(varname)
+%         return;
+%     end
+%     
+%     % get the property specification
+%     pg = handles.PropertyGridHandle;
+%     ps = pg.GetPropertySpecification;
+%     cfg = arg_tovals(ps,false);
+%     
+%     % save configuration structure to workspace
+%     assignin('base',varname{1},cfg);
+% 
+% end
     
-    varname = inputdlg2({'Enter name of variable in workspace to store configuration'}, ...
-                        'Save GUI configuration to workspace',1,{''});
-     
-    if isempty(varname)
-        return;
-    end
-    
-    % get the property specification
-    pg = handles.PropertyGridHandle;
-    ps = pg.GetPropertySpecification;
-    cfg = arg_tovals(ps,false);
-    
-    % save configuration structure to workspace
-    assignin('base',varname{1},cfg);
+            
+% --------------------------------------------------------------------
+function mnu_File_Callback(hObject, eventdata, handles)
+% hObject    handle to mnu_File (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
+
+% --------------------------------------------------------------------
+function mnu_Load_Callback(hObject, eventdata, handles)
+% hObject    handle to mnu_Load (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% load the configs
+[fname fpath] = uigetfile('*.mat','Load BrainMovie Config File');
+if ~fname
+    return;
 end
-    
+tmp   = load(fullfile(fpath,fname));
+fn    = fieldnames(tmp);
+BMCFG = tmp.(fn{1});
+
+if ~isstruct(BMCFG) || ~isfield(BMCFG,'BMopts')
+    fprintf('Invalid BrainMovie Config\n');
+    return; 
+end
+
+% redraw the property grid
+handles = redrawPropertyGrid(hObject,handles,BMCFG);
+
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function mnu_Save_Callback(hObject, eventdata, handles)
+% hObject    handle to mnu_Save (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% get current contents of property grid
+pg    = handles.PropertyGridHandle;
+ps    = pg.GetPropertySpecification;
+BMCFG = arg_tovals(ps,false);
+
+% select the path/file for saving configs
+[fname fpath] = uiputfile('*.mat','Save BrainMovie Config File');
+if ~fname
+    return;
+end
+% save the opts structure
+save(fullfile(fpath,fname),'BMCFG');
+
+
+% --------------------------------------------------------------------
+% --- User-defined function to (re)draw Property Grids
+function handles = redrawPropertyGrid(hObject,handles,BMCFG)
+
+try
+    % delete existing property grids
+    delete(handles.PropertyGridHandle.Control);
+catch err
+end
+ 
+% render the PropertyGrid in the correct panel
+handles.PropertyGridHandle = arg_guipanel( ...
+                 handles.pnlPropertyGrid, ...
+                'Function',@vis_causalBrainMovie3D, ...
+                'params',{'ALLEEG',handles.ud.ALLEEG, 'Conn',handles.ud.Conn, BMCFG});
