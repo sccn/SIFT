@@ -43,7 +43,6 @@ function res = hlp_checkeegset(EEG,checks)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 res = {};
-narginchk(1,2);
 
 supported_checks = {'cat','conn','model','stats','pconn','pnull','surogdist','configs','validation','ic'};
 if ischar(EEG) && strcmpi(EEG,'supported_checks');

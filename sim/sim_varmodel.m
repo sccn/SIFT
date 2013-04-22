@@ -55,7 +55,8 @@ g = arg_define([0 Inf],varargin,...
             },'Export ground truth model. This will return an EEGLAB dataset containing the Model in SIFT format'), ...
         arg({'setname','SetName'},'','','Dataset name. If empty, simulation name is used','type','char') ...
     },'Build EEGLAB datastructure. This will return an EEGLAB datastructure containing the simulated data. Otherwise, the raw data is returned','cat','OutputFormat'), ...
-    arg({'plotdata','PlotData'},true,[],'Plot simulated data','cat','Visualization'), ...
+    arg({'plotData','PlotData'},true,[],'Plot simulated data','cat','Visualization'), ...
+    arg({'plotGraphicalModel','PlotGraphicalModel'},true,[],'Plot graphical model (if available). The graphical model image should be rendered in a jpg and stored in the <sift-root>/resources/sim/ folder and the name should be <sim_name>.jpg where <sim_name> is the name of the simulation m-file following the prefix ''sim_ex_''','cat','Visualization'), ...
     arg({'verb','VerbosityLevel'},int32(2),{int32(0) int32(1) int32(2)},'Verbose','type','int32'));
 
 % do some input checking
@@ -169,11 +170,26 @@ end
 
 % plot the data
 % -------------------------------------------------------------------------
-if g.plotdata
+if g.plotData
     if isstruct(data)
         pop_eegplot(data);
     else
         eegplot(data,'srate',g.simParams.srate);
+    end
+end
+
+% plot the graphical model for this example
+% -------------------------------------------------------------------------
+if g.plotGraphicalModel
+    % obtain the resource name from the suffix of the sim m-file
+    simExs = hlp_getSimExamples;
+    simIdx = cellfun(@(x) strcmp(x{1},g.sim.arg_selection),simExs);
+    simFcnName = func2str(simExs{simIdx}{2});
+    simRscName = strrep(simFcnName,'sim_ex_','');
+    try
+        hlp_viewGraphicsResource(['sim/' simRscName '.jpg']);
+    catch err
+        fprintf('Failed to plot graphical model. Got error instead: %s\n',err.message);
     end
 end
 

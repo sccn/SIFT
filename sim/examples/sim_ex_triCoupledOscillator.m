@@ -6,6 +6,13 @@ function [expr morder] = sim_ex_triCoupledOscillator(varargin)
 % Trivariate 10-Hz coupled oscillators with non-
 % stationary (1-Hz sinusoidal) coupling dynamics
 %
+% Recommended Settings:
+% Sampling Rate: 100 Hz
+%
+% The directed graph for this model can be viewed by executing the following command:
+%
+% >>hlp_viewGraphicsResource('sim/triCoupledOscillator.jpg');
+%
 % Author Credits:
 % 
 % Tim Mullen, 2011
@@ -17,11 +24,11 @@ function [expr morder] = sim_ex_triCoupledOscillator(varargin)
 % ------------------------------------------------------------------------
 
 % specify the default system of equations
-f0 = 0.1;
+f0 = 10;
 expr_def = {...
-    ['x1(t) = ' sim_dampedOscillator(f0,10,1,1) '                                    + e1(t)'] ... 
-    ['x2(t) = ' sim_dampedOscillator(f0,2,1,2) ' + -0.1*x1(t-2)                      + e2(t)'] ...
-    ['x3(t) = ' sim_dampedOscillator(f0,2,1,3) ' + {0.3*sin(2*pi*t/1)+0.3}*x1(t-2)   + e3(t)'] ...
+    ['x1(t) = ' sim_dampedOscillator(f0,10,100,1) '                                    + e1(t)'] ... 
+    ['x2(t) = ' sim_dampedOscillator(f0,2,100,2) ' + -0.1*x1(t-2)                      + e2(t)'] ...
+    ['x3(t) = ' sim_dampedOscillator(f0,2,100,3) ' + {0.3*sin(2*pi*t/100)+0.3}*x1(t-2)   + e3(t)'] ...
 };
 
 % set up argument definitions

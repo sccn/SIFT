@@ -9,7 +9,7 @@ function [expr morder] = sim_ex_Mullen_2011_Seizure(varargin)
 %
 %   The simulation is designed to be single-trial.
 % 
-%   Recommended parameters: 
+%   Recommended Settings: 
 %   Number of trials: 1
 %   Sampling Rate:    100
 %
@@ -61,8 +61,8 @@ SamplingRate = 1;
 expr_def = { ...
           sprintf('x1(t) = {2*exp(-1/(%f+normpdfg(t,%f,%f,%f,100)))*cos(2*pi*%f/1)}*x1(t-1) + {-exp(-2/(%f+normpdfg(t,%f,%f,%f,100)))}*x1(t-2) + e1(t)',tau1,S1_duration/2,8,Offset+S1_center, f1, tau1,S1_duration,8,Offset+S1_center) ...                    % Ictal driver
           sprintf('x2(t) = %s + {normpdfg(t,%f,%f,%f,0.01)}*x3(t-2) + {normpdfg(t,%f,%f,%f,0.01)}*x4(t-2)  + {normpdfg(t,%f,%f,%f,1.3)}*x1(t-6)    + e2(t)',sim_dampedOscillator(f2,tau2,SamplingRate,2),  S1_duration/2,8,Offset+S1_center,   S1_duration/2,8,Offset+S1_center,  S1_duration/2,8,Offset+S1_center) ...                     % CLUSTER 2
-          sprintf('x3(t) = %s +  {normpdfg(t,%f,%f,%f,0.7)}*x2(t-2) + {normpdfg(t,%f,%f,%f,0.1)}*x4(t-2)  + {normpdfg(t,%f,%f,%f,0.3)}*x5(t-3)    + e3(t)',sim_dampedOscillator(f2,tau2,SamplingRate,3),  S1_duration/2,8,Offset+S1_center,   S1_duration/2,8,Offset+S1_center,   (S2_duration+S3_duration)/2,10,Offset+S3_center) ...       % CLUSTER 2
-          sprintf('x4(t) = %s +  {normpdfg(t,%f,%f,%f,0.7)}*x2(t-2) + {normpdfg(t,%f,%f,%f,0.1)}*x3(t-2)                                          + e4(t)',sim_dampedOscillator(f2,tau2,SamplingRate,4),  S1_duration/2,8,Offset+S1_center,  S1_duration/2,8,Offset+S1_center) ... % CLUSTER 2
+          sprintf('x3(t) = %s +  {normpdfg(t,%f,%f,%f,0.7)}*x2(t-2) + {normpdfg(t,%f,%f,%f,0.1)}*x4(t-2)  + {normpdfg(t,%f,%f,%f,0.3)}*x5(t-3)    + e3(t)',sim_dampedOscillator(f2-1,tau2,SamplingRate,3),  S1_duration/2,8,Offset+S1_center,   S1_duration/2,8,Offset+S1_center,   (S2_duration+S3_duration)/2,10,Offset+S3_center) ...       % CLUSTER 2
+          sprintf('x4(t) = %s +  {normpdfg(t,%f,%f,%f,0.7)}*x2(t-2) + {normpdfg(t,%f,%f,%f,0.1)}*x3(t-2)                                          + e4(t)',sim_dampedOscillator(f2+1,tau2,SamplingRate,4),  S1_duration/2,8,Offset+S1_center,  S1_duration/2,8,Offset+S1_center) ... % CLUSTER 2
           sprintf('x5(t) = %s +  {normpdfg(t,%f,%f,%f,0.001)}*x6(t-2) + {normpdfg(t,%f,%f,%f,0.5)}*x3(t-3)        + e5(t)'  ,sim_dampedOscillator(f3,tau3,SamplingRate,5), S3_duration/2,8,Offset+S3_center , S3_duration/2,8,Offset+S3_center) ...  % CLUSTER 3
           sprintf('x6(t) = %s +  {normpdfg(t,%f,%f,%f,0.001)}*x5(t-2)                                             + e6(t)'  ,sim_dampedOscillator(f3,tau3,SamplingRate,6), S3_duration/2,8,Offset+S3_center) ...                                  % CLUSTER 3
           sprintf('x7(t) = %s + {normpdfg(t,%f,%f,%f,1.3)}*x4(t-6) + {normpdfg(t,%f,%f,%f,0.01)}*x9(t-2) + {normpdfg(t,%f,%f,%f,0.01)}*x8(t-2) + {normpdfg(t,%f,%f,%f,0.01)}*x10(t-2)    + e7(t)' ,sim_dampedOscillator(f4,tau4,SamplingRate,7),     S4_duration/2,8,Offset+S4_center,     S4_duration/2,8,Offset+S4_center,     S4_duration/2,8,Offset+S4_center,     S4_duration/2,8,Offset+S4_center) ...  % CLUSTER 4
@@ -180,8 +180,8 @@ if g.setDynamics.arg_selection
     expr = { ...
           sprintf('x1(t) = {2*exp(-1/(%f+normpdfg(t,%f,%f,%f,100)))*cos(2*pi*%f/1)}*x1(t-1) + {-exp(-2/(%f+normpdfg(t,%f,%f,%f,100)))}*x1(t-2) + e1(t)',tau1,S1_duration/2,8,Offset+S1_center, f1, tau1,S1_duration,8,Offset+S1_center) ...                    % Ictal driver
           sprintf('x2(t) = %s + {normpdfg(t,%f,%f,%f,0.01)}*x3(t-2) + {normpdfg(t,%f,%f,%f,0.01)}*x4(t-2)  + {normpdfg(t,%f,%f,%f,1.3)}*x1(t-6)    + e2(t)',sim_dampedOscillator(f2,tau2,SamplingRate,2),  S1_duration/2,8,Offset+S1_center,   S1_duration/2,8,Offset+S1_center,  S1_duration/2,8,Offset+S1_center) ...                     % CLUSTER 2
-          sprintf('x3(t) = %s +  {normpdfg(t,%f,%f,%f,0.7)}*x2(t-2) + {normpdfg(t,%f,%f,%f,0.1)}*x4(t-2)  + {normpdfg(t,%f,%f,%f,0.3)}*x5(t-3)    + e3(t)',sim_dampedOscillator(f2,tau2,SamplingRate,3),  S1_duration/2,8,Offset+S1_center,   S1_duration/2,8,Offset+S1_center,   (S2_duration+S3_duration)/2,10,Offset+S3_center) ...       % CLUSTER 2
-          sprintf('x4(t) = %s +  {normpdfg(t,%f,%f,%f,0.7)}*x2(t-2) + {normpdfg(t,%f,%f,%f,0.1)}*x3(t-2)                                          + e4(t)',sim_dampedOscillator(f2,tau2,SamplingRate,4),  S1_duration/2,8,Offset+S1_center,  S1_duration/2,8,Offset+S1_center) ... % CLUSTER 2
+          sprintf('x3(t) = %s +  {normpdfg(t,%f,%f,%f,0.7)}*x2(t-2) + {normpdfg(t,%f,%f,%f,0.1)}*x4(t-2)  + {normpdfg(t,%f,%f,%f,0.3)}*x5(t-3)    + e3(t)',sim_dampedOscillator(f2-1,tau2,SamplingRate,3),  S1_duration/2,8,Offset+S1_center,   S1_duration/2,8,Offset+S1_center,   (S2_duration+S3_duration)/2,10,Offset+S3_center) ...       % CLUSTER 2
+          sprintf('x4(t) = %s +  {normpdfg(t,%f,%f,%f,0.7)}*x2(t-2) + {normpdfg(t,%f,%f,%f,0.1)}*x3(t-2)                                          + e4(t)',sim_dampedOscillator(f2+1,tau2,SamplingRate,4),  S1_duration/2,8,Offset+S1_center,  S1_duration/2,8,Offset+S1_center) ... % CLUSTER 2
           sprintf('x5(t) = %s +  {normpdfg(t,%f,%f,%f,0.001)}*x6(t-2) + {normpdfg(t,%f,%f,%f,0.5)}*x3(t-3)        + e5(t)'  ,sim_dampedOscillator(f3,tau3,SamplingRate,5), S3_duration/2,8,Offset+S3_center , S3_duration/2,8,Offset+S3_center) ...  % CLUSTER 3
           sprintf('x6(t) = %s +  {normpdfg(t,%f,%f,%f,0.001)}*x5(t-2)                                             + e6(t)'  ,sim_dampedOscillator(f3,tau3,SamplingRate,6), S3_duration/2,8,Offset+S3_center) ...                                  % CLUSTER 3
           sprintf('x7(t) = %s + {normpdfg(t,%f,%f,%f,1.3)}*x4(t-6) + {normpdfg(t,%f,%f,%f,0.01)}*x9(t-2) + {normpdfg(t,%f,%f,%f,0.01)}*x8(t-2) + {normpdfg(t,%f,%f,%f,0.01)}*x10(t-2)    + e7(t)' ,sim_dampedOscillator(f4,tau4,SamplingRate,7),     S4_duration/2,8,Offset+S4_center,     S4_duration/2,8,Offset+S4_center,     S4_duration/2,8,Offset+S4_center,     S4_duration/2,8,Offset+S4_center) ...  % CLUSTER 4

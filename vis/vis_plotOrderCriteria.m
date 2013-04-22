@@ -190,14 +190,14 @@ for cond = 1:length(IC)
             switch g.minimizer{1}
                 case 'min'
                     bar(xScale,histc(IC{cond}.(lower(g.icselector{i})).popt,xScale),'k');         %  plot histogram
-                    popt = ceil(mean(IC{cond}.(lower(g.icselector{i})).popt));                    %  mean
-                    poptstd = ceil(std(IC{cond}.(lower(g.icselector{i})).popt));                  %  stdev
-                    poptprctile = ceil(prctile(IC{cond}.(lower(g.icselector{i})).popt,g.prclim));   %  upper 95th prctile
+                    popt = round(mean(IC{cond}.(lower(g.icselector{i})).popt));                    %  mean
+                    poptstd = round(std(IC{cond}.(lower(g.icselector{i})).popt));                  %  stdev
+                    poptprctile = round(prctile(IC{cond}.(lower(g.icselector{i})).popt,g.prclim));   %  upper 95th prctile
                 case 'elbow'
                     bar(xScale,histc(IC{cond}.(lower(g.icselector{i})).pelbow,xScale),'k');
-                    popt = ceil(mean(IC{cond}.(lower(g.icselector{i})).pelbow));
-                    poptstd = ceil(std(IC{cond}.(lower(g.icselector{i})).pelbow));
-                    poptprctile = ceil(prctile(IC{cond}.(lower(g.icselector{i})).pelbow,g.prclim));
+                    popt = round(mean(IC{cond}.(lower(g.icselector{i})).pelbow));
+                    poptstd = round(std(IC{cond}.(lower(g.icselector{i})).pelbow));
+                    poptprctile = round(prctile(IC{cond}.(lower(g.icselector{i})).pelbow,g.prclim));
             end
             axes(ax);
             
