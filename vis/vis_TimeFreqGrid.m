@@ -1184,15 +1184,16 @@ for ch_i=1:nch
                     'horizontalalignment','center','fontsize',g.axesFontSize, ...
                     'verticalalignment','middle','edgecolor','none', ...
                     'rotation',0);
-%             lbltag = sprintf('row_ylabel_%d_%d',i,j);
-%             if isempty(findall(gcf,'tag',lbltag))
-%                 pos  = get(gca,'position');
-%                 lbuf = fastif(any(strcmp(g.yTickLoc,{'both','left'})),0.05,0.01);
-%                 th=annotation('textbox',[pos(1)-lbuf pos(2) 0.02 pos(4)]);
-%                 set(th,'string',g.nodelabels(i),'color',g.textColor,  ...
-%                     'horizontalalignment','center','fontsize',g.axesFontSize, ...
-%                     'verticalalignment','middle','edgecolor','none','tag',lbltag);
-%             end
+        elseif ch_j==1 && ~strcmpi(g.topoplot,'none')
+            lbltag = sprintf('row_ylabel_%d_%d',i,j);
+            if isempty(findall(gcf,'tag',lbltag))
+                pos  = get(gca,'position');
+                lbuf = 0.01; %fastif(any(strcmp(g.yTickLoc,{'both','left'})),0.05,0.01);
+                th=annotation('textbox',[pos(1)-pos(3)-pmargin-lbuf pos(2) 0.02 pos(4)]);
+                set(th,'string',g.nodelabels(i),'color',g.textColor,  ...
+                    'horizontalalignment','center','fontsize',g.axesFontSize, ...
+                    'verticalalignment','middle','edgecolor','none','tag',lbltag);
+            end
         end
         
         % check if we want to image this cell
