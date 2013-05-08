@@ -6,10 +6,7 @@ function v = sigmoid(params,range)
 % V = SIGMOID(PARAMS,RANGE)
 %
 % PARAMS: a 3-vector, the entries of which are (in this order):
-% amplitude value 
-% 
-% phase
-% slope
+% amplitude, phase, slope, horizontal shift, vertical shift
 
 amplitude = params(1);
 Phase=params(2);
