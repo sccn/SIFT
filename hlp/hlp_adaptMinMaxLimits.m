@@ -14,8 +14,8 @@ state = g.state;
 
 if g.reset || isempty(state)
     % initialize state
-    state.lastMin      = 0;
-    state.lastMax      = 0;
+    state.lastMin      = min(g.values(:));
+    state.lastMax      = max(g.values(:));
     state.numRunsSoFar = 0;
 end
 
