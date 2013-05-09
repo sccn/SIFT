@@ -1384,17 +1384,17 @@ for indeximage = g.vars.alltimepoints
                         q=q+3;
                     end
                     
-                    %% DEBUG
-                    g.vars.hConnections = surf(g.vars.hbrainax, xc, yc, zc, colorarray, ...
-                    'tag', 'tmpmov_connections', 'edgecolor', 'none', ...
-                    'backfacelighting', 'lit', 'facecolor', 'interp', ...
-                    'facelighting', g.facelighting, 'vertexnormals',normals, ...
-                    themeopts{:});
-                    
-                    if index1 > 6 && index2 > 5
-                        disp(''); end
-                    
-                    %% DEBUG
+%                     %% DEBUG
+%                     g.vars.hConnections = surf(g.vars.hbrainax, xc, yc, zc, colorarray, ...
+%                     'tag', 'tmpmov_connections', 'edgecolor', 'none', ...
+%                     'backfacelighting', 'lit', 'facecolor', 'interp', ...
+%                     'facelighting', g.facelighting, 'vertexnormals',normals, ...
+%                     themeopts{:});
+%                     
+%                     if index1 > 6 && index2 > 5
+%                         disp(''); end
+%                     
+%                     %% DEBUG
                 end
             end
             

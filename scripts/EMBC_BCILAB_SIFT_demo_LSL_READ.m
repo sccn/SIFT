@@ -285,7 +285,7 @@ while ~opts.exitPipeline
                 
             % visualize the brainmovie
             % -------------------------------------------------------------
-            if opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection
+            if opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection && isfield(eeg_chunk,'CAT')
 
                 if newBrainmovie ...
                     | isempty(ishandle(figHandles.BMDisplay)) ...
