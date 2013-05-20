@@ -43,23 +43,33 @@
 % hlp_tostring(setdiff({signal.chanlocs.labels},badchannels))
 
 %% SET UP CONFIGURATION OPTIONS
-CALIB_EPOCH      = []; %[0 10]; %[0 10]; % time range (sec) to extract from calibration dataset for training
+CALIB_EPOCH      = [0 60]; %[0 10]; %[0 10]; % time range (sec) to extract from calibration dataset for training
 TRAIN_ONLY       = false;
 RUN_LSL          = false;           % If RUN_LSL = true, then stream 'online' from device; If RUN_LSL=false then playback TestingDataFile (below)
 
 % Source reconstruction options (leave disabled)
 COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
-% HEAD_MODEL_NAME  = 'resources:/headmodels/standard-Colin27-385ch.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_3751.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_11997.mat';  %'resources:/headmodels/standard-Colin27-385ch.mat';             % path to head model object for source reconstruction (relative to 'datapath'). Leave empty if you aren't doing source reconstruction
+%HEAD_MODEL_NAME  = 'resources:/headmodels/standard-Colin27-385ch.mat'; % THIS ONE USED FOR EMBC (348 electrode)
+% %'data:/mobilab/Cognionics_64_HeadModelObj_3751.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_11997.mat';  %'resources:/headmodels/standard-Colin27-385ch.mat';             % path to head model object for source reconstruction (relative to 'datapath'). Leave empty if you aren't doing source reconstruction
 
-HEAD_MODEL_NAME = 'data:/mobilab/385_Channel_noseY_HeadModelObj_3751.mat'; %'resources:/headmodels/nose_y_old_standard-Colin27-385ch.mat';
+% old cognionics 64-channel montage (March, 2013)
+% HEAD_MODEL_NAME = 'data:/mobilab/Cognionics_64_HeadModelObj_3751.mat';  %
+
+% New Cognionics montage (May, 2013)
+HEAD_MODEL_NAME = 'data:/mobilab/Cognionics64_Channel_new_montage_noseX_HeadModelObj_3751.mat';
+
+%HEAD_MODEL_NAME = 'data:/mobilab/385_Channel_noseY_HeadModelObj_3751.mat'; %'resources:/headmodels/nose_y_old_standard-Colin27-385ch.mat';
+
+% NFT head model (doesn't work)
+%HEAD_MODEL_NAME = 'data:/mobilab/385_Channel_noseX_HeadModelObj_3751_NFT.mat';
 
 % Establish file paths
 % NOTE: all paths are relative to 'datapath' which is a
 % platform-independent path which itself can be relative to bcilab root
 % folder (i.e. data:/ is the userdata folder in the bcilab root dir)
 datapath         = 'data:/';       % this is relative to the BCILAB root dir
-TrainingDataFile = 'calibration.xdf'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; 'Cognionics_64_SIMULATION_one_source.set'; %'Cognionics_64_Flanker_85_265.set';  %'Cognionics_64_Flanker.set';  %'Cognionics_64_Flanker_0_10.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is the relative path to the calibration dataset
-TestingDataFile  = 'testing_mike_prebbc.xdf';%'Cognionics_64_testing.set'; %'Cognionics_64_Flanker.set';  %'calibration_old1.xdf'; %'Cognionics_64_testing.set'; %'Cognionics_64_SIMULATION_manysources_nocsdsaved.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_SIMULATION.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_testing.set'; %'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is an optional path to a dataset to playback (if RUN_LSL = false)
+TrainingDataFile = 'calibration.xdf'; %'calibration_new.set'; %'Cognionics_64_training.set'; %'calibration.xdf'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; 'Cognionics_64_SIMULATION_one_source.set'; %'Cognionics_64_Flanker_85_265.set';  %'Cognionics_64_Flanker.set';  %'Cognionics_64_Flanker_0_10.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is the relative path to the calibration dataset
+TestingDataFile  = 'calibration.xdf'; %'calibration_new.set'; %'calibration_new.set'; %'testing_mike_prebbc.xdf';%'Cognionics_64_testing.set'; %'Cognionics_64_Flanker.set';  %'calibration_old1.xdf'; %'Cognionics_64_testing.set'; %'Cognionics_64_SIMULATION_manysources_nocsdsaved.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_SIMULATION.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_testing.set'; %'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is an optional path to a dataset to playback (if RUN_LSL = false)
 GUI_CONFIG_NAME  = 'BBC_METACP_TEST_MIKECHI.mat'; %'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'BMCFG_RECORD_STABILITY_TEST_VBLORETA.mat'; %'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'EMBC_PAPER_METACP_OPTS_NOSOURCES.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs_nodelay_manyROIs_autochansel.mat'; %'SIMULATION_TEST_LORETA.mat'; %'DEMO_SOURCELOC_METACP_CFG_AllVertices.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs.mat'; %'DARPA_DEMO_METACP_CFG_FEWCHANS.mat';             % relative path to a default pipeline configuration
 GUI_BRAINMOVIE_CONFIG_NAME = 'BMCFG_JAG.mat'; %'DARPA_DEMO_BM_CFG.mat'; %'DEMO_SOURCELOC_BM_CFG.mat'; %'DARPA_DEMO_BM_CFG.mat';   % relative path to BrainMovie configuration
 
@@ -158,6 +168,8 @@ opts.adaptation.bufferTime      = 1;
 opts = arg_setdirect(opts,true);
 
 %% initialize the Meta Control Panel
+opts.fltPipCfg.psourceLocalize.hmObj = HEAD_MODEL_NAME;
+opts.miscOptCfg.dispCSD.hmObj        = HEAD_MODEL_NAME;
 if ~isempty(HEAD_MODEL_NAME)
     calibData.srcpot = 1; % allow sources
 end
@@ -468,7 +480,7 @@ while ~opts.exitPipeline
             % TODO: implement this as a figure
             vis_benchmark(benchmarking);
         end
-
+    
     catch err
          hlp_handleerror(err);
     end
