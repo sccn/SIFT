@@ -1,4 +1,4 @@
-function [scalpData srcData LFM] = sim_simulateSources(varargin)
+function [scalpData srcData LFM chaninds] = sim_simulateSources(varargin)
 % simulate some source data using a head model
 % Author: Tim Mullen, SCCN/INC/UCSD, 2013
 
