@@ -17,7 +17,7 @@
 % Please refer to [1] when using any functionality from this demo.
 % 
 % Copyright Tim Mullen, Christian Kothe, July 2012, SCCN/INC/UCSD
-%
+%C
 % Author: Tim Mullen,       July 2012, SCCN/INC/UCSD
 %         Christian Kothe,  July 2012, SCCN/INC/UCSD
 %
@@ -43,8 +43,8 @@
 % hlp_tostring(setdiff({signal.chanlocs.labels},badchannels))
 
 %% SET UP CONFIGURATION OPTIONS
-CALIB_EPOCH      = [0 60]; %[0 10]; %[0 10]; % time range (sec) to extract from calibration dataset for training
-TRAIN_ONLY       = true;
+CALIB_EPOCH      = []; %[0 10]; %[0 10]; % time range (sec) to extract from calibration dataset for training
+TRAIN_ONLY       = false;  % if set, run pipeline on TrainingDataFile only. Result dataset will be stored in cleaned_data
 RUN_LSL          = false;           % If RUN_LSL = true, then stream 'online' from device; If RUN_LSL=false then playback TestingDataFile (below)
 
 % Source reconstruction options (leave disabled)
@@ -68,9 +68,9 @@ HEAD_MODEL_NAME = 'data:/mobilab/Cognionics64_Channel_new_montage_noseX_HeadMode
 % platform-independent path which itself can be relative to bcilab root
 % folder (i.e. data:/ is the userdata folder in the bcilab root dir)
 datapath         = 'data:/';       % this is relative to the BCILAB root dir
-TrainingDataFile = 'sim_orica_8_ch.set'; %'calibration_new.set'; %'Cognionics_64_training.set'; %'calibration.xdf'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; 'Cognionics_64_SIMULATION_one_source.set'; %'Cognionics_64_Flanker_85_265.set';  %'Cognionics_64_Flanker.set';  %'Cognionics_64_Flanker_0_10.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is the relative path to the calibration dataset
-TestingDataFile  = 'sim_orica_8_ch.set'; %'calibration_new.set'; %'calibration_new.set'; %'testing_mike_prebbc.xdf';%'Cognionics_64_testing.set'; %'Cognionics_64_Flanker.set';  %'calibration_old1.xdf'; %'Cognionics_64_testing.set'; %'Cognionics_64_SIMULATION_manysources_nocsdsaved.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_SIMULATION.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_testing.set'; %'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is an optional path to a dataset to playback (if RUN_LSL = false)
-GUI_CONFIG_NAME  = 'METACP_CFG_ORICA_SIM.mat'; %'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'BMCFG_RECORD_STABILITY_TEST_VBLORETA.mat'; %'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'EMBC_PAPER_METACP_OPTS_NOSOURCES.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs_nodelay_manyROIs_autochansel.mat'; %'SIMULATION_TEST_LORETA.mat'; %'DEMO_SOURCELOC_METACP_CFG_AllVertices.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs.mat'; %'DARPA_DEMO_METACP_CFG_FEWCHANS.mat';             % relative path to a default pipeline configuration
+TrainingDataFile = 'sim_orica_8_ch_randmixmat.set'; %'calibration_new.set'; %'Cognionics_64_training.set'; %'calibration.xdf'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; 'Cognionics_64_SIMULATION_one_source.set'; %'Cognionics_64_Flanker_85_265.set';  %'Cognionics_64_Flanker.set';  %'Cognionics_64_Flanker_0_10.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is the relative path to the calibration dataset
+TestingDataFile  = 'sim_orica_8_ch_randmixmat.set'; %'calibration_new.set'; %'calibration_new.set'; %'testing_mike_prebbc.xdf';%'Cognionics_64_testing.set'; %'Cognionics_64_Flanker.set';  %'calibration_old1.xdf'; %'Cognionics_64_testing.set'; %'Cognionics_64_SIMULATION_manysources_nocsdsaved.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_SIMULATION.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_testing.set'; %'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is an optional path to a dataset to playback (if RUN_LSL = false)
+GUI_CONFIG_NAME  = 'METACP_CFG_ORICA_SIM_ONLINE.mat'; %'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'BMCFG_RECORD_STABILITY_TEST_VBLORETA.mat'; %'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'EMBC_PAPER_METACP_OPTS_NOSOURCES.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs_nodelay_manyROIs_autochansel.mat'; %'SIMULATION_TEST_LORETA.mat'; %'DEMO_SOURCELOC_METACP_CFG_AllVertices.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs.mat'; %'DARPA_DEMO_METACP_CFG_FEWCHANS.mat';             % relative path to a default pipeline configuration
 GUI_BRAINMOVIE_CONFIG_NAME = 'BMCFG_JAG.mat'; %'DARPA_DEMO_BM_CFG.mat'; %'DEMO_SOURCELOC_BM_CFG.mat'; %'DARPA_DEMO_BM_CFG.mat';   % relative path to BrainMovie configuration
 
 % Set up the name of the stream we will write to in the workspace
@@ -80,6 +80,12 @@ LSL_SelectionValue      = 'EEG';
 
 % this is the name of the stream that carries SIFT models
 outstream_name = 'SIFT-Models';
+
+% ORICA-specific testing options (validation)
+TRUE_MIXING_MATRIX   = 'calibData.icawinv_true';     % can also be a matrix or []
+TRUE_SPHERING_MATRIX = 'calibData.icasphere_true';   % can also be a matrix or []
+RUN_PCA = true;
+NUM_PCS = 8;
 
 %% load head model object
 if ~isempty(HEAD_MODEL_NAME)
@@ -99,6 +105,18 @@ else
     calibData = exp_eval(io_loadset([datapath TrainingDataFile],'markerchannel',{'remove_eventchns',false}));
 end
 flt_pipeline('update');
+
+if RUN_PCA
+    fprintf('Sphering data with PCA\n');
+%     [calibData.data calibData.icasphere_true] = runpca(calibData.data,NUM_PCS,1);
+    rowmeans = mean(calibData.data,2); 
+    calibData.data = bsxfun(@minus,calibData.data,rowmeans);
+
+    [E,D] = eig ( calibData.data * calibData.data' / calibData.pnts );
+    calibData.icasphere_true = E * real((sqrtm(D))\eye(calibData.nbchan)) * E'; % FIXME: this line is time-consuming
+    % Decorrelate data
+    calibData.data = calibData.icasphere_true * calibData.data;
+end
 
 %% start LSL streaming
 if RUN_LSL == true
@@ -179,6 +197,20 @@ waitfor(figHandles.MetaControlPanel,'UserData','initialized');
 % disable holdPipeline
 opts.holdPipeline = false;
 
+% insert true mixing matrix
+if ~isempty(TRUE_MIXING_MATRIX)
+    if ischar(TRUE_MIXING_MATRIX)
+        TRUE_MIXING_MATRIX = eval(TRUE_MIXING_MATRIX);
+    end
+end
+if ~isempty(TRUE_SPHERING_MATRIX)
+    if ischar(TRUE_SPHERING_MATRIX)
+        TRUE_SPHERING_MATRIX = eval(TRUE_SPHERING_MATRIX);
+    end
+end
+opts.fltPipCfg.porica.perfmetrics.convergence.A = TRUE_MIXING_MATRIX;
+opts.fltPipCfg.porica.perfmetrics.convergence.spheremat = TRUE_SPHERING_MATRIX;
+
 %% initialize the output stream
 if opts.miscOptCfg.streamLSL
     samplingrate = 1;
@@ -221,6 +253,7 @@ while ~opts.exitPipeline
             % create a new pipeline on training data
             fprintf('Pipeline changed\n');
             cleaned_data = exp_eval(flt_pipeline('signal',calibData,opts.fltPipCfg));
+                        
             pipeline     = onl_newpipeline(cleaned_data,streamname);
             newPipeline  = false;
 
