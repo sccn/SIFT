@@ -47,6 +47,8 @@ CALIB_EPOCH      = []; %[0 10]; %[0 10]; % time range (sec) to extract from cali
 TRAIN_ONLY       = false;  % if set, run pipeline on TrainingDataFile only. Result dataset will be stored in cleaned_data
 RUN_LSL          = false;           % If RUN_LSL = true, then stream 'online' from device; If RUN_LSL=false then playback TestingDataFile (below)
 
+PAUSE_DELAY     =  0.1;   % delay between loops
+
 % Source reconstruction options (leave disabled)
 COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
 %HEAD_MODEL_NAME  = 'resources:/headmodels/standard-Colin27-385ch.mat'; % THIS ONE USED FOR EMBC (348 electrode)
@@ -68,8 +70,8 @@ HEAD_MODEL_NAME = 'data:/mobilab/Cognionics64_Channel_new_montage_noseX_HeadMode
 % platform-independent path which itself can be relative to bcilab root
 % folder (i.e. data:/ is the userdata folder in the bcilab root dir)
 datapath         = 'data:/';       % this is relative to the BCILAB root dir
-TrainingDataFile = 'sim_orica_8_ch_randmixmat.set'; %'calibration_new.set'; %'Cognionics_64_training.set'; %'calibration.xdf'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; 'Cognionics_64_SIMULATION_one_source.set'; %'Cognionics_64_Flanker_85_265.set';  %'Cognionics_64_Flanker.set';  %'Cognionics_64_Flanker_0_10.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is the relative path to the calibration dataset
-TestingDataFile  = 'sim_orica_8_ch_randmixmat.set'; %'calibration_new.set'; %'calibration_new.set'; %'testing_mike_prebbc.xdf';%'Cognionics_64_testing.set'; %'Cognionics_64_Flanker.set';  %'calibration_old1.xdf'; %'Cognionics_64_testing.set'; %'Cognionics_64_SIMULATION_manysources_nocsdsaved.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_SIMULATION.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_testing.set'; %'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is an optional path to a dataset to playback (if RUN_LSL = false)
+TrainingDataFile = 'sim_orica_8_ch_training.set'; %'calibration_new.set'; %'Cognionics_64_training.set'; %'calibration.xdf'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; 'Cognionics_64_SIMULATION_one_source.set'; %'Cognionics_64_Flanker_85_265.set';  %'Cognionics_64_Flanker.set';  %'Cognionics_64_Flanker_0_10.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is the relative path to the calibration dataset
+TestingDataFile  = 'sim_orica_8_ch_testing.set'; %'calibration_new.set'; %'calibration_new.set'; %'testing_mike_prebbc.xdf';%'Cognionics_64_testing.set'; %'Cognionics_64_Flanker.set';  %'calibration_old1.xdf'; %'Cognionics_64_testing.set'; %'Cognionics_64_SIMULATION_manysources_nocsdsaved.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_SIMULATION.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_testing.set'; %'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is an optional path to a dataset to playback (if RUN_LSL = false)
 GUI_CONFIG_NAME  = 'METACP_CFG_ORICA_SIM_ONLINE.mat'; %'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'BMCFG_RECORD_STABILITY_TEST_VBLORETA.mat'; %'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'EMBC_PAPER_METACP_OPTS_NOSOURCES.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs_nodelay_manyROIs_autochansel.mat'; %'SIMULATION_TEST_LORETA.mat'; %'DEMO_SOURCELOC_METACP_CFG_AllVertices.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs.mat'; %'DARPA_DEMO_METACP_CFG_FEWCHANS.mat';             % relative path to a default pipeline configuration
 GUI_BRAINMOVIE_CONFIG_NAME = 'BMCFG_JAG.mat'; %'DARPA_DEMO_BM_CFG.mat'; %'DEMO_SOURCELOC_BM_CFG.mat'; %'DARPA_DEMO_BM_CFG.mat';   % relative path to BrainMovie configuration
 
@@ -106,8 +108,10 @@ else
 end
 flt_pipeline('update');
 
+testData = exp_eval(io_loadset([datapath TestingDataFile],'markerchannel',{'remove_eventchns',false}));
+
 if RUN_PCA
-    fprintf('Sphering data with PCA\n');
+    fprintf('Sphering Training data with PCA\n');
 %     [calibData.data calibData.icasphere_true] = runpca(calibData.data,NUM_PCS,1);
     rowmeans = mean(calibData.data,2); 
     calibData.data = bsxfun(@minus,calibData.data,rowmeans);
@@ -116,6 +120,17 @@ if RUN_PCA
     calibData.icasphere_true = E * real((sqrtm(D))\eye(calibData.nbchan)) * E'; % FIXME: this line is time-consuming
     % Decorrelate data
     calibData.data = calibData.icasphere_true * calibData.data;
+    
+    
+    fprintf('Sphering Test data with PCA\n');
+%     [calibData.data calibData.icasphere_true] = runpca(calibData.data,NUM_PCS,1);
+    rowmeans = mean(testData.data,2); 
+    testData.data = bsxfun(@minus,testData.data,rowmeans);
+
+    [E,D] = eig ( testData.data * testData.data' / testData.pnts );
+    testData.icasphere_true = E * real((sqrtm(D))\eye(testData.nbchan)) * E'; % FIXME: this line is time-consuming
+    % Decorrelate data
+    testData.data = testData.icasphere_true * testData.data;
 end
 
 %% start LSL streaming
@@ -124,7 +139,7 @@ if RUN_LSL == true
 end
 %% ... OR read from datafile
 if RUN_LSL == false
-    run_readdataset('MatlabStream',streamname,'Dataset',io_loadset([datapath TestingDataFile],'markerchannel',{'remove_eventchns',false}));
+    run_readdataset('MatlabStream',streamname,'Dataset',testData);
 end
 
 %% initialize some variables
@@ -250,8 +265,13 @@ while ~opts.exitPipeline
   
     
         if newPipeline
+            
             % create a new pipeline on training data
             fprintf('Pipeline changed\n');
+            
+            opts.fltPipCfg.porica.perfmetrics.convergence.A = TRUE_MIXING_MATRIX;
+            opts.fltPipCfg.porica.perfmetrics.convergence.spheremat = TRUE_SPHERING_MATRIX;
+            
             cleaned_data = exp_eval(flt_pipeline('signal',calibData,opts.fltPipCfg));
                         
             pipeline     = onl_newpipeline(cleaned_data,streamname);
@@ -263,6 +283,7 @@ while ~opts.exitPipeline
             end
             
             localizeSources = opts.fltPipCfg.psourceLocalize.arg_selection;
+            bpfig = [];
         end
 
         if opts.holdPipeline
@@ -511,10 +532,33 @@ while ~opts.exitPipeline
         else
             benchmarking.modeling = NaN;
         end
-        
+      
         if opts.miscOptCfg.dispBenchmark
             % TODO: implement this as a figure
             vis_benchmark(benchmarking);
+            
+            
+    
+            % plot ORICA convergence
+            if opts.fltPipCfg.porica.arg_selection && isfield(eeg_chunk,'convergence')
+                if ~exist('bpfig','var') || isempty(bpfig) || ~ishandle(bpfig)
+                    CONVERGE_BUF = 60*eeg_chunk.srate; % size of convergence buffer
+                    bpfig = figure;
+                    bpaxes= axes('parent',bpfig);
+                    convergence = nan(1,CONVERGE_BUF);
+                    convergence(end-length(eeg_chunk.convergence)+1:end) = 10*log(eeg_chunk.convergence);
+                    h=plot(linspace(0,CONVERGE_BUF/eeg_chunk.srate,CONVERGE_BUF),convergence);
+                    set(bpfig,'userdata',h);
+                    ylabel('10*ln(Convergence)');
+                    xlabel('Time');
+                else
+                    blkpnts = length(eeg_chunk.convergence); %options.blockSize*(skipCount);
+                    convergence(:,1:end-blkpnts) = convergence(:,blkpnts+1:end);
+                    % insert new samples ...
+                    convergence(:,end-blkpnts+1:end) = 10*log(eeg_chunk.convergence);
+                    set(h,'ydata',convergence);
+                end
+            end
         end
     
     
@@ -528,7 +572,7 @@ while ~opts.exitPipeline
         benchmarking.lsl = NaN;
     end
     
-    pause(0.0001);
+    pause(PAUSE_DELAY);
     
 end
 
