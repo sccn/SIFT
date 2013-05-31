@@ -975,6 +975,8 @@ elseif willPlotStats(g,CEstimator)
     if strcmpi(g.thresholding.sigthreshmethod,'pval')
         StatsMatrix = StatsMatrix <= g.thresholding.alpha;
     end
+else
+    TwoSidedThresholding = any(ConnMatrix(:)<0);
 end
 
 % ---------------------------------------------------------------
