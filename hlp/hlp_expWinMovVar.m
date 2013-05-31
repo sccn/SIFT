@@ -26,28 +26,32 @@ MEMFACTOR = 2/((g.adaptationHL * 2.8854)+1);
 newVar  = g.lastVar;
 newMean = g.lastMean;
 
+npts = size(g.values,2);
+covmode = strcmpi(g.mode,'cov');
 if (g.numberOfRunsSoFar < g.bufferTime || mod(g.numberOfRunsSoFar,g.updateInterval) == 0) && g.numberOfRunsSoFar < Inf
     
     if g.numberOfRunsSoFar < g.bufferTime
-        newVar  = g.lastVar;
-        newMean = g.values;
+        if covmode 
+            newVar  = cov(g.values');
+        else
+            newVar  = var(g.values,[],2);
+        end
+        newMean = mean(g.values,2);
     else
         % apply exponential-window moving variance
-        
-%         % get the running mean
-%         mu   = hlp_expWinMovAvg(g);
-        % get the deviation
-        diff = g.values-g.lastMean;
+
+        % get the deviation from the mean
+        diff = mean(g.values,2)-g.lastMean;
         % get the increment
         incr = MEMFACTOR * diff;
         % adjust the mean
-        newMean = g.lastMean + incr;
-        % compute variance
-        if strcmpi(g.mode,'var')
-            newVar  = (1-MEMFACTOR) * (g.lastVar + diff.*incr);
-        elseif strcmpi(g.mode,'cov')
-            newVar  = (1-MEMFACTOR) * (g.lastVar + diff*incr');
+        newMean = g.lastMean+incr;
+        if covmode
+            % compute covariance
+            newVar  = (1-MEMFACTOR) * (g.lastVar + (diff*incr')/npts);
+        else
+            % compute variance
+            newVar  = (1-MEMFACTOR) * (g.lastVar + (diff.*incr)/npts);
         end
     end
-    
 end
