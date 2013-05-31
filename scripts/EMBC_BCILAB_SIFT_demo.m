@@ -176,6 +176,9 @@ end
 figHandles.MetaControlPanel = gui_metaControlPanel(calibData,opts);
 waitfor(figHandles.MetaControlPanel,'UserData','initialized');
 
+% disable holdPipeline
+opts.holdPipeline = false;
+
 %% initialize the output stream
 if opts.miscOptCfg.streamLSL
     samplingrate = 1;
