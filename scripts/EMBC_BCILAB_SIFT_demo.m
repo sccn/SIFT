@@ -43,13 +43,13 @@
 % hlp_tostring(setdiff({signal.chanlocs.labels},badchannels))
 
 %% SET UP CONFIGURATION OPTIONS
-CALIB_EPOCH      = [0 60]; %[0 10]; %[0 10]; % time range (sec) to extract from calibration dataset for training
+CALIB_EPOCH      = []; %[0 10]; %[0 10]; % time range (sec) to extract from calibration dataset for training
 TRAIN_ONLY       = false;
-RUN_LSL          = false;           % If RUN_LSL = true, then stream 'online' from device; If RUN_LSL=false then playback TestingDataFile (below)
+RUN_LSL          = true;           % If RUN_LSL = true, then stream 'online' from device; If RUN_LSL=false then playback TestingDataFile (below)
 
 % Source reconstruction options (leave disabled)
 COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
-%HEAD_MODEL_NAME  = 'resources:/headmodels/standard-Colin27-385ch.mat'; % THIS ONE USED FOR EMBC (348 electrode)
+%HEAD_MODEL_NAME  = 'resources:/headmodels/flanker_old_standard-Colin27-385ch.mat'; %'resources:/headmodels/standard-Colin27-385ch.mat'; % THIS ONE USED FOR EMBC (348 electrode)
 % %'data:/mobilab/Cognionics_64_HeadModelObj_3751.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_11997.mat';  %'resources:/headmodels/standard-Colin27-385ch.mat';             % path to head model object for source reconstruction (relative to 'datapath'). Leave empty if you aren't doing source reconstruction
 
 % old cognionics 64-channel montage (March, 2013)
@@ -68,9 +68,9 @@ HEAD_MODEL_NAME = 'data:/mobilab/Cognionics64_Channel_new_montage_noseX_HeadMode
 % platform-independent path which itself can be relative to bcilab root
 % folder (i.e. data:/ is the userdata folder in the bcilab root dir)
 datapath         = 'data:/';       % this is relative to the BCILAB root dir
-TrainingDataFile = 'calibration.xdf'; %'calibration_new.set'; %'Cognionics_64_training.set'; %'calibration.xdf'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; 'Cognionics_64_SIMULATION_one_source.set'; %'Cognionics_64_Flanker_85_265.set';  %'Cognionics_64_Flanker.set';  %'Cognionics_64_Flanker_0_10.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is the relative path to the calibration dataset
-TestingDataFile  = 'calibration.xdf'; %'calibration_new.set'; %'calibration_new.set'; %'testing_mike_prebbc.xdf';%'Cognionics_64_testing.set'; %'Cognionics_64_Flanker.set';  %'calibration_old1.xdf'; %'Cognionics_64_testing.set'; %'Cognionics_64_SIMULATION_manysources_nocsdsaved.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_SIMULATION.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_testing.set'; %'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is an optional path to a dataset to playback (if RUN_LSL = false)
-GUI_CONFIG_NAME  = 'BBC_METACP_TEST_MIKECHI.mat'; %'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'BMCFG_RECORD_STABILITY_TEST_VBLORETA.mat'; %'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'EMBC_PAPER_METACP_OPTS_NOSOURCES.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs_nodelay_manyROIs_autochansel.mat'; %'SIMULATION_TEST_LORETA.mat'; %'DEMO_SOURCELOC_METACP_CFG_AllVertices.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs.mat'; %'DARPA_DEMO_METACP_CFG_FEWCHANS.mat';             % relative path to a default pipeline configuration
+TrainingDataFile = 'calibration.xdf';%'Cognionics_64_SIMULATION_Asilomar.set'; %'calibration.xdf'; %'calibration_new.set'; %'Cognionics_64_training.set'; %'calibration.xdf'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; 'Cognionics_64_SIMULATION_one_source.set'; %'Cognionics_64_Flanker_85_265.set';  %'Cognionics_64_Flanker.set';  %'Cognionics_64_Flanker_0_10.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is the relative path to the calibration dataset
+TestingDataFile  = 'calibration.xdf';%'Cognionics_64_SIMULATION_Asilomar.set'; %'calibration.xdf'; %'calibration_new.set'; %'calibration_new.set'; %'testing_mike_prebbc.xdf';%'Cognionics_64_testing.set'; %'Cognionics_64_Flanker.set';  %'calibration_old1.xdf'; %'Cognionics_64_testing.set'; %'Cognionics_64_SIMULATION_manysources_nocsdsaved.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_SIMULATION.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_testing.set'; %'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is an optional path to a dataset to playback (if RUN_LSL = false)
+GUI_CONFIG_NAME  = 'METACP_CFG_MATM_JUNE_1.mat'; %'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'BMCFG_RECORD_STABILITY_TEST_VBLORETA.mat'; %'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'EMBC_PAPER_METACP_OPTS_NOSOURCES.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs_nodelay_manyROIs_autochansel.mat'; %'SIMULATION_TEST_LORETA.mat'; %'DEMO_SOURCELOC_METACP_CFG_AllVertices.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs.mat'; %'DARPA_DEMO_METACP_CFG_FEWCHANS.mat';             % relative path to a default pipeline configuration
 GUI_BRAINMOVIE_CONFIG_NAME = 'BMCFG_JAG.mat'; %'DARPA_DEMO_BM_CFG.mat'; %'DEMO_SOURCELOC_BM_CFG.mat'; %'DARPA_DEMO_BM_CFG.mat';   % relative path to BrainMovie configuration
 
 % Set up the name of the stream we will write to in the workspace
@@ -359,13 +359,18 @@ while ~opts.exitPipeline
                 % Handle special rendering of source meshes and colors
                 % ---------------------------------------------------------
                 if COLOR_SOURCE_ROI 
-                    BG_COLOR = [0.1 0.1 0.1];
-                    
+                    try
+                        BG_COLOR = opts.miscOptCfg.doSIFT.dispBrainMovie.colorCortexByRoi.bgColor;
+                        ROI_COLOR= opts.miscOptCfg.doSIFT.dispBrainMovie.colorCortexByRoi.roiColors;
+                    catch
+                        BG_COLOR = [0.1 0.1 0.1];
+                        BG_COLOR = @(x)distinguishable_colors(x,BG_COLOR);
+                    end
                     if BMCFG.BMopts.Layers.custom.arg_selection
                         BMCFG.BMopts.Layers.custom.volumefile = eeg_chunk.dipfit.surfmesh;
                         BMCFG.BMopts.Layers.custom.meshcolor  = hlp_getROIVertexColorTable( ...
                                 size(eeg_chunk.dipfit.surfmesh.vertices,1), ...
-                                eeg_chunk.roiVertices,BG_COLOR,@(x)distinguishable_colors(x,BG_COLOR));
+                                eeg_chunk.roiVertices,BG_COLOR,ROI_COLOR);
                     end
                     
                     % if the cortex mesh is a custom mesh with 'constant'
@@ -376,7 +381,7 @@ while ~opts.exitPipeline
                             BMCFG.BMopts.Layers.cortex.cortexcolor.colormapping = ...
                                 hlp_getROIVertexColorTable( ...
                                     size(eeg_chunk.dipfit.surfmesh.vertices,1), ...
-                                    eeg_chunk.roiVertices,BG_COLOR,@(x)distinguishable_colors(x,BG_COLOR));
+                                    eeg_chunk.roiVertices,BG_COLOR,ROI_COLOR);
 %                         {hmObj.atlas.label, hlp_getROIColorTable(hmObj.atlas.label,eeg_chunk.roiLabels,[0.5 0.5 0.5],[1 0 0])};
                     end
                 end
