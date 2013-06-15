@@ -49,9 +49,19 @@ RUN_LSL          = true;           % If RUN_LSL = true, then stream 'online' fro
 
 % Source reconstruction options (leave disabled)
 COLOR_SOURCE_ROI = true;          % this will use special meshes for coloring ROIs
-% HEAD_MODEL_NAME  = 'resources:/headmodels/standard-Colin27-385ch.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_3751.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_11997.mat';  %'resources:/headmodels/standard-Colin27-385ch.mat';             % path to head model object for source reconstruction (relative to 'datapath'). Leave empty if you aren't doing source reconstruction
+%HEAD_MODEL_NAME  = 'resources:/headmodels/standard-Colin27-385ch.mat'; % THIS ONE USED FOR EMBC (348 electrode)
+% %'data:/mobilab/Cognionics_64_HeadModelObj_3751.mat'; %'data:/mobilab/Cognionics_64_HeadModelObj_11997.mat';  %'resources:/headmodels/standard-Colin27-385ch.mat';             % path to head model object for source reconstruction (relative to 'datapath'). Leave empty if you aren't doing source reconstruction
 
-HEAD_MODEL_NAME = 'data:/mobilab/385_Channel_noseY_HeadModelObj_3751.mat'; %'resources:/headmodels/nose_y_old_standard-Colin27-385ch.mat';
+% old cognionics 64-channel montage (March, 2013)
+% HEAD_MODEL_NAME = 'data:/mobilab/Cognionics_64_HeadModelObj_3751.mat';  %
+
+% New Cognionics montage (May, 2013)
+HEAD_MODEL_NAME = 'data:/mobilab/Cognionics64_Channel_new_montage_noseX_HeadModelObj_3751.mat';
+
+%HEAD_MODEL_NAME = 'data:/mobilab/385_Channel_noseY_HeadModelObj_3751.mat'; %'resources:/headmodels/nose_y_old_standard-Colin27-385ch.mat';
+
+% NFT head model (doesn't work)
+%HEAD_MODEL_NAME = 'data:/mobilab/385_Channel_noseX_HeadModelObj_3751_NFT.mat';
 
 % Establish file paths
 % NOTE: all paths are relative to 'datapath' which is a
@@ -159,11 +169,16 @@ opts.adaptation.bufferTime      = 1;
 opts = arg_setdirect(opts,true);
 
 %% initialize the Meta Control Panel
+opts.fltPipCfg.psourceLocalize.hmObj = HEAD_MODEL_NAME;
+opts.miscOptCfg.dispCSD.hmObj        = HEAD_MODEL_NAME;
 if ~isempty(HEAD_MODEL_NAME)
     calibData.srcpot = 1; % allow sources
 end
 figHandles.MetaControlPanel = gui_metaControlPanel(calibData,opts);
 waitfor(figHandles.MetaControlPanel,'UserData','initialized');
+
+% disable holdPipeline
+opts.holdPipeline = false;
 
 %% initialize the output stream
 if opts.miscOptCfg.streamLSL
@@ -195,6 +210,8 @@ end
 
 localizeSources = opts.fltPipCfg.psourceLocalize.arg_selection;
 
+
+% profile on
 %% Main loop
 % -------------------------------------------------------------------------
 while ~opts.exitPipeline
@@ -467,7 +484,7 @@ while ~opts.exitPipeline
             % TODO: implement this as a figure
             vis_benchmark(benchmarking);
         end
-
+    
     catch err
          hlp_handleerror(err);
     end
