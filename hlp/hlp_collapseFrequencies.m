@@ -119,6 +119,11 @@ switch lower(collapsefun)
         warning(w);
   case 'absmax'
         [collapsed peakidx]  = max(abs(data));
+  case 'minmax'
+        [collapsed peakidx]  = max(abs(data));
+        for k=1:size(peakidx,2)
+            collapsed(k) = data(peakidx(k),k); 
+        end
 end
 
 if isempty(collapsed)
