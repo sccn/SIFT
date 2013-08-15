@@ -177,11 +177,12 @@ function [outsources, XX, YY, ZZ, XO, YO, ZO] = dipplot( sourcesori, varargin )
                                  'verbose'   'string'   { 'on' 'off' }     'on';
                                  'view'      'real'     []                 [0 0 1];
                                  'rvrange'   'real'     [0 Inf]             [];
-                                 'transform' 'real'     [0 Inf]             [];
+                                 'transform' 'real'     [-Inf Inf]             [];
                                  'normlen'   'string'   { 'on' 'off' }     'off';
                                  'num'       'string'   { 'on' 'off' }     'off';
                                  'cornermri' 'string'   { 'on' 'off' }     'off';
                                  'mri'       { 'string' 'struct' } []      '';
+                                 'hidemri'   'string'   { 'on' 'off' }     'off';
                                  'dipnames'   'cell'     []                  {};
                                  'projimg'   'string'   { 'on' 'off' }     'off';
                                  'projcol'   ''         []       [];
@@ -196,7 +197,10 @@ function [outsources, XX, YY, ZZ, XO, YO, ZO] = dipplot( sourcesori, varargin )
                                  'image'     { 'string' 'real' } []         'mri';
                                  'plot'      'string'   { 'on' 'off' }      'on';
                                  'meshdata'  { 'string' 'cell' } []         ''  ;
-                                 'plotimgs'   'string'  {'on' 'off'}        'on'}, 'dipplot');
+                                 'plotimgs'   'string'  {'on' 'off'}        'on';
+                                 'meshedgecolor'  ''         []             'w';
+                                 'meshfacecolor'  ''     []                  'none';
+                                 'meshoptions'    ''     []                  {'facealpha',0.7,'edgealpha',0.7}}, 'dipplot');
     %                             'std'       'cell'     []                  {}; 
     %                             'coreg'     'real'     []                  [];
 
@@ -322,7 +326,6 @@ function [outsources, XX, YY, ZZ, XO, YO, ZO] = dipplot( sourcesori, varargin )
 
     dat.imgcoords = { g.mri.xgrid g.mri.ygrid g.mri.zgrid };            
     dat.maxcoord  = [max(dat.imgcoords{1}) max(dat.imgcoords{2}) max(dat.imgcoords{3})];
-    COLORMESH = 'w';
     BACKCOLOR = 'k';
     
     % point 0
@@ -516,10 +519,10 @@ function [outsources, XX, YY, ZZ, XO, YO, ZO] = dipplot( sourcesori, varargin )
             %xx = x*100;
             %yy = y*100;
             %zz = z*100;
-            if strcmpi(COLORMESH, 'w')
+            if strcmpi(g.meshedgecolor, 'w')
                 hh = mesh(xx, yy, zz, 'cdata', ones(21,21,3), 'tag', 'mesh'); hidden off;
-        else
-            hh = mesh(xx, yy, zz, 'cdata', zeros(21,21,3), 'tag', 'mesh'); hidden off;
+            else
+                hh = mesh(xx, yy, zz, 'cdata', zeros(21,21,3), 'tag', 'mesh'); hidden off;
             end;
         else
             try, 
@@ -527,17 +530,18 @@ function [outsources, XX, YY, ZZ, XO, YO, ZO] = dipplot( sourcesori, varargin )
                 tmp = load('-mat', g.meshdata);
                 g.meshdata = { 'vertices' tmp.vol.bnd(1).pnt 'faces' tmp.vol.bnd(1).tri };
             end;
-            hh = patch(g.meshdata{:}, 'facecolor', 'none', 'edgecolor', COLORMESH, 'tag', 'mesh');
+            hh = patch(g.meshdata{:}, 'facecolor', g.meshfacecolor, 'edgecolor', g.meshedgecolor,'tag', 'mesh',g.meshoptions{:});
+            camlight right;
             catch, disp('Unrecognize model file (probably CTF)'); end;
         end;
         
     end;
     
     %x = x*100*scaling; y = y*100*scaling; z=z*100*scaling;
-    %h = line(xx,yy,zz); set(h, 'color', COLORMESH, 'linestyle', '--', 'tag', 'mesh');
-    %h = line(xx,zz,yy); set(h, 'color', COLORMESH, 'linestyle', '--', 'tag', 'mesh');
+    %h = line(xx,yy,zz); set(h, 'color', g.meshedgecolor, 'linestyle', '--', 'tag', 'mesh');
+    %h = line(xx,zz,yy); set(h, 'color', g.meshedgecolor, 'linestyle', '--', 'tag', 'mesh');
     %h = line([0 0;0 0],[-1 -1.2; -1.2 -1], [-0.3 -0.7; -0.7 -0.7]);
-    %set(h, 'color', COLORMESH, 'linewidth', 3, 'tag', 'noze');
+    %set(h, 'color', g.meshedgecolor, 'linewidth', 3, 'tag', 'noze');
     
     % determine max length if besatextori exist
     % -----------------------------------------
@@ -829,6 +833,9 @@ function [outsources, XX, YY, ZZ, XO, YO, ZO] = dipplot( sourcesori, varargin )
         camlight right;
     end;
     
+    
+    
+    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% draw elipse for group of dipoles  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % does not work because of new scheme, have to be reprogrammed
     
@@ -978,6 +985,10 @@ function [outsources, XX, YY, ZZ, XO, YO, ZO] = dipplot( sourcesori, varargin )
         axis equal;
         axis off;
     end;
+    
+    if strcmpi(g.hidemri,'on')
+        delete(findobj('parent', gca, 'tag', 'img'));
+    end
     
 return;
 
