@@ -67,6 +67,18 @@ if isfield(ALLEEG(1).CAT.configs,fcnName)
     varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
 end
 
+% reset the defaults if we have multiple EEG datasets
+% this ensures that config selections stored in each datset (i.e. Hbase) 
+% don't conflict with the allowable selection when two datasets are present
+if length(ALLEEG)>1 && ~isempty(varargin)
+    idx = find(ismember(varargin(1:2:end),'statTest'))*2;
+    if ~isempty(idx)
+        for k=1:length(idx)
+            varargin{idx(k)} = {}; 
+        end
+    end
+end
+
 if strcmpi(typeproc,'nogui')
     % get the config from function
     cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG},varargin]),false);
@@ -107,17 +119,21 @@ if length(ALLEEG)>1 && any(strcmp(cfg.statTest.arg_selection,{'Hab'}))
 %     EEG2.icaact  = -EEG2.icaact;
 %     EEG_new           = pop_mergeset(ALLEEG(1),EEG2,1);
     
-
-    % FIXME: also take condition difference between 
-    % mean of EEG.data, icaact, srcpot
     
     EEG_new = ALLEEG(1);
-    EEG_new.data = [];
+    EEG_new.CAT = rmfield(EEG_new.CAT,'PConn');
+    % compute ERP condition difference
+    for fn={'data','icaact','srcpot'}
+        if isfield(EEG_new,fn{1}) && ~isempty(EEG_new.(fn{1}))
+            EEG_new.(fn{1}) = mean(ALLEEG(Stats.diffOrder(1)).(fn{1}),3) ...
+                            - mean(ALLEEG(Stats.diffOrder(2)).(fn{1}),3);
+        end
+    end
     EEG_new.setname   = cfg.statTest.datasetOrder;
     EEG_new.condition = cfg.statTest.datasetOrder;
     EEG_new = eeg_checkset(EEG_new);
     
-    EEG_new.CAT.Conn  = ConnMean;
+    EEG_new.CAT.Conn  = ConnMean;  % condition difference
     EEG_new.CAT.configs.(fcnName) = cfg;
     EEG_new.CAT.Stats = Stats;
     
@@ -126,6 +142,7 @@ if length(ALLEEG)>1 && any(strcmp(cfg.statTest.arg_selection,{'Hab'}))
     
     % store the new EEG dataset
     [ALLEEG EEG_new] = eeg_store(ALLEEG,EEG_new,length(ALLEEG)+1);
+    ALLEEG = EEG_new;
 elseif length(ALLEEG)==1
 
     if ~isempty(cfg)
