@@ -270,8 +270,9 @@ for m=1:length(g.connmethods)
             
             % get the order in which to subtract the datasets...
             [dummy setIdx] = ismember(g.statTest.datasetOrder,hlp_getCondOrderings(EEG));
+            Stats.diffOrder = fastif(setIdx==1,[1 2],[2 1]);
             % ... and reorder datasets
-            PConn = PConn(fastif(setIdx==1,[1 2],[2 1]));
+            PConn = PConn(Stats.diffOrder);
             
             switch g.statTest.testMethod
                 case 'quantile'

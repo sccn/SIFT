@@ -47,9 +47,10 @@ res = {};
 supported_checks = {'cat','conn','model','stats','pconn','pnull','surogdist','configs','validation','ic'};
 if ischar(EEG) && strcmpi(EEG,'supported_checks');
     res = supported_checks;
+    return;
 end
 if nargin<2
-    checks = ['cat','conn','model'];
+    checks = {'cat','conn','model'};
 end
 
 if ~iscell(checks)
@@ -94,7 +95,12 @@ for cnd=1:length(EEG)
                         'You need to run model order selection first'])];
                 end
             case 'surogdist'
-                res = [res, hlp_checkeegset(EEG(cnd),{'pconn','pnull'})];
+                % either pconn OR pnull must be present
+                tmpres = hlp_checkeegset(EEG(cnd),{'pnull'});
+                if ~isempty(tmpres) % if no pnull, check for pconn...
+                    tmpres = hlp_checkeegset(EEG(cnd),{'pconn'});
+                end
+                res = [res, tmpres];
             case 'pconn'
                 if ~isfield(EEG(cnd),'CAT') ...
                     || ~isfield(EEG(cnd).CAT,'PConn') ...

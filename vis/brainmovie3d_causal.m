@@ -317,6 +317,7 @@ try, g.drawmode;            catch, g.drawmode = 'normal'; end                   
 try, g.footerPanelPlotMode; catch, g.footerPanelPlotMode = {'all','envelope'}; end %% Plot mode for footer panel display (plot all traces and/or envelope)
 try, g.envColor;            catch, g.envColor = [1 0 0]; end                       %% TM: evelope color
 try, g.makeCompass;         catch, g.makeCompass = false; end                       %% TM: label cardinal directions (posterior,anterior, left, right)
+try, g.compassLabels;       catch, g.compassLabels = {'Dorsal ','Anterior ','Right Lat '};   end % labels for Z, Y, X coordinates
 try, g.windowLength;        catch; g.windowLength = []; end                        %% length of sliding window (for footer panel display)
 try, g.footerPanelData;     catch, g.footerPanelData = []; end
 try, g.footerPanelTitle;    catch, g.footerPanelTitle = ''; end                    %% TM: Title for footer panel display
@@ -979,11 +980,11 @@ if ismember(lower(g.mode),{'init','init_and_render'})
             set(hCompass(3).head,'FaceColor',[11 131 222]/255,'EdgeColor',[11 131 222]/255); % blue
             
             % draw labels
-            text(0,0,.15,'Dorsal ','color',[0.9 0 0],'parent',g.vars.hCompass(tmpcond), ...
+            text(0,0,.15,g.compassLabels{1},'color',[0.9 0 0],'parent',g.vars.hCompass(tmpcond), ...
                 'fontsize',12*g.resmult,'horizontalalignment','center');
-            text(0,.15,-0.01,'Anterior ','color',[0 0.9 0],'parent',g.vars.hCompass(tmpcond),...
+            text(0,.15,-0.01,g.compassLabels{2},'color',[0 0.9 0],'parent',g.vars.hCompass(tmpcond),...
                 'fontsize',12*g.resmult,'horizontalalignment','center');
-            text(.15,0,-0.01,'Right Lat ','color',[11 131 222]/255-0.04,'parent',g.vars.hCompass(tmpcond),...
+            text(.15,0,-0.01,g.compassLabels{3},'color',[11 131 222]/255-0.04,'parent',g.vars.hCompass(tmpcond),...
                 'fontsize',12*g.resmult,'horizontalalignment','center');
             
             axis(g.vars.hCompass(tmpcond),'equal','off');
@@ -1229,8 +1230,9 @@ if ismember(lower(g.mode),{'init','init_and_render'})
                 g.vars.hlgnd(countl) = axes('position', [maxcoordx+(1.1-maxcoordx)/2, 0.57 , (1.1-maxcoordx)/2, 0.14].*s+q, ...
                     'visible', g.visible, 'color', 'none', 'parent',g.figurehandle);
                 
-                ylim(g.vars.hlgnd(countl),[0 1]);
-                xlim(g.vars.hlgnd(countl),[0 1]);
+                % NOTE: enable/disable lines below this if legend coloring is not as expected
+%                 ylim(g.vars.hlgnd(countl),[0 1]);
+%                 xlim(g.vars.hlgnd(countl),[0 1]);
                 
                 if strcmpi(g.edgeColorPolarity, 'posneg')
                     cbar( [-1 1], [-1 1], g.edgeColormap, 'vert', '', g, g.vars.hlgnd(countl));
@@ -1729,7 +1731,7 @@ for indeximage = g.vars.alltimepoints
         % Set the lighting options
         g.vars.lights = hlp_bm_updateLights(g);
         
-        if g.caption
+        if g.caption && isfield(g.vars,'hlgnd')
             % reset text fontcolor to white
             set(findobj(g.vars.hlgnd,'type','text'),'color',[0.99 0.99 0.99]);
         end

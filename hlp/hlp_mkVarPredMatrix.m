@@ -8,7 +8,7 @@ function [X Y] = hlp_mkVarPredMatrix(data,p)
 % T = ntr   = number of trials
 % 
 % For simplicity, assume T = ntr = 1 (the case T>1 is handled automatically
-% in this function, and discussed later).
+									  % in this function, and discussed later).
 %
 % The zero-mean, order-p, vector autoregression equation
 %
@@ -31,7 +31,7 @@ function [X Y] = hlp_mkVarPredMatrix(data,p)
 % A is of size [M*p x M]
 %
 % Many solvers can exploit known structure in the model (e.g. Block SBL, 
-% Group Lasso, etc). One such structure is the natural grouping of the p
+														 % Group Lasso, etc). One such structure is the natural grouping of the p
 % coefficients {Aij} that describe influences from channel j to channel i
 % across all lags. For convenience when exploiting structure, we want to 
 % reorder the columns of X (rows of A) such that coefficients within a group 
@@ -85,13 +85,13 @@ function [X Y] = hlp_mkVarPredMatrix(data,p)
 % 
 % pinv(X)*Y = A 
 % 
-% where pinv() is some pseudoinverse operator. We can see that the ith
+% where pinv() is some pseudoinverse operator. We can see that the ith col.
 % of A is obtained by projecting the ith column of Y onto the inverse of X.
 %
 % pinv(X)*Y(:,i) = A(:,i)
 %
 % As such, we can solve for each column of A independently using the 
-% corresponding column of yeilding M independent models of the form:
+% corresponding column of Y yeilding M independent models of the form:
 % 
 % Y(:,i) = X*A(:,i) + noise
 % 
@@ -136,27 +136,27 @@ blkcols   = p*nchs;
 X = zeros(blkrows,blkcols,ntr);
 Y = zeros(blkrows,nchs,ntr);
 for itr = 1:ntr
-    % initialize delay-embedding blocks
-    Xi = zeros(blkrows,nchs,p);
-    for d = 1:p % extract data at each delay lag...
-        Xi(:,:,d) = squeeze(data(:, p+1-d:end-d, itr))';
-    end
-    % permute to [npnts x p x nchs] so each page is a 
-    % delay-embedding block for a given channel...
-    Xi = permute(Xi, [1 3 2]); 
-    % ... and concatenate blocks horizontally to form 2D design mat
-    % for this trial X(:,:,itr) = [X1 X2 ... XM]
-    X(:,:,itr) = reshape(Xi, blkrows, blkcols);
-    
-    % extract 0-lag data matrix for this trial...
-    Y(:,:,itr) = data(:, p+1:end,itr)';
+% initialize delay-embedding blocks
+Xi = zeros(blkrows,nchs,p);
+for d = 1:p % extract data at each delay lag...
+Xi(:,:,d) = squeeze(data(:, p+1-d:end-d, itr))';
+end
+% permute to [npnts x p x nchs] so each page is a 
+% delay-embedding block for a given channel...
+Xi = permute(Xi, [1 3 2]); 
+% ... and concatenate blocks horizontally to form 2D design mat
+% for this trial X(:,:,itr) = [X1 X2 ... XM]
+X(:,:,itr) = reshape(Xi, blkrows, blkcols);
+
+% extract 0-lag data matrix for this trial...
+Y(:,:,itr) = data(:, p+1:end,itr)';
 end
 
 if ntr>1
-    % reshape X and Y to stack trials vertically and form final 2D matrix
-    X = permute(X,[1 3 2]);
-    Y = permute(Y,[1 3 2]);
-    X = reshape(X,blkrows*ntr,blkcols);
-    Y = reshape(Y,blkrows*ntr,nchs);
+% reshape X and Y to stack trials vertically and form final 2D matrix
+X = permute(X,[1 3 2]);
+Y = permute(Y,[1 3 2]);
+X = reshape(X,blkrows*ntr,blkcols);
+Y = reshape(Y,blkrows*ntr,nchs);
 end
 

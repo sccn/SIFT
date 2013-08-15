@@ -68,6 +68,7 @@ HEAD_MODEL_NAME = 'data:/mobilab/Cognionics64_Channel_new_montage_noseX_HeadMode
 % platform-independent path which itself can be relative to bcilab root
 % folder (i.e. data:/ is the userdata folder in the bcilab root dir)
 datapath         = 'data:/';       % this is relative to the BCILAB root dir
+
 TrainingDataFile = 'calibration.xdf';%'Cognionics_64_SIMULATION_Asilomar.set'; %'calibration.xdf'; %'calibration_new.set'; %'Cognionics_64_training.set'; %'calibration.xdf'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; 'Cognionics_64_SIMULATION_one_source.set'; %'Cognionics_64_Flanker_85_265.set';  %'Cognionics_64_Flanker.set';  %'Cognionics_64_Flanker_0_10.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_training.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_training.set'; %'calibration_mindo.xdf'; % %'calibration.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is the relative path to the calibration dataset
 TestingDataFile  = 'calibration.xdf';%'Cognionics_64_SIMULATION_Asilomar.set'; %'calibration.xdf'; %'calibration_new.set'; %'calibration_new.set'; %'testing_mike_prebbc.xdf';%'Cognionics_64_testing.set'; %'Cognionics_64_Flanker.set';  %'calibration_old1.xdf'; %'Cognionics_64_testing.set'; %'Cognionics_64_SIMULATION_manysources_nocsdsaved.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_SIMULATION.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_Flanker_85_265.set'; %'Cognionics_64_Flanker.set'; %'Cognionics_64_testing.set'; %'testing.xdf'; %'Cognionics_Pyramind_demo.set'; %'clean_reversed.xdf'; %'noisy.xdf'; %'Cognionics_Pyramind_demo.set';             % this is an optional path to a dataset to playback (if RUN_LSL = false)
 GUI_CONFIG_NAME  = 'METACP_CFG_MATM_JUNE_1.mat'; %'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'BMCFG_RECORD_STABILITY_TEST_VBLORETA.mat'; %'Cognionics_64_Pipeline_Demo_METACP_CFG.mat'; %'EMBC_PAPER_METACP_OPTS_NOSOURCES.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs_nodelay_manyROIs_autochansel.mat'; %'SIMULATION_TEST_LORETA.mat'; %'DEMO_SOURCELOC_METACP_CFG_AllVertices.mat'; %'DEMO_SOURCELOC_METACP_CFG_CombineROIs.mat'; %'DARPA_DEMO_METACP_CFG_FEWCHANS.mat';             % relative path to a default pipeline configuration
@@ -125,6 +126,7 @@ gobj            = [];
 % noflats = exp_eval_optimized(flt_movavg(flt_selchans(calibData,{'FC3', 'FC4', 'FC2', 'FC1', 'C3', 'C4', 'C2', 'C1', 'CP3', 'CP4', 'CP2', 'CP1', 'P3', 'P4', 'P2', 'P1'})));
 % noflats = flt_seltypes(calibData,'EEG');
 noflats = exp_eval_optimized(flt_movavg(flt_seltypes(calibData,'EEG')));
+rejimpedance = exp_eval_optimized(flt_rej_impedance(noflats,2,4));
 highpassed   = exp_eval_optimized(flt_fir(noflats,[0.5 1],'highpass'));
 goodchannels = exp_eval_optimized(flt_clean_channels('signal',highpassed,'min_corr',0.35,'ignored_quantile',0.3));
 
@@ -281,8 +283,10 @@ while ~opts.exitPipeline
                 opts.siftPipCfg.modeling.winlen = opts.miscOptCfg.winLenSec;
                 
                 % import ROI Names
-                if strcmpi(opts.siftPipCfg.preproc.sigtype.arg_selection,'sources')
+                if strcmpi(opts.siftPipCfg.preproc.sigtype.arg_selection,'sources') && isfield(eeg_chunk,'roiLabels')
                     opts.siftPipCfg.preproc.varnames = eeg_chunk.roiLabels;
+                else
+                    opts.siftPipCfg.preproc.varnames = {};
                 end
                 
                 % select a subset of channels
