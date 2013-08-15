@@ -813,7 +813,7 @@ if ismember(lower(g.mode),{'init','init_and_render'})
         set(g.figurehandle,'CurrentAxes',g.vars.hBrain(tmpcond));
         %         axes(g.vars.hBrain(tmpcond));
 %         CameraPosition = campos(g.vars.hBrain(tmpcond));
-        dipplot( dipstruct, 'view', g.view, g.dipplotopt{:});
+        dipplot_sift( dipstruct, 'view', g.view, g.dipplotopt{:});
 %         campos(g.vars.hBrain(tmpcond),CameraPosition);
         axis(g.vars.hBrain(tmpcond),'off');
         if ~isempty(curax)

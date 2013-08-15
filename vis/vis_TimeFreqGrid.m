@@ -1775,7 +1775,7 @@ switch lower(g.topoplot)
     case 'dipole'
         % plot dipole locations
         
-        cbstr=pop_dipplot(ALLEEG(1),ALLEEG(1).CAT.curComps(curch), ...
+        cbstr=pop_dipplot_sift(ALLEEG(1),ALLEEG(1).CAT.curComps(curch), ...
             dipplotargs{:});
         set(gca,'buttondownfcn',['figure;' cbstr]);
 
