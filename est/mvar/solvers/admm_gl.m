@@ -343,7 +343,7 @@ function C = outerprod(A,mode,blkSz)
         % put blocks on main diagonal of sparse zero matrix
         C = blkdiageye(sparse(C),numblks);
     else       
-        % A is some othe structure, multiply the usual way
+        % A is some other structure, multiply the usual way
         switch mode
             case 'AtA'
                 C = A'*A;
