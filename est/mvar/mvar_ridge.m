@@ -113,30 +113,10 @@ g = arg_define([0 1],varargin, ...
                 arg({'verb','Verbosity'},verb,{int32(0) int32(1) int32(2)},'Verbose output','type','int32','mapper',@(x)int32(x)) ...
                 );
 
-% arg_subtoggle({'warmStart','WarmStart'},[], ...
-%                 {...
-%                     arg({'initState','InitialState'},[],[],'Initial BSBL state object. If empty, last state will be used.') ...
-%                 },'Warm start. The previously estimated state will be used as a starting estimate for successive BSBL operations. Alternately, you may provide an non-empty initial state structure via the ''InitialState'' argument.'), ...
-%                 
-% arg({'scaled','UseScaling'},true,[],'Scaling option. If set, coefficient estimates are restored to the scale of the original data'), ...
-
 arg_toworkspace(g);
 
 [nchs npnts ntr] = size(data);
 p = morder;
-
-% % initialize state
-% if g.warmStart.arg_selection && ~isempty(g.warmStart.initState)
-%     initAR = g.warmStart.initState;
-% elseif ~g.warmStart.arg_selection
-%     % reset initAR
-%     initAR = struct([]);
-% end
-% if isfield(initAR,'x') && size(initAR.x,1) ~= p*nchs^2
-%     % dimensions have changed, reset state
-%     fprintf('mvar_BSBL: model dimensions changed -- resetting state\n');
-%     initAR = struct([]);
-% end
 
 % assemble the predictor (design) matrix and target vector
 [X Y] = hlp_mkVarPredMatrix(g.data,p);
