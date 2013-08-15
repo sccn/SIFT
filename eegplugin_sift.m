@@ -100,17 +100,17 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     finalcmd = [ trystrs.no_check cmd ];
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     Connectivity_callback   = [finalcmd catchstrs.store_and_hist refreshMenuCB];
-    
+
     % statistics
     cmd = 'EEG = pop_stat_surrogateGen(EEG,0);';
     finalcmd = [ trystrs.no_check cmd ];
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     SurrogateDistrib_callback = [finalcmd catchstrs.store_and_hist refreshMenuCB];
     
-    cmd = 'EEG = pop_stat_surrogateStats(EEG,0);';
+    cmd = 'EEG = pop_stat_surrogateStats(EEG,0); CURRENTSET = CURRENTSET(1);';
     finalcmd = [ trystrs.no_check cmd ];
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
-    SurrogateStats_callback = [finalcmd catchstrs.store_and_hist refreshMenuCB];
+    SurrogateStats_callback = [finalcmd catchstrs.new_and_hist refreshMenuCB];
     
     cmd = 'EEG = pop_stat_analyticStats(EEG,0);';
     finalcmd = [ trystrs.no_check cmd ];
