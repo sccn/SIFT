@@ -57,6 +57,9 @@ switch lower(graphMeasure)
     case 'outflow'
         % Compute outflow from ch1 in each freq
         NodeValue = squeeze(sum(causality(othervars,ch1,:),1));
+    case 'mag_outflow'
+        % Compute outflow from ch1 in each freq, ignoring sign
+        NodeValue = squeeze(sum(abs(causality(othervars,ch1,:)),1));
     case 'inflow'
         % Compute inflow to ch1 in each freq
         NodeValue = squeeze(sum(causality(ch1,othervars,:),2));
