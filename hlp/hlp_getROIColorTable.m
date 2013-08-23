@@ -12,7 +12,7 @@ function colors = hlp_getROIColorTable(atlasLabels,roiLabels,bgColor,roiColors)
 %               If a matrix, it must be [num_roi x 3] matrix of RGB triplet
 
 nROIAtlas = size(atlasLabels);
-roiInds = find(ismember(atlasLabels,roiLabels));
+roiInds = find(ismember_bc(atlasLabels,roiLabels));
 nMyROIs = length(roiInds);
 
 if ischar(roiColors)

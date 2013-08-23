@@ -62,12 +62,12 @@ g = arg_define([0 1],varargin, ...
 
 
 nbcomps = size(g.EEG.CAT.srcdata,1);
-ComponentIndicesToKeep = find(ismember(MyComponentNames,g.ComponentsToKeep));
+ComponentIndicesToKeep = find(ismember_bc(MyComponentNames,g.ComponentsToKeep));
 
 if g.verb, fprintf('Selecting components...\n'); end
        
 % select a subset of components from g.EEG
-rmcomps = setdiff(1:nbcomps,ComponentIndicesToKeep);
+rmcomps = setdiff_bc(1:nbcomps,ComponentIndicesToKeep);
 
 g.EEG.CAT.srcdata(rmcomps,:)     = [];
 g.EEG.CAT.srcdata = reshape(g.EEG.CAT.srcdata, size(g.EEG.CAT.srcdata,1), g.EEG.CAT.pnts, g.EEG.CAT.trials);

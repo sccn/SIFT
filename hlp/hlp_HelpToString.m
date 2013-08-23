@@ -183,7 +183,7 @@ for i=1:length(rep)
     
 %     % check if this has children and if so, create underline
 %     % TM: omitted
-%     if ismember(char(rep(i).head),{'arg_sub','arg_subswitch','arg_subtoggle'})
+%     if ismember_bc(char(rep(i).head),{'arg_sub','arg_subswitch','arg_subtoggle'})
 %         output = [output; {repmat('-',1,length(name)+1), ''}];
 %     end
     

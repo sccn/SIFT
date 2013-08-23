@@ -43,13 +43,13 @@ end
 if(keepratio<1-1e-9 & ~iscell(f))
 	fprintf(1,'resampling surface mesh ...\n');
 	[no,el]=meshresample(v(:,1:3),f(:,1:3),keepratio);
-	el=unique(sort(el,2),'rows');
+	el=unique_bc(sort(el,2),'rows');
 
 	% then smooth the resampled surface mesh (Laplace smoothing)
 
 	%% edges=surfedge(el);  % disable on 12/05/08, very slow on octave
 	%% mask=zeros(size(no,1),1);
-	%% mask(unique(edges(:)))=1;  % =1 for edge nodes, =0 otherwise
+	%% mask(unique_bc(edges(:)))=1;  % =1 for edge nodes, =0 otherwise
 	%[conn,connnum,count]=meshconn(el,length(no));
 	%no=smoothsurf(no,mask,conn,2);
 

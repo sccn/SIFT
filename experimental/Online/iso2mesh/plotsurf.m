@@ -37,7 +37,7 @@ if(nargin>=2)
         rand('state',randseed);
 
         tag=face(:,4);
-		types=unique(tag);
+		types=unique_bc(tag);
         hold on;
 		h=[];
 	for i=1:length(types)

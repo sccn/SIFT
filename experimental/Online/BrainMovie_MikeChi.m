@@ -94,7 +94,7 @@ pipln = onl_newpipeline(processed,{'mystream'});
 
 % ChannelIDs = strtrim(cellstr(num2str(Channels')))';  % convert list of components to cell array of strings
 ChannelIDs = {EEG.chanlocs(Channels).labels};
-PowerChannelsIdx = find(ismember(Channels,PowerChannels));
+PowerChannelsIdx = find(ismember_bc(Channels,PowerChannels));
 
 % reset the state
 clear mvar_glADMM;

@@ -38,7 +38,7 @@ rand('state',randseed);
 if(~iscell(elem))
 	if(size(elem,2)>4)
 		tag=elem(:,5);
-		types=unique(tag);
+		types=unique_bc(tag);
 		hold on;
 		h=[];
 		for i=1:length(types)

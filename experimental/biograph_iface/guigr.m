@@ -202,7 +202,7 @@ case 1,
         set(UD.NodeH,'xdata',UD.Nodes(:,1),'ydata',UD.Nodes(:,2));
       end;
       if UD.StartCord~=i,
-        Drawn=ismember([UD.StartCord i; i UD.StartCord],UD.Edges,'rows');
+        Drawn=ismember_bc([UD.StartCord i; i UD.StartCord],UD.Edges,'rows');
         if ~any(Drawn),
           Ex=get(UD.EdgeH,'xdata'); Ex(size(Ex,2)+(1:3))=[NaN UD.Nodes(UD.StartCord,1) Pnt(1)];
           Ey=get(UD.EdgeH,'ydata'); Ey(size(Ey,2)+(1:3))=[NaN UD.Nodes(UD.StartCord,2) Pnt(2)];

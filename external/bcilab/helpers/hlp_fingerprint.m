@@ -137,7 +137,7 @@ elseif iscell(x)
             elseif all(cellfun('isclass',x(:),'struct'))
                 % struct()'s
                 x = ['ces' typecast(uint32(size(x)),'uint8')];
-            elseif length(unique(cellfun(@class,x(:),'UniformOutput',false))) == 1
+            elseif length(unique_bc(cellfun(@class,x(:),'UniformOutput',false))) == 1
                 % same class
                 x = ['cex' class(x{1}) typecast(uint32(size(x)),'uint8')];
             else

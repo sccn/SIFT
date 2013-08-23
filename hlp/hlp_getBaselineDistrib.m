@@ -38,7 +38,7 @@ function base = hlp_getBaselineDistrib(PConn,baseline)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-connmethods = setdiff(fieldnames(PConn),{'winCenterTimes','erWinCenterTimes','freqs'});
+connmethods = setdiff_bc(fieldnames(PConn),{'winCenterTimes','erWinCenterTimes','freqs'});
 
 for cnd=1:length(PConn)
     

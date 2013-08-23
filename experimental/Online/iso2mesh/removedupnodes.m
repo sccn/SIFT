@@ -19,5 +19,5 @@ function [newnode,newelem]=removedupnodes(node,elem)
 % -- this function is part of iso2mesh toolbox (http://iso2mesh.sf.net)
 %
 
-[newnode,I,J]=unique(node,'rows');
+[newnode,I,J]=unique_bc(node,'rows');
 newelem=J(elem);

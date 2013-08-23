@@ -147,7 +147,7 @@ idx = ~cellfun(@isempty,res);
 if all(idx==1)
     error(res{idx}{1});
 end
-if ~ismember('mode',lower(g.statTest.statcondargs))
+if ~ismember_bc('mode',lower(g.statTest.statcondargs))
     g.statTest.statcondargs = [g.statTest.statcondargs 'mode', 'perm'];
 end
 if g.verb==0
@@ -269,7 +269,7 @@ for m=1:length(g.connmethods)
             end
             
             % get the order in which to subtract the datasets...
-            [dummy setIdx] = ismember(g.statTest.datasetOrder,hlp_getCondOrderings(EEG));
+            [dummy setIdx] = ismember_bc(g.statTest.datasetOrder,hlp_getCondOrderings(EEG));
             Stats.diffOrder = fastif(setIdx==1,[1 2],[2 1]);
             % ... and reorder datasets
             PConn = PConn(Stats.diffOrder);
@@ -451,7 +451,7 @@ for m=1:length(g.connmethods)
     if isfield(Stats.(g.connmethods{m}),'pval')
         szp = size(PConn(1).(g.connmethods{m}));
         szs = size(Stats.(g.connmethods{m}).pval);
-        [dummy dimidx] = setdiff(szp(1:end-1),szs);
+        [dummy dimidx] = setdiff_bc(szp(1:end-1),szs);
         if ~isempty(dimidx)
             % a singleton dimension was squeezed out, restore it
             Stats.(g.connmethods{m}).pval = hlp_insertSingletonDim(Stats.(g.connmethods{m}).pval,dimidx+1);
@@ -462,7 +462,7 @@ for m=1:length(g.connmethods)
     if isfield(Stats.(g.connmethods{m}),'ci')
         szp = size(PConn(1).(g.connmethods{m}));
         szs = size(Stats.(g.connmethods{m}).ci);
-        [dummy dimidx] = setdiff(szp(1:end-1),szs(2:end));
+        [dummy dimidx] = setdiff_bc(szp(1:end-1),szs(2:end));
         if ~isempty(dimidx)
             % a singleton dimension was squeezed out, restore it
             Stats.(g.connmethods{m}).ci = hlp_insertSingletonDim(Stats.(g.connmethods{m}).ci,dimidx+1);
@@ -475,7 +475,7 @@ for m=1:length(g.connmethods)
     if isfield(Stats.(g.connmethods{m}),'thresh')
         szp = size(PConn(1).(g.connmethods{m}));
         szs = size(Stats.(g.connmethods{m}).thresh);
-        [dummy dimidx] = setdiff(szp(1:end-1),szs);
+        [dummy dimidx] = setdiff_bc(szp(1:end-1),szs);
         if ~isempty(dimidx)
             % a singleton dimension was squeezed out, restore it
             Stats.(g.connmethods{m}).thresh = hlp_insertSingletonDim(Stats.(g.connmethods{m}).thresh,dimidx+1);

@@ -150,7 +150,7 @@ end;
 if strcmpi(typedip, 'besa')
     if ~isfield(EEG, 'sources'), error('No BESA dipole information in dataset');end;
     if ~isempty(comps)
-        [tmp1 int] = intersect( [ EEG.sources.component ], comps);
+        [tmp1 int] = intersect_bc( [ EEG.sources.component ], comps);
         if isempty(int), error ('Localization not found for selected components'); end;
         dipplot_sift((EEG.sources(int), 'sphere', 1, options{:});
     else

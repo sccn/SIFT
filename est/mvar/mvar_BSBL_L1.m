@@ -147,7 +147,7 @@ if g.groupDiags
     % Indices for the diagonal elements (self connection)
     diagIdx = vec(repmat((1:p*(nchs+1):p*nchs^2), p, 1) + repmat((0:(p-1))', 1, nchs))';
     % Indices for the off-diagonal elements (connection to others)
-    offDiagIdx = setdiff(1:p*nchs^2, diagIdx);
+    offDiagIdx = setdiff_bc(1:p*nchs^2, diagIdx);
 
     X = [X(:, offDiagIdx) X(:, diagIdx)];
     blks = [p*ones(1,nchs*(nchs-1)),p*nchs];

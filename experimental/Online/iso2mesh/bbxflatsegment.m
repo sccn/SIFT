@@ -48,30 +48,30 @@ nn=length(loop);
 
 % if the original is a flat polygon, return
 
-if(unique(length(idx0))==nn | unique(length(idx1))==nn ...
-  |unique(length(idy0))==nn | unique(length(idy1))==nn ...
-  |unique(length(idz0))==nn | unique(length(idz1))==nn) 
+if(unique_bc(length(idx0))==nn | unique_bc(length(idx1))==nn ...
+  |unique_bc(length(idy0))==nn | unique_bc(length(idy1))==nn ...
+  |unique_bc(length(idz0))==nn | unique_bc(length(idz1))==nn) 
     seg=loop(:)';
     return;
 end
 
 % otherwise, find the combination that split the loop
 
-if(length(unique([idx0 idy0 idz0]))==nn)
+if(length(unique_bc([idx0 idy0 idz0]))==nn)
    seg= [loop(idx0),nan,loop(idy0),nan,loop(idz0)];
-elseif(length(unique([idx0 idy1 idz0]))==nn)
+elseif(length(unique_bc([idx0 idy1 idz0]))==nn)
    seg= [loop(idx0),nan,loop(idy1),nan,loop(idz0)];
-elseif(length(unique([idx0 idy0 idz1]))==nn)
+elseif(length(unique_bc([idx0 idy0 idz1]))==nn)
    seg= [loop(idx0),nan,loop(idy0),nan,loop(idz1)];
-elseif(length(unique([idx0 idy1 idz1]))==nn)
+elseif(length(unique_bc([idx0 idy1 idz1]))==nn)
    seg= [loop(idx0),nan,loop(idy1),nan,loop(idz1)];
-elseif(length(unique([idx1 idy0 idz0]))==nn)
+elseif(length(unique_bc([idx1 idy0 idz0]))==nn)
    seg= [loop(idx1),nan,loop(idy0),nan,loop(idz0)];
-elseif(length(unique([idx1 idy1 idz0]))==nn)
+elseif(length(unique_bc([idx1 idy1 idz0]))==nn)
    seg= [loop(idx1),nan,loop(idy1),nan,loop(idz0)];
-elseif(length(unique([idx1 idy0 idz1]))==nn)
+elseif(length(unique_bc([idx1 idy0 idz1]))==nn)
    seg= [loop(idx1),nan,loop(idy0),nan,loop(idz1)];
-elseif(length(unique([idx1 idy1 idz1]))==nn)
+elseif(length(unique_bc([idx1 idy1 idz1]))==nn)
    seg= [loop(idx1),nan,loop(idy1),nan,loop(idz1)];
 else
     seg=[];

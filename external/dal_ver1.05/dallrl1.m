@@ -38,7 +38,7 @@ opt=propertylist2struct(varargin{:});
 opt=set_defaults(opt,'solver','cg',...
                      'stopcond','pdg');
 
-if ~isequal(unique(yy), [-1;1])
+if ~isequal(unique_bc(yy), [-1;1])
   error('yy must be a column vector of -1''s and 1''s');
 end
 

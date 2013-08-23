@@ -23,7 +23,7 @@ nd=v(aloop,:);
 boxfacet=find(sum(abs(diff(nd)))<1e-2); % find a flat loop
 if(length(boxfacet))   % if the loop is flat along x/y/z dir
      bf=boxfacet(1);    % no degeneracy allowed
-     idx=setdiff([1 2 3],bf);
+     idx=setdiff_bc([1 2 3],bf);
      
      p0=(nd(1,:)+nd(2,:))/2;
      pvec=complex(p0(idx(1)),p0(idx(2)));

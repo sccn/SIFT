@@ -64,7 +64,7 @@ if isstruct(Conn)
     end
     
     % copy supplementary fields into new connectivity structure
-    extrafields = setdiff(fieldnames(Conn),hlp_getConnMethodNames(Conn));
+    extrafields = setdiff_bc(fieldnames(Conn),hlp_getConnMethodNames(Conn));
     for f=1:length(extrafields)
         Conn2.(extrafields{f}) = Conn.(extrafields{f});
     end

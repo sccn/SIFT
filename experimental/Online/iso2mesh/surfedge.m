@@ -35,10 +35,10 @@ else
 end
 % node4=[f(:,3);f(:,2);f(:,1)];   % node idx concatinated
 edgesort=sort(edges,2);
-[foo,ix,jx]=unique(edgesort,'rows');
+[foo,ix,jx]=unique_bc(edgesort,'rows');
 
 if(isoctavemesh)
-        u=unique(jx);
+        u=unique_bc(jx);
 	qx=u(hist(jx,u)==1);
 else
 	vec=histc(jx,1:max(jx));

@@ -985,7 +985,7 @@ function	[par,opt]=CPRINTF_parse_option(par,varargin)
 		ix=find(...
 			cellfun(@ischar,arg)		&...
 			cellfun(@(x) size(x,1)==1,arg));
-		[ia,iv]=ismember(op,arg(ix));
+		[ia,iv]=ismember_bc(op,arg(ix));
 		ia=find(ia);
 		iv=iv(iv>0);
 	for	i=1:numel(ix(iv))
@@ -2296,7 +2296,7 @@ function	[res,copt]=CPRINTF_ini2opt(par,varargin)
 			ctok
 		];
 
-		nent=numel(unique(ftok))-nopt;
+		nent=numel(unique_bc(ftok))-nopt;
 		ns=max([2;cellfun(@numel,ftok)]);
 		fmt=sprintf('\\to.%%%d.%ds = %%s;',ns,ns);
 		res=cellfun(@(x,y) sprintf(fmt,x,y),ftok,ctok,'uni',false);

@@ -209,7 +209,7 @@ end
 % toggle the displayable option for children which should be suppressed
 if ~isempty(suppressNames)
     % identify which children we want to suppress display
-    hidden = find(cellfun(@any,cellfun(@(x,y) ismember(x,suppressNames),{spec.children.names},'UniformOutput',false)));
+    hidden = find(cellfun(@any,cellfun(@(x,y) ismember_bc(x,suppressNames),{spec.children.names},'UniformOutput',false)));
     % set display flag to false
     for k=hidden(:)'
         spec.children(k).displayable = false;

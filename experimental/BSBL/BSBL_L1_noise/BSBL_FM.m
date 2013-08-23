@@ -195,7 +195,7 @@ for count = 1:max_it
     ml =  inf*ones(1,p);
     ig0 = find(theta>0);
     % index for re-estimate
-    [ire,foo,which] = intersect(ig0,index);
+    [ire,foo,which] = intersect_bc(ig0,index);
     if ~isempty(ire)
 		len = length(which);
 		for kk = 1:len
@@ -207,7 +207,7 @@ for count = 1:max_it
 		end
     end
     % index for adding
-    iad = setdiff(ig0,ire);
+    iad = setdiff_bc(ig0,ire);
     if ~isempty(iad)
 		len = length(iad);
 		for kk = 1:len
@@ -217,8 +217,8 @@ for count = 1:max_it
 		end
     end
     % index for deleting
-    is0 = setdiff([1:p],ig0);
-    [ide,foo,which] = intersect(is0,index);
+    is0 = setdiff_bc([1:p],ig0);
+    [ide,foo,which] = intersect_bc(is0,index);
     if ~isempty(ide)
 		len = length(which);
 		for kk = 1:len

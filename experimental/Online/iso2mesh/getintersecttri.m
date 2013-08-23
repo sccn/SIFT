@@ -31,4 +31,4 @@ if(status==0)
         eid(end+1)=str2num(id{j}{1});
     end
 end
-eid=unique(eid);
+eid=unique_bc(eid);

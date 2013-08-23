@@ -106,7 +106,7 @@ for k=1:num_clusters
     centroids(k).rv = 0;
     centroids(k).clustid = k;
     
-    if ismember(k,dualEquivDipoles)
+    if ismember_bc(k,dualEquivDipoles)
         centroids(k).posxyz = [S_bar_mean(k,:); S_bar_mean(k,:).*[1 -1 1]];
         centroids(k).select = [1 2];
     else

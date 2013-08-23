@@ -118,7 +118,7 @@ handles = vis_TimeFreqGrid(ALLEEG,Conn,cfg);
 %     
 % 
 % allconnmethods = fieldnames(Conn(1));
-% allconnmethods = setdiff(allconnmethods,{'winCenterTimes','erWinCenterTimes','freqs'});
+% allconnmethods = setdiff_bc(allconnmethods,{'winCenterTimes','erWinCenterTimes','freqs'});
 % connstr = '';
 % for i=1:length(allconnmethods)
 %     connstr = [connstr allconnmethods{i} '|'];

@@ -46,7 +46,7 @@ else
     error('Optional parameters are wrong!\n');
 end
 
-commonSupp = intersect(ind,trueSourceIndex);
+commonSupp = intersect_bc(ind,trueSourceIndex);
 
 if isempty(commonSupp), 
     F = 0; P = 0; R = 0;

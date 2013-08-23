@@ -78,7 +78,7 @@ if(~isempty(img))
         maxlevel=max(newimg(:));
         isovalues=1:maxlevel;
     else
-        isovalues=unique(sort(isovalues));
+        isovalues=unique_bc(sort(isovalues));
         maxlevel=length(isovalues);
     end
 

@@ -208,7 +208,7 @@ if ~isempty(chk)
 end
 
 if (ALLEEG.CAT.trials==1 || isempty(ALLEEG.CAT.trials)) ...
-        && any(ismember(lower(mode.arg_selection),{'bootstrap','jacknife','inversejacknife','crossval'}))
+        && any(ismember_bc(lower(mode.arg_selection),{'bootstrap','jacknife','inversejacknife','crossval'}))
     error(['Unable to compute bootstrap distributions for a single trial. ' char(10) ...
            'You must use either Analytic Statistics or Phase Randomization surrogate option']);
 end
@@ -403,7 +403,7 @@ for m=1:length(connfields)
 %     % check dimensions
 %     szp = size(PConn.(connfields{m}));
 %     szs = size(EEG.CAT.Conn.(connfields{m}));
-%     [dummy dimidx] = setdiff(szp(1:end-1),szs);
+%     [dummy dimidx] = setdiff_bc(szp(1:end-1),szs);
 %     if ~isempty(dimidx)
 %         % a singleton dimension was squeezed out, restore it
 %         PConn.(connfields{m}) = hlp_insertSingletonDim(PConn.(connfields{m}),dimidx+1);

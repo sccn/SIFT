@@ -39,7 +39,7 @@ A = kron(speye(M), X);
 indsB = vec(repmat((1:P*(M+1):P*M^2), P, 1) + repmat((0:(P-1))', 1, M))';
 
 %% Indices for the off-diagonal elements
-indsA = setdiff(1:P*M^2, indsB);
+indsA = setdiff_bc(1:P*M^2, indsB);
 
 %% Design corresponding to the diagonal elements (self connection)
 B = A(:, indsB);

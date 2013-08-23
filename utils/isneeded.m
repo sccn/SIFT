@@ -36,7 +36,7 @@ dependencies = {...
 if isempty(curmethod)
     needed =0;
     return;
-elseif ismember(curmethod,allmethods)
+elseif ismember_bc(curmethod,allmethods)
     needed = 1;
     return;
 else

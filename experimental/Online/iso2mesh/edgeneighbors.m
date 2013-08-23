@@ -30,7 +30,7 @@ edges=[t(:,[1,2]);
        t(:,[2,3]);
        t(:,[3 1])];
 edges=sort(edges,2);
-[foo,ix,jx]=unique(edges,'rows');
+[foo,ix,jx]=unique_bc(edges,'rows');
 
 if(nargin==2)
   if(strcmp(opt,'general'))
@@ -38,7 +38,7 @@ if(nargin==2)
         edgenb=cell(ne,1);
         for i=1:ne
             % this is very slow, need to be optimized
-            nb=unique(mod([find(jx==jx(i) | jx==jx(i+ne) | jx==jx(i+2*ne))]',ne),'first');
+            nb=unique_bc(mod([find(jx==jx(i) | jx==jx(i+ne) | jx==jx(i+2*ne))]',ne),'first');
             nb(nb==0)=ne;
             edgenb{i}=nb(nb~=i);
         end
@@ -49,7 +49,7 @@ if(nargin==2)
 end
 
 if(isoctavemesh)
-        u=unique(jx);
+        u=unique_bc(jx);
         qx=u(hist(jx,u)==2);
 else
         vec=histc(jx,1:max(jx));
@@ -61,15 +61,15 @@ ne=size(t,1);
 edgenb=zeros(size(t));
 
 % now I need to find all repeatitive elements
-% that share a face, to do this, unique('first')
+% that share a face, to do this, unique_bc('first')
 % will give me the 1st element, and 'last' will
 % give me the second. There will be no more than 2
 
 % doing this is 60 times faster than doing find(jx==qx(i))
 % inside a loop
 
-[ujx,ii]=unique(jx,'first');
-[ujx,ii2]=unique(jx,'last');
+[ujx,ii]=unique_bc(jx,'first');
+[ujx,ii2]=unique_bc(jx,'last');
 
 % iddup is the list of all pairs that share a common face
 
