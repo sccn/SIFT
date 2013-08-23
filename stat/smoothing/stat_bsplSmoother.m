@@ -111,8 +111,8 @@ Conn.options    = g;
 
     function [Conn PConn] = univariate_smooth(Conn,g)
         
-        smoothDiags     = ismember('diagonals',g.smoothingLayout);
-        smoothOffDiags  = ismember('off-diagonals',g.smoothingLayout);
+        smoothDiags     = ismember_bc('diagonals',g.smoothingLayout);
+        smoothOffDiags  = ismember_bc('off-diagonals',g.smoothingLayout);
         
         ntimes = length(Conn.erWinCenterTimes);
         nfreqs = length(Conn.freqs);
@@ -148,7 +148,7 @@ Conn.options    = g;
         end
         
         % copy all supplementary fields into PConn
-        PConn = hlp_splitstruct(Conn,setdiff(fieldnames(Conn),hlp_getConnMethodNames(Conn)));
+        PConn = hlp_splitstruct(Conn,setdiff_bc(fieldnames(Conn),hlp_getConnMethodNames(Conn)));
         
         % smooth each estimator in Conn
         % -----------------------------------------------------------------
@@ -204,7 +204,7 @@ Conn.options    = g;
     function [Conn PConn bsplmodel] = bivariate_smooth(Conn,g)
         % perform bivariate smoothing (time x freq x causality)
         
-        skipDiags = ~ismember('diagonals',g.smoothingLayout);
+        skipDiags = ~ismember_bc('diagonals',g.smoothingLayout);
         
         ntimes = length(Conn.erWinCenterTimes);
         nfreqs = length(Conn.freqs);
@@ -236,7 +236,7 @@ Conn.options    = g;
         end
         
         % * copy all supplementary fields into PConn
-        PConn = hlp_splitstruct(Conn,setdiff(fieldnames(Conn),hlp_getConnMethodNames(Conn)));
+        PConn = hlp_splitstruct(Conn,setdiff_bc(fieldnames(Conn),hlp_getConnMethodNames(Conn)));
         
         
         % * smooth connectivity values

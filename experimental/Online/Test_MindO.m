@@ -29,8 +29,8 @@ pwrch = 5;
 % s.chaninfo    = EEG.chaninfo;
 % 
 % % delete components
-% s.icaweights(setdiff(1:EEG.nbchan,Components),:) = [];
-% s.icawinv(:,setdiff(1:EEG.nbchan,Components)) = [];
+% s.icaweights(setdiff_bc(1:EEG.nbchan,Components),:) = [];
+% s.icawinv(:,setdiff_bc(1:EEG.nbchan,Components)) = [];
 % 
 % clear EEG;
 

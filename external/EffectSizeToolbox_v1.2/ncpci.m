@@ -45,7 +45,7 @@ pTarget=[1-alpha/2  alpha/2];
 
 % --- error checks, assignments of function handles, etc.
 % are we dealing with pdf defined only for positive abscissa values?
-isPosPdf=ismember(fType,{'X2','F'});
+isPosPdf=ismember_bc(fType,{'X2','F'});
 % if so...
 if isPosPdf && x<0
   error('input arg ''x'' is negative but must be positive for X2 and F distributions')

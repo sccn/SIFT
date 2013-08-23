@@ -17,7 +17,7 @@ end
 statconnmethods = hlp_getConnMethodNames(Stat);
 connmethods     = hlp_getConnMethodNames(Conn);
 
-methodsToSkip   = ~ismember(connmethods,statconnmethods);
+methodsToSkip   = ~ismember_bc(connmethods,statconnmethods);
 
 if remNonStatMethods
     % remove all methods that we don't have stats for

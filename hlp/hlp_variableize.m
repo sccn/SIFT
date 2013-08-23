@@ -35,9 +35,9 @@ if ischar(strname)
 end
 
 for i=1:length(strname)
-    goodchars = ismember(strname{i},num2str((0:9)')) | isletter(strname{i});
+    goodchars = ismember_bc(strname{i},num2str((0:9)')) | isletter(strname{i});
     tmp = strname{i}(goodchars);
-    if ismember(tmp(1),num2str((0:9)')), tmp(1)=[]; end
+    if ismember_bc(tmp(1),num2str((0:9)')), tmp(1)=[]; end
     varstr{i} = tmp;
 end
 

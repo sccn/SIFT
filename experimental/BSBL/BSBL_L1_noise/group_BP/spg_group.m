@@ -52,7 +52,7 @@ end
 
 % Preprocess the groups, normalize numbering
 g     = groups(:);
-gidx  = unique(g);
+gidx  = unique_bc(g);
 groups = sparse(length(gidx),length(g));
 for i=1:length(gidx)
    groups(i,g == gidx(i)) = 1;

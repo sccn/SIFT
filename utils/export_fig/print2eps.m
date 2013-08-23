@@ -78,13 +78,13 @@ for a = 1:numel(fonts)
         otherwise
     end
 end
-fontslu = unique(fontsl);
+fontslu = unique_bc(fontsl);
 % Determine the font swap table
 matlab_fonts = {'Helvetica', 'Times-Roman', 'Palatino', 'Bookman', 'Helvetica-Narrow', 'Symbol', ...
                 'AvantGarde', 'NewCenturySchlbk', 'Courier', 'ZapfChancery', 'ZapfDingbats'};
 matlab_fontsl = lower(matlab_fonts);
-require_swap = find(~ismember(fontslu, matlab_fontsl));
-unused_fonts = find(~ismember(matlab_fontsl, fontslu));
+require_swap = find(~ismember_bc(fontslu, matlab_fontsl));
+unused_fonts = find(~ismember_bc(matlab_fontsl, fontslu));
 font_swap = cell(3, 0);
 for a = 1:min(numel(require_swap), numel(unused_fonts))
     ind = find(strcmp(fontslu{require_swap(a)}, fontsl));

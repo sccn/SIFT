@@ -100,7 +100,7 @@ if ~isempty(EEG)
     if ~isempty(EEG.CAT.Conn)
         Conn = EEG.CAT.Conn(1);
         ConnNames   = hlp_getConnMethodNames(Conn);
-        ConnNames = intersect(ConnNames,{'RPDC','nPDC'});   %,'PDC','nDTF','DTF'
+        ConnNames = intersect_bc(ConnNames,{'RPDC','nPDC'});   %,'PDC','nDTF','DTF'
         conndef     = ConnNames;
     else
         ConnNames = {''};
@@ -162,20 +162,20 @@ for m=1:length(g.estimator)
                 df = 2;
             end
             
-            if any(ismember({'P-value','ConfidenceInterval'},g.statistic))
+            if any(ismember_bc({'P-value','ConfidenceInterval'},g.statistic))
                 % test statistic
                 Q = CAT.Conn.RPDC*N;
             end
-            if ismember('P-value',g.statistic)
+            if ismember_bc('P-value',g.statistic)
                 % compute p-value for rejection of null hypothesis
                 Stats.RPDC.pval = 1-chi2cdf(Q,df);
             end
-            if ismember('Threshold',g.statistic)
+            if ismember_bc('Threshold',g.statistic)
                 % critical value of null distribution
                 Stats.RPDC.thresh = chi2inv(1-g.alpha,df)/N;
                 Stats.RPDC.thresh = Stats.RPDC.thresh(ones(size(CAT.Conn.RPDC)));
             end
-            if ismember('ConfidenceInterval',g.statistic)
+            if ismember_bc('ConfidenceInterval',g.statistic)
                 % confidence interval from critical values of noncentral
                 % chi-squared distribution
                 Stats.RPDC.ci(1,:,:,:,:,:) = ncx2inv(g.alpha/2,  df,Q)/N;  % lower bound
@@ -246,19 +246,19 @@ for m=1:length(g.estimator)
                 clear Conn;
             end
             
-            if any(ismember({'P-value','ConfidenceInterval'},g.statistic))
+            if any(ismember_bc({'P-value','ConfidenceInterval'},g.statistic))
                 % test statistic
                 Q = (nPDC.*pdc_denom*N/scale)./Cij;
             end
-            if ismember('P-value',g.statistic)
+            if ismember_bc('P-value',g.statistic)
                 % compute p-value for rejection of null hypothesis
                 Stats.nPDC.pval = 1-chi2cdf(Q, df);
             end
-            if ismember('Threshold',g.statistic)
+            if ismember_bc('Threshold',g.statistic)
                 % critical value of null distribution
                 Stats.nPDC.thresh = bsxfun(@rdivide,Cij.*chi2inv(1-g.alpha,df)/scale,N*pdc_denom);
             end
-            if ismember('ConfidenceInterval',g.statistic)
+            if ismember_bc('ConfidenceInterval',g.statistic)
                 % confidence interval from critical values of noncentral
                 % chi-squared distribution (need to derive)
                 disp('Warning: Analytic confidence intervals not available for nPDC');
@@ -303,15 +303,15 @@ for m=1:length(g.estimator)
             %             end
             %
             %
-            %             if ismember('P-value',g.statistic)
+            %             if ismember_bc('P-value',g.statistic)
             %                 Stats.nDTF.pval = 1-chi2cdf((CAT.Conn.nDTF.*pdc_denom*N)./Cij , 1);
             %             end
             %
-            %             if ismember('Threshold',g.statistic)
+            %             if ismember_bc('Threshold',g.statistic)
             %                 Stats.nDTF.thresh = bsxfun(@rdivide,Cij.*chi2inv(1-g.alpha,1),N*pdc_denom);
             %             end
             %
-            %             if ismember('ConfidenceInterval',g.statistic)
+            %             if ismember_bc('ConfidenceInterval',g.statistic)
             %                 % TODO
             %                 Stats.nDTF.ci = [];
             %             end
@@ -338,7 +338,7 @@ if ~isempty(PConn) || nargout > 2
 %         % check dimensions
 %         szp = size(PConn.(connfields{m}));
 %         szs = size(CAT.Conn.(connfields{m}));
-%         [dummy dimidx] = setdiff(szp(1:end-1),szs);
+%         [dummy dimidx] = setdiff_bc(szp(1:end-1),szs);
 %         if ~isempty(dimidx)
 %             % a singleton dimension was squeezed out, restore it
 %             PConn.(connfields{m}) = hlp_insertSingletonDim(PConn.(connfields{m}),dimidx+1);

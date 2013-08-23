@@ -101,18 +101,18 @@ if strcmpi(UnivariateGraphMeasure,'spectrum')
         ComputeGraphMeasure = false;
     else
         % extract only the 'S' connectivity matrix from Conn
-        ConnSpect = rmfield(Conn,setdiff(hlp_getConnMethodNames(Conn),'S'));
+        ConnSpect = rmfield(Conn,setdiff_bc(hlp_getConnMethodNames(Conn),'S'));
     end
 end
 
 % remove all connectivity matrices that are not of interest
-Conn = rmfield(Conn,setdiff(hlp_getConnMethodNames(Conn),connmethod));
+Conn = rmfield(Conn,setdiff_bc(hlp_getConnMethodNames(Conn),connmethod));
 
 CollapsedConn = Conn;
 CollapsedConn.(connmethod) = zeros(nchs,nchs,NumTimeWindows);
 
 % obtain labels for the nodes (applying permutation if desired)
-GoodChanNumbers = setdiff(1:nchs,ChansToExclude);
+GoodChanNumbers = setdiff_bc(1:nchs,ChansToExclude);
 if isempty(NodeLabels)
     NodeLabels = strtrim(cellstr(num2str(GoodChanNumbers(PermutedChanOrder)')))';
 else

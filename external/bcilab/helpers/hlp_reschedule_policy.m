@@ -48,7 +48,7 @@ reschedule = [];
 % Policy 1: endgame mode: if less than N tasks in flight, re-schedule them to other machines (so that they are being worked on by 2 machines)
 if isempty(waiting) && length(inflight) <= 3
     % but do not reschedule them twice
-    reschedule = setdiff(inflight,batches(batchid).rescheduled);
+    reschedule = setdiff_bc(inflight,batches(batchid).rescheduled);
 end
 
 

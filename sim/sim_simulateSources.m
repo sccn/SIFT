@@ -10,7 +10,7 @@ if ~onl_isonline
         ROINames = {};
     else
         % get the unique ROI names
-        [tmp, idx] = unique(hmObj.atlas.label);
+        [tmp, idx] = unique_bc(hmObj.atlas.label);
         ROINames = hmObj.atlas.label(sort(idx))';
     end
 else
@@ -59,8 +59,8 @@ if isempty(g.sourceAtlasLabels)
 end
 
 if ~isempty(g.sourceShape.roiOrdered{1})
-    if ~all(ismember(g.sourceShape.roiOrdered,ROINames))
-        error('The following ROIs from roiOrdered do not appear in the Atlas: %s',hlp_tostring(g.sourceShape.roiOrdered(~ismember(g.sourceShape.roiOrdered,ROINames))));
+    if ~all(ismember_bc(g.sourceShape.roiOrdered,ROINames))
+        error('The following ROIs from roiOrdered do not appear in the Atlas: %s',hlp_tostring(g.sourceShape.roiOrdered(~ismember_bc(g.sourceShape.roiOrdered,ROINames))));
     end
     g.sourceShape.roiAtlasLabels = g.sourceShape.roiOrdered;
 end
@@ -88,7 +88,7 @@ if isempty(g.LFM)
         % prune the lead field matrix to contain only desired channels
         hmChanlabels  = lower(hmObj.getChannelLabels());
         % use only selected channels that are in the head model
-        chaninds = ismember(hmChanlabels,lower(g.channels));
+        chaninds = ismember_bc(hmChanlabels,lower(g.channels));
         if nnz(chaninds)~=length(g.channels)
             error('Some channels could not be matched to the headmodel');
         end
@@ -125,14 +125,14 @@ switch lower(g.sourceShape.arg_selection)
                     fprintf('Could not compute the centroid of ROI ''%s''. Selecting median vertex instead.\n', ...
                             g.sourceShape.roiAtlasLabels{k});
                     posxyz = v(fix(length(v)/2),:);
-                    [~,idx] = ismember(posxyz,cortexSurface.vertices,'rows');
+                    [~,idx] = ismember_bc(posxyz,cortexSurface.vertices,'rows');
                     centroids_LFM_idx(k) = idx(1);
                 elseif g.sourceShape.nearestNeighbor
                     % map the centroid of the ROI onto the ROI surface
                     dt     = DelaunayTri(v(:,1),v(:,2),v(:,3));
                     loc    = nearestNeighbor(dt, posxyz);
                     posxyz = v(loc,:);
-                    [~,idx] = ismember(posxyz,cortexSurface.vertices,'rows');
+                    [~,idx] = ismember_bc(posxyz,cortexSurface.vertices,'rows');
                     centroids_LFM_idx(k) = idx(1);
                 end
                 g.sourceShape.sourceCoords(k,:) = posxyz;

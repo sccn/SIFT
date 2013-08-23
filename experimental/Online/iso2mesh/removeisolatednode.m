@@ -18,7 +18,7 @@ function [no,el]=removeisolatednode(node,elem)
 %
 
 oid=1:size(node,1);       % old node index
-idx=setdiff(oid,elem(:)); % indices to the isolated nodes
+idx=setdiff_bc(oid,elem(:)); % indices to the isolated nodes
 idx=sort(idx);
 delta=zeros(size(oid));   
 delta(idx)=1;

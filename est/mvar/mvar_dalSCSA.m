@@ -181,7 +181,7 @@ X = blkdiageye(sparse(X),nchs);
 diagIdx = vec(repmat((1:p*(nchs+1):p*nchs^2), p, 1) + repmat((0:(p-1))', 1, nchs))';
 
 %% Indices for the off-diagonal elements
-offDiagIdx = setdiff(1:p*nchs^2, diagIdx);
+offDiagIdx = setdiff_bc(1:p*nchs^2, diagIdx);
 
 %% Design corresponding to the diagonal elements (self connection)
 B = X(:, diagIdx);

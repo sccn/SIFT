@@ -72,5 +72,5 @@ end
 [node,elem,face]=readmedit(mwpath('post_cgalpoly.mesh'));
 
 fprintf(1,'node number:\t%d\ntriangles:\t%d\ntetrahedra:\t%d\nregions:\t%d\n',...
-    size(node,1),size(face,1),size(elem,1),length(unique(elem(:,end))));
+    size(node,1),size(face,1),size(elem,1),length(unique_bc(elem(:,end))));
 fprintf(1,'surface and volume meshes complete\n');

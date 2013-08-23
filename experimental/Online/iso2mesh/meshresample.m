@@ -30,7 +30,7 @@ if(length(node)==0)
     [vnew,fnew]=meshcheckrepair(v,f);
     [node,elem]=domeshsimplify(vnew,fnew,keepratio);
 end
-[node,I,J]=unique(node,'rows');
+[node,I,J]=unique_bc(node,'rows');
 elem=J(elem);
 saveoff(node,elem,mwpath('post_remesh.off'));
 

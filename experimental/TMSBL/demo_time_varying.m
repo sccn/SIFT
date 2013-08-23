@@ -71,19 +71,19 @@ for it = 1 : iteration
     Wgen(indice0,:) = longS;
     
     % select another addNZ time series at L = 16
-    restLoc = setdiff([1:M],indice0);
+    restLoc = setdiff_bc([1:M],indice0);
     ind = randperm(length(restLoc));
     indice1 = restLoc(ind(1:addNZ));
     Wgen(indice1,[16:15+segLen]) = pool(1:addNZ,:);
     
     % delete existing time series at L=26
-    candidateLoc = union(indice0,indice1);
+    candidateLoc = union_bc(indice0,indice1);
     ind_rem = randperm(K+addNZ);
     indice_rem = candidateLoc(ind_rem(1:remNZ));
     Wgen(indice_rem,[24:end]) = Wgen(indice_rem,[24:end]).*(ones(remNZ,1)*[0.8,0.4,zeros(1,25)]);
     
     % select another addNZ time series at L = 31
-    restLoc2 = setdiff([1:M],union(indice0,indice1));
+    restLoc2 = setdiff_bc([1:M],union_bc(indice0,indice1));
     ind2 = randperm(length(restLoc2));
     indice2 = restLoc2(ind2(1:addNZ));
     Wgen(indice2,[31:30+segLen]) = pool(addNZ+1:addNZ*2,:);

@@ -176,7 +176,7 @@ for k=1:length(known_blks)
 end
 if ~isfield(info,'blkival')
     % group blocks according to their size
-    [blocksizes,dummy,blockindices] = unique(info.blks); %#ok<ASGLU>
+    [blocksizes,dummy,blockindices] = unique_bc(info.blks); %#ok<ASGLU>
     % compute index vectors for each block
     I = cell(length(info.blks),1);
     ix0 = 0;

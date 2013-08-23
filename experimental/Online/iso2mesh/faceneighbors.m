@@ -29,9 +29,9 @@ faces=[t(:,[1,2,3]);
        t(:,[1,3,4]);
        t(:,[2,3,4])];
 faces=sort(faces,2);
-[foo,ix,jx]=unique(faces,'rows');
+[foo,ix,jx]=unique_bc(faces,'rows');
 if(isoctavemesh)
-        u=unique(jx);
+        u=unique_bc(jx);
         qx=u(hist(jx,u)==2);
 else
         vec=histc(jx,1:max(jx));
@@ -43,15 +43,15 @@ ne=size(t,1);
 facenb=zeros(size(t));
 
 % now I need to find all repeatitive elements
-% that share a face, to do this, unique('first')
+% that share a face, to do this, unique_bc('first')
 % will give me the 1st element, and 'last' will
 % give me the second. There will be no more than 2
 
 % doing this is 60 times faster than doing find(jx==qx(i))
 % inside a loop
 
-[ujx,ii]=unique(jx,'first');
-[ujx,ii2]=unique(jx,'last');
+[ujx,ii]=unique_bc(jx,'first');
+[ujx,ii2]=unique_bc(jx,'last');
 
 % iddup is the list of all pairs that share a common face
 

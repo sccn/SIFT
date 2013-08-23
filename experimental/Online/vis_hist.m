@@ -85,7 +85,7 @@ if strcmp(cfg,'all')
     cfg = 1:C; end
 if ~isequal(cfg,cbg)
     % do a setdiff if they're not equal
-    cbg = setdiff(cbg,cfg); 
+    cbg = setdiff_bc(cbg,cfg); 
 end
     
 

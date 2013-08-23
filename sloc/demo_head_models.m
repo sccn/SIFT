@@ -71,14 +71,14 @@ hmObj.computeLeadFieldBEM(conductivity,normal2surface);
 % surfData(3).vertices: source space
 
 brainStructsToKeep = {'Occipital_Sup_L','Occipital_Mid_L','Occipital_Inf_L'}; 
-brainStructsToRemove = setdiff(hmObj.atlas.label,brainStructsToKeep); %{'Thalamus_L','Thalamus_R'};
+brainStructsToRemove = setdiff_bc(hmObj.atlas.label,brainStructsToKeep); %{'Thalamus_L','Thalamus_R'};
 [sourceSpace,K,L,rmIndices] = getSourceSpace4PEB(hmObj,brainStructsToRemove);
 load(hmObj.surfaces)
 n = size(surfData(3).vertices,1);
 J = zeros(n,1);
 Jtrue = J;
 Jest = J;
-ind = setdiff(1:n,rmIndices);
+ind = setdiff_bc(1:n,rmIndices);
 
 % simulating some Gaussian sources
 x0 = [-81.6328 17.9887 93.8088];  % occipital l

@@ -4,7 +4,7 @@ function Stats = stat_bootSigTest(PConn,multipleComparisonCorrection)
 % performed across the 5th dimension (boostrap samples or subjects)
 
 
-connmethods = setdiff(fieldnames(PConn),{'winCenterTimes','erWinCenterTimes','freqs'});
+connmethods = setdiff_bc(fieldnames(PConn),{'winCenterTimes','erWinCenterTimes','freqs'});
 
 for m=1:length(connmethods)
     

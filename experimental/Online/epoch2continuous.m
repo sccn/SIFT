@@ -26,7 +26,7 @@ if isempty(EEG.epoch)
       error('epoch2continuous() only works for epoched data!')
 end
 % tic;
-[xlat, indx]  = unique([EEG.event.latency], 'first');
+[xlat, indx]  = unique_bc([EEG.event.latency], 'first');
 neegevent  = length(indx);
 % new type
 typearray  = {EEG.event(indx).type};

@@ -210,10 +210,10 @@ end
 % the tag column, extracted
 listTag=cat(1,list_analysis{:,2});
 % indices to currently requested analyses
-listIx=ismember(list_analysis(:,1),esm);
+listIx=ismember_bc(list_analysis(:,1),esm);
 % unique tags of these analyses: must be a scalar of value 1 (1-sample
 % tests) or 2 (2-sample tests)
-uTag=unique(listTag(listIx));
+uTag=unique_bc(listTag(listIx));
 % catch a few silly errors:
 % - typos or non-existent analysis type
 if ~any(listIx)
@@ -224,7 +224,7 @@ if numel(uTag)>1
   error('A mix of one-sample and two-sample tests was requested')
 end
 % - programmer's error 
-if isempty(intersect(uTag,[1 2]))
+if isempty(intersect_bc(uTag,[1 2]))
   error('internal: uTag different from 1 or 2');
 end
 % illegal values for missVal
@@ -293,14 +293,14 @@ if ~isempty(nanRowX) || ~isempty(nanRowY)
     switch lower(missVal)
       case 'listwise'
         if isDep
-          nanRowX=union(nanRowX,nanRowY);
+          nanRowX=union_bc(nanRowX,nanRowY);
           nanRowY=nanRowX;
         end
         X(nanRowX,:)=nan;
         Y(nanRowY,:)=nan;
       case 'pairwise'
         if isDep
-          badIx=union(sub2ind([nRowX nColX],nanRowX,nanColX),sub2ind([nRowY nColY],nanRowY,nanColY));
+          badIx=union_bc(sub2ind([nRowX nColX],nanRowX,nanColX),sub2ind([nRowY nColY],nanRowY,nanColY));
           X(badIx)=nan;
           Y(badIx)=nan;
         end
@@ -319,17 +319,17 @@ clear badIx nanRowX nanColX nanRowY nanColY;
 % b) the exact procedure/results of bootstrapping and t-test depend on
 % whether the data are paired or not, hence a correct specification may be
 % essential
-if any(ismember(esm,'auroc'))
+if any(ismember_bc(esm,'auroc'))
   if isDep
     error('''auroc'' (receiver-operating characteristic) is not implemented for dependent samples (see parameter ''isDep'')');
   end
 end
-if any(ismember(esm,'glassdelta'))
+if any(ismember_bc(esm,'glassdelta'))
   if isDep
     warning('''glassdelta'' does not make sense for dependent samples (see parameter ''isDep'')');
   end
 end
-if any(ismember(esm,'mdbysd'))
+if any(ismember_bc(esm,'mdbysd'))
   if ~isDep
     error('''mdbysd'' (mean difference divided by std of difference score) is not defined for independent samples (see parameter ''isDep'')');
   end
@@ -925,7 +925,7 @@ end
 %         % generated is used for both original and bootstrapped (if any)
 %         % data.
 %         xyso=sort([x(:,1); y(:,1)]);
-%         xysod=unique(sort(diff(xyso)));
+%         xysod=unique_bc(sort(diff(xyso)));
 %         % zero is not an acceptable bin width
 %         if ~xysod(1)
 %           xysod(1)=[];

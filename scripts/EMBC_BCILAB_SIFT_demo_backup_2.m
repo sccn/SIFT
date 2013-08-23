@@ -40,7 +40,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Tip: to create an evaluable list of good channels (for flt_selchans) try this:
-% hlp_tostring(setdiff({signal.chanlocs.labels},badchannels))
+% hlp_tostring(setdiff_bc({signal.chanlocs.labels},badchannels))
 
 %% SET UP CONFIGURATION OPTIONS
 CALIB_EPOCH       = [0 10]; %[0 10]; % time range (sec) to extract from calibration dataset for training

@@ -19,14 +19,14 @@ function [X,V,E,F]=mesheuler(face)
 % 
 
 % mesh vertices
-V=length(unique(face));
+V=length(unique_bc(face));
 
 % mesh total edges
 E=face(:,[1,end]);
 for i=1:size(face,2)-1
 	E=[E;face(:,[i,i+1])];
 end
-E=size(unique(sortrows(sort(E,2)),'rows'),1);
+E=size(unique_bc(sortrows(sort(E,2)),'rows'),1);
 
 % mesh faces
 F=size(face,1);

@@ -122,17 +122,17 @@ I = eye(nchs);
 Cinv=inverse(C);
 
 % initialize objects
-tmp=setdiff(methodsneeded,univariate_measures);
+tmp=setdiff_bc(methodsneeded,univariate_measures);
 for i=1:length(tmp)
     % nchs x nchs x freqs (bivariate) measures
     Conn.(tmp{i}) = zeros(nchs,nchs,nfreqs);
 end
-tmp=intersect(methodsneeded,univariate_measures);
+tmp=intersect_bc(methodsneeded,univariate_measures);
 for i=1:length(tmp)
     % nchs x 1 x freqs (univariate) measures
     Conn.(tmp{i}) = zeros(nchs,1,nfreqs);
 end
-tmp=intersect(methodsneeded,singleton_measures);
+tmp=intersect_bc(methodsneeded,singleton_measures);
 for i=1:length(tmp)
     % nchs x 1 measures
     Conn.(tmp{i}) = zeros(nchs,1);
@@ -284,7 +284,7 @@ if any(strcmpi('RPDC',methodsneeded))
     end
 end
 
-if any(ismember({'GGC','GGC2'},methodsneeded))
+if any(ismember_bc({'GGC','GGC2'},methodsneeded))
     absS = abs(Conn.S);
     absHsq = abs(Conn.DTF).^2;
 end
@@ -319,7 +319,7 @@ end
 
 
 % return only the measures requested
-Conn = rmfield(Conn,setdiff(fieldnames(Conn),connmethods));
+Conn = rmfield(Conn,setdiff_bc(fieldnames(Conn),connmethods));
 
 % use single-precision to save space (the double() is to force inverse
 % objects to be converted to numerics)
@@ -354,7 +354,7 @@ end
 if isempty(curmethod)
     needed = false;
     return;
-elseif ismember(curmethod,allmethods)
+elseif ismember_bc(curmethod,allmethods)
     needed =  true;
     return;
 else

@@ -30,7 +30,7 @@ function [node,elem,face]=cgalv2m(vol,opt,maxvol)
 %	      the last column denotes the boundary ID
 %	      note: each triangle will appear twice in the face list with each
 %		    one attaches to each side of the interface. one can remove
-%		    the redundant triangles by unique(face(:,1:3),'rows')
+%		    the redundant triangles by unique_bc(face(:,1:3),'rows')
 %
 % -- this function is part of iso2mesh toolbox (http://iso2mesh.sf.net)
 %
@@ -84,6 +84,6 @@ end
 [node,elem,face]=readmedit(mwpath('post_cgalmesh.mesh'));
 
 fprintf(1,'node number:\t%d\ntriangles:\t%d\ntetrahedra:\t%d\nregions:\t%d\n',...
-    size(node,1),size(face,1),size(elem,1),length(unique(elem(:,end))));
+    size(node,1),size(face,1),size(elem,1),length(unique_bc(elem(:,end))));
 fprintf(1,'surface and volume meshes complete\n');
 

@@ -166,7 +166,7 @@ for cond = 1:num_conds
         
         curplot=curplot+1;
         
-        if ismember('acf',lower(g.whitenessCriteria))
+        if ismember_bc('acf',lower(g.whitenessCriteria))
             hl=hline(1-whitestats{cond}.alpha,'r','1-P_{acf}',[1.01 -0.01],ax);
             set(hl,'linestyle','--','linewidth',2);
         end

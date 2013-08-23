@@ -8,8 +8,8 @@ if nargin<2
     verbose = false;
 end
 
-[tmp indices] = unique(nvps(1:2:end));
+[tmp indices] = unique_bc(nvps(1:2:end));
 if verbose && length(tmp) ~= length(nvps)/2
     fprintf('Note: duplicate ''key'', ''val'' parameter(s), keeping the last one(s)\n');
 end;
-nvps = nvps(sort(union(indices*2-1, indices*2)));
+nvps = nvps(sort(union_bc(indices*2-1, indices*2)));

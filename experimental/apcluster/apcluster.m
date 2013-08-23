@@ -58,10 +58,10 @@ if nargin==0, % display demo
 	fprintf('end;\n');
 	fprintf('p=median(s(:,3)); % Set preference to median similarity\n');
 	fprintf('[idx,netsim,dpsim,expref]=apcluster(s,p,''plot'');\n');
-	fprintf('fprintf(''Number of clusters: %%d\\n'',length(unique(idx)));\n');
+	fprintf('fprintf(''Number of clusters: %%d\\n'',length(unique_bc(idx)));\n');
 	fprintf('fprintf(''Fitness (net similarity): %%g\\n'',netsim);\n');
 	fprintf('figure; % Make a figures showing the data and the clusters\n');
-	fprintf('for i=unique(idx)''\n');
+	fprintf('for i=unique_bc(idx)''\n');
 	fprintf('  ii=find(idx==i); h=plot(x(ii,1),x(ii,2),''o''); hold on;\n');
 	fprintf('  col=rand(1,3); set(h,''Color'',col,''MarkerFaceColor'',col);\n');
 	fprintf('  xi1=x(i,1)*ones(size(ii)); xi2=x(i,2)*ones(size(ii)); \n');
@@ -237,7 +237,7 @@ I=find((diag(A)+diag(R))>0); K=length(I); % Identify exemplars
 if K>0
     [tmp c]=max(S(:,I),[],2); c(I)=1:K; % Identify clusters
     % Refine the final set of exemplars and clusters and return results
-    for k=1:K ii=find(c==k); [y j]=max(sum(S(ii,ii),1)); I(k)=ii(j(1)); end; notI=reshape(setdiff(1:N,I),[],1);
+    for k=1:K ii=find(c==k); [y j]=max(sum(S(ii,ii),1)); I(k)=ii(j(1)); end; notI=reshape(setdiff_bc(1:N,I),[],1);
     [tmp c]=max(S(:,I),[],2); c(I)=1:K; tmpidx=I(c);
 	tmpdpsim=sum(S(sub2ind([N N],notI,tmpidx(notI))));
 	tmpexpref=sum(dS(I));

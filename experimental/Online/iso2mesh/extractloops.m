@@ -30,7 +30,7 @@ while(length(edges))
 %    if(length(idx)>1) error('self intersecting curve is unsupported'); end
     if(length(idx)==1)
         idx=idx(1);
-        newend=setdiff(edges(idx,:),loopend);
+        newend=setdiff_bc(edges(idx,:),loopend);
         if(newend==loophead)
             loops=[loops,nan];
             edges(idx,:)=[];

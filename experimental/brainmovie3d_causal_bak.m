@@ -618,7 +618,7 @@ g.projcolor = [0.35 0.35 0.35];
 g.rthistcolor  = [1 1 1];
 g.resmult = 1;
     
-if ismember(lower(g.mode),{'init','init_and_render'})
+if ismember_bc(lower(g.mode),{'init','init_and_render'})
 
     % create movie
     % ------------
@@ -648,7 +648,7 @@ if ismember(lower(g.mode),{'init','init_and_render'})
             if ~isempty(g.rt{index})
                 timestep = (TIMES(2)-TIMES(1))/2;
                 for indeximage = 1:nwin
-                    RTdist(index, indeximage) = length( intersect( find( g.rt{index} > TIMES(indeximage)-timestep ) , ...
+                    RTdist(index, indeximage) = length( intersect_bc( find( g.rt{index} > TIMES(indeximage)-timestep ) , ...
                         find(  g.rt{index} <= TIMES(indeximage)+timestep ) ) );
                 end;
                 RTdist(index,:) = RTdist(index,:)/max(RTdist(index,:));
@@ -1042,7 +1042,7 @@ for indeximage = g.vars.alltimepoints
                     end
                     
                     %% DEBUG
-                    %                       if ismember(index2,[3 5 9]), continue; end
+                    %                       if ismember_bc(index2,[3 5 9]), continue; end
                     
                     
                     tmpcrossfpow = ALLCROSSF     	 { index1, index2, tmpcond };

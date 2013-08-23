@@ -69,10 +69,10 @@ if(nargin>1)
 			if(iscell(varargin{1}) | size(varargin{1},2)<4)
 				face=varargin{1}; elem=[];
                         elseif(size(varargin{1},2)==4)
-                            faceid=unique(varargin{1}(:,4));
+                            faceid=unique_bc(varargin{1}(:,4));
                             if(length(faceid)==1)
                                 face=varargin{1}; elem=[];
-                            elseif(any(hist(varargin{1}(:,4),unique(varargin{1}(:,4)))>50))
+                            elseif(any(hist(varargin{1}(:,4),unique_bc(varargin{1}(:,4)))>50))
                                 face=varargin{1}; elem=[];
                             else
                                 elem=varargin{1}; face=[];
@@ -96,10 +96,10 @@ if(nargin>1)
 	elseif(iscell(varargin{1}) | size(varargin{1},2)<4)
 		face=varargin{1}; elem=[];
 	elseif(size(varargin{1},2)==4)
-	    faceid=unique(varargin{1}(:,4));
+	    faceid=unique_bc(varargin{1}(:,4));
             if(length(faceid)==1)
 	        face=varargin{1}; elem=[];
-	    elseif(any(hist(varargin{1}(:,4),unique(varargin{1}(:,4)))>50))
+	    elseif(any(hist(varargin{1}(:,4),unique_bc(varargin{1}(:,4)))>50))
                 face=varargin{1}; elem=[];
 	    else
                 elem=varargin{1}; face=[];

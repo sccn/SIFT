@@ -322,9 +322,9 @@ else
         % condition in this case)
         if iscellstr(nvps(1:2:end))
             try
-                disallowed_nvp = fast_setdiff(nvps(1:2:end),[joint_names {'arg_selection','arg_direct'}]);
+                disallowed_nvp = fast_setdiff_bc(nvps(1:2:end),[joint_names {'arg_selection','arg_direct'}]);
             catch
-                disallowed_nvp = setdiff(nvps(1:2:end),[joint_names {'arg_selection','arg_direct'}]);
+                disallowed_nvp = setdiff_bc(nvps(1:2:end),[joint_names {'arg_selection','arg_direct'}]);
             end
         else
             disallowed_nvp = {'or the sequence of names and values was confused'};
@@ -389,9 +389,9 @@ else
         if strict_names
             % enforce strict names
             try
-                disallowed_pos = fast_setdiff(nvps(1:2:end),[joint_names {'arg_selection','arg_direct'}]);
+                disallowed_pos = fast_setdiff_bc(nvps(1:2:end),[joint_names {'arg_selection','arg_direct'}]);
             catch
-                disallowed_pos = setdiff(nvps(1:2:end),[joint_names {'arg_selection','arg_direct'}]);
+                disallowed_pos = setdiff_bc(nvps(1:2:end),[joint_names {'arg_selection','arg_direct'}]);
             end
             if ~isempty(disallowed_pos)
                 % If you are getting this error, it is most likely due to a mis-typed argument name
@@ -550,7 +550,7 @@ function check_names(code_names)
 persistent name_table;
 if ~isstruct(name_table)
     name_table = struct(); end
-for name_cell = fast_setdiff(code_names,fieldnames(name_table))
+for name_cell = fast_setdiff_bc(code_names,fieldnames(name_table))
     current_name = name_cell{1};
     existing_func = which(current_name);
     if ~isempty(existing_func)

@@ -78,8 +78,8 @@ if display
     fprintf(checkstr);
 end
 
-if ~all(ismember(errstring,''))
+if ~all(ismember_bc(errstring,''))
     checkcode = 'error';
-elseif ~all(ismember(warnstring,''))
+elseif ~all(ismember_bc(warnstring,''))
     checkcode = 'warning';
 end

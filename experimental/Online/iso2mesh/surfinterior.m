@@ -32,7 +32,7 @@ for i=1:len
    [t,u,v]=raytrace(p0,v0,node,face);
 
    idx=find(u>=0 & v>=0 & u+v<=1.0);
-   [ts, uidx]=unique(sort(t(idx)));
+   [ts, uidx]=unique_bc(sort(t(idx)));
    if(~isempty(ts) & mod(length(ts),2)==0)
        ts=reshape(ts,[2 length(ts)/2]);
        tdiff=ts(2,:)-ts(1,:);

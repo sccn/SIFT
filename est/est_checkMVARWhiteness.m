@@ -105,7 +105,7 @@ end
 [stats residVar] = deal([]);
 if nargout > 2, params = g; end
 
-if any(ismember(lower(EEG.CAT.MODEL.algorithm),{'kalman','dekf'}))
+if any(ismember_bc(lower(EEG.CAT.MODEL.algorithm),{'kalman','dekf'}))
     error('Whiteness tests currently not compatible with method ''%s''',EEG.CAT.MODEL.algorithm);
 end
 

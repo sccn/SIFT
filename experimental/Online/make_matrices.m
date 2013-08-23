@@ -52,7 +52,7 @@ end
 fclose(fid);
 
 A = cat(1,Surface.lh.colortable.struct_names,Surface.rh.colortable.struct_names);
-rm_structure = setdiff(A,regions);
+rm_structure = setdiff_bc(A,regions);
 Surface.lh = removeStructure(Surface.lh,rm_structure(1));
 Surface.rh = removeStructure(Surface.rh,rm_structure(3));
 
@@ -76,12 +76,12 @@ camlight('headlight')
 
 nodes(deep_region,:) = [];
 
-[~,loc] = ismember(start_pos,nodes,'rows');
+[~,loc] = ismember_bc(start_pos,nodes,'rows');
 loc = ~loc;
 start_pos(loc,:) = [];
 end_pos(loc,:) = [];
 
-[~,loc] = ismember(end_pos,nodes,'rows');
+[~,loc] = ismember_bc(end_pos,nodes,'rows');
 loc = ~loc;
 start_pos(loc,:) = [];
 end_pos(loc,:) = [];
@@ -90,8 +90,8 @@ loc = all(start_pos == end_pos,2);
 start_pos(loc,:) = [];
 end_pos(loc,:) = [];
 
-[~,I] = ismember(start_pos,nodes,'rows');
-[~,J] = ismember(end_pos,nodes,'rows');
+[~,I] = ismember_bc(start_pos,nodes,'rows');
+[~,J] = ismember_bc(end_pos,nodes,'rows');
 C = zeros(length(regions));
 for it=1:length(I), C(I(it),J(it)) = 1;C(J(it),I(it)) = 1;end
 plotConnectivityMatrix(C,regions);
