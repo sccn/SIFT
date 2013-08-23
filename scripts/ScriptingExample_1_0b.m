@@ -2,7 +2,7 @@
 %%% SCRIPTING EXAMPLE FOR THE SOURCE INFORMATION FLOW TOOLBOX (SIFT)    %%%
 %%% SIFT Version: 1.0-beta                                              %%%
 %%%                                                                     %%%
-%%% THIS DOES NOT WORK WITH VERSION 1.0-Beta OR EARLIER                 %%%
+%%% THIS DOES NOT WORK WITH VERSION 0.97-alpha OR EARLIER               %%%
 %%%                                                                     %%%
 %%% This example demonstrates how to use SIFT from the command-line or  %%%
 %%% in a script. This example applies to SIFT 1.0-beta.                 %%%

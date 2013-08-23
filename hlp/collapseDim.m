@@ -73,7 +73,6 @@ for i=1:2:length(varargin)-1
 end
 
 if size(C,dim)==1
-%     C = squeeze(C);
     return;
 end
 
@@ -107,10 +106,6 @@ if range(1)<1 || range(2)>maxrange
 end
 
 
-% get indices of freq. range endpoints
-% [dummy fidx(1)] = min(abs(span-range(1)));
-% [dummy fidx(2)] = min(abs(span-range(2)));
-
 switch lower(method)
     case 'mean'
         C = nan_mean(getRange(C,dim,range),dim);
@@ -128,8 +123,6 @@ switch lower(method)
         if issymmetric(C)    % only estimate peaks for upper triangle (faster)
             for i=1:size(C,1)
                 for j=i:size(C,2)
-%                     if i==j, newC(i,j) = 0; continue; end
-%                     if i==1, keyboard; end
                     [pkval peaks.freqs(i,j,:) peaks.times(i,j,:)] = findpeaksND(squeeze(C(i,j,:,:)),peakWidth, true,numPeaks);   %max([size(C,3) size(C,4)])
                     newC(i,j) = pkval; %max(pkval);  % only return the maximum peak
                     newC(j,i) = newC(i,j);   % symmetric, so fill in lower triangle too
@@ -138,7 +131,6 @@ switch lower(method)
         else
             for i=1:size(C,1)
                 for j=1:size(C,2)  % all channels
-%                     if i==j, newC(i,j) = 0; continue; end
 
                     % new stuff
                     [pk] = imregionalmax(squeeze(C(i,j,:,:)));
@@ -166,25 +158,6 @@ switch lower(method)
                         
                     end
                     
-% % %                     if extent
-% % %                         
-% % %                         for i=1:length(locs)
-% % %     %                         if any(series(setdiff([max(1,locs(i)-extent):min(numel(series),locs(i)+extent)],locs(i)))<=mph)
-% % %     %                             peaks(i)=nan; locs(i)=nan;
-% % %     %                         end
-% % %                             if ~all(series(max(1,locs(i)-extent):locs(i))>mph) ...
-% % %                                     && ~all(series(locs(i):min(numel(series),locs(i)+extent))>mph)
-% % %                                 peaks(i)=nan; locs(i)=nan;
-% % %                             end
-% % %                         end
-% % %                         locs(isnan(locs))=[];
-% % %                         peaks(isnan(peaks))=[];
-% % %                     end
-                    
-                    
-                    % old version
-%                     [pkval peaks.freqs(i,j,:) peaks.times(i,j,:)] = findpeaksND(squeeze(C(i,j,:,:)),peakWidth, true,numPeaks);
-%                     newC(i,j) = pkval; %max(pkval);  % only return the maximum peak
                 end
             end
         end
@@ -223,11 +196,7 @@ end
 st(end) = [];
 
 eval(['C = C( ' st ');']);
-% if dim==numdims && ndims(C)<numdims
-%     C = ones([1 size(C)]);
-%     C(1,:,:,:,:,:) = C;
-%     C = permute(C,[2:ndims(C) 1]);
-% end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -279,41 +248,15 @@ function [Cout pidxs] = findConnPeaks(C,dim,mph,mpd,npeaks,keepedges,extent)
             for ch2=1:cols
                 series = [squeeze(C(ch1,ch2,kk,:))];
                 if keepedges==0
-%                     [peaks locs] = findpeaks(series,'minpeakheight',mph,'minpeakdistance',mpd,'sortstr','descend');
-% data,npeaks,minwidth,maxwidth,minpeak
                     [peaks locs] = findpeaks(series,length(series),extent,0,mph);
                 else
-%                     [peaks locs] = findpeaks([0 ; series ; 0],'inpeakheight',mph,'minpeakdistance',mpd,'sortstr','descend');
                     [peaks locs] = findpeaks([0 ; series ; 0],length(series),extent,0,mph);
                 end
-%                 if ch2==7 && ch1==3, keyboard; end
-%                 if extent
-%                     for i=1:length(locs)
-% %                         if any(series(setdiff([max(1,locs(i)-extent):min(numel(series),locs(i)+extent)],locs(i)))<=mph)
-% %                             peaks(i)=nan; locs(i)=nan;
-% %                         end
-%                         if ~all(series(max(1,locs(i)-extent):locs(i))>mph) ...
-%                                 && ~all(series(locs(i):min(numel(series),locs(i)+extent))>mph)
-%                             peaks(i)=nan; locs(i)=nan;
-%                         end
-%                     end
-%                     locs(isnan(locs))=[];
-%                     peaks(isnan(peaks))=[];
-%                 end
-                % check if edges might be peaks (deprecated: instead zero-pad C above)
-    %             if C(ch1,ch2,1) > peaks(1), 
-    %                 peaks = [C(ch1,ch2,1) peaks]; 
-    %                 locs{ch1,ch2} = [1 locs{ch1,ch2}]; 
-    %             end
-    %             if C(ch1,ch2,nelts) > peaks(1), 
-    %                 peaks = [C(ch1,ch2,nelts) peaks]; 
-    %                 locs{ch1,ch2} = [nelts locs{ch1,ch2}]; 
-    %             end
                 locs = round(locs);
                 
                 if ~isempty(locs)
                     pidxs(ch1,ch2,kk,1:min(length(locs),npeaks)) = ...          % keep indices of npeaks largest peak 
-                        locs(1:min(length(locs),npeaks))-keepedges;                     % -1 to counteract zero-padding
+                        locs(1:min(length(locs),npeaks))-keepedges;             % -1 to counteract zero-padding
                     Cout(ch1,ch2,kk)=peaks(1);                                  % store largest peak value
                 else
                     pidxs(ch1,ch2,kk,:)=nan;
@@ -328,8 +271,6 @@ function [Cout pidxs] = findConnPeaks(C,dim,mph,mpd,npeaks,keepedges,extent)
         if ~mod(kk,10), fprintf('.'); end
     end
     
-%     Cout=Cout;
-%     pidxs = pidxs;
     if verb, close(h); end
     warning on;
     
