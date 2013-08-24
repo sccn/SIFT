@@ -1,7 +1,7 @@
-function h = arg_guipanel(varargin)
+function result = arg_guipanel(varargin)
 % Create a uipanel that displays an argument property inspector for a Function.
-% Handle = arg_guipanel(Options ...)
-% Handle = arg_guipanel(Parent, Options ...)
+% Result = arg_guipanel(Options ...)
+% Result = arg_guipanel(Parent, Options ...)
 %
 % The handle supports the method .GetPropertySpecification(), by means of which the edited argument
 % specification can be retrieved. This result can be turned into a valid Function argument using
@@ -18,9 +18,15 @@ function h = arg_guipanel(varargin)
 %
 %              'Position' : position of the panel within the parent widget
 %
+%              'PanelOnly' : if true, generate only a uipanel that can be embedded in a dialog;
+%                            otherwise generate a figure and wait until it is closed.
+%                            (default: true)
+%
 % Out:
-%   Handle : handle to the panel; supports .GetPropertySpecification() to obain the edited 
-%            specification
+%   Result : * if PanelOnly, this is the handle to the panel; supports .GetPropertySpecification() 
+%              to obain the edited specification (when done)
+%            * otherwise this is the Propertyspecification of the function at the time when the 
+%              figure is closed
 %
 % Examples:
 %   % get a uipanel that allows to edit parameters to a function
@@ -51,7 +57,7 @@ else
 end
 
 % get the options
-opts = hlp_varargin2struct(varargin, {'Function','function','func'},mandatory, {'Parameters','parameters','params'},{}, {'Position','position','pos'},[0 0 1 1]);
+opts = hlp_varargin2struct(varargin, {'Function','function','func'},mandatory, {'Parameters','parameters','params'},{}, {'Position','position','pos'},[0 0 1 1],{'PanelOnly','panel_only'},true);
 
 % obtain the argument specification for the function
 spec = arg_report('rich', opts.Function, opts.Parameters);
@@ -59,5 +65,20 @@ spec = arg_report('rich', opts.Function, opts.Parameters);
 properties = PropertyGridField.GenerateFrom(spec);
 
 % instantiate the grid
-args = hlp_struct2varargin(opts,'suppress',{'Function','Parameters'});
-h = PropertyGrid(parent,args{:},'Properties',properties);
+args = hlp_struct2varargin(opts,'suppress',{'Function','Parameters','PanelOnly'});
+hpanel = PropertyGrid(parent,args{:},'Properties',properties);
+
+if ~opts.PanelOnly
+    % in this case a figure is generated and we wait until the figure is closed
+    set(hpanel.Parent,'CloseRequestFcn',@(hfig,v)extract_properties(hfig));
+    uiwait(hpanel.Parent);
+else
+    result = hpanel;
+end
+
+function extract_properties(hfig)
+    result = arg_tovals(hpanel.GetPropertySpecification);
+    delete(hfig);
+end
+
+end
