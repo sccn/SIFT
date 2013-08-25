@@ -129,6 +129,8 @@ if length(ALLEEG)>1 && any(strcmp(cfg.statTest.arg_selection,{'Hab'}))
                             - mean(ALLEEG(Stats.diffOrder(2)).(fn{1}),3);
         end
     end
+    EEG_new.trials    = 1;
+    EEG_new.epoch     = [];
     EEG_new.setname   = cfg.statTest.datasetOrder;
     EEG_new.condition = cfg.statTest.datasetOrder;
     EEG_new = eeg_checkset(EEG_new);
