@@ -193,7 +193,7 @@ for m=1:length(g.connmethods)
     connmethod = g.connmethods{m};
     
     
-    if length(size(Conn.(connmethod)))>4
+    if length(size(Conn.(connmethod)))>5
         error('Connectivity Matrix cannot be greater than 4-D!');
     end
     
