@@ -36,13 +36,19 @@ g=arg_define([0 Inf],varargin, ...
     arg_nogui({'gobj','GraphicsObject'},[],[],'Viewer Graphics Object. If empty a new figure is created. Otherwise, the graphics object is updated'));
   
 arg_toworkspace(g);
+
+if ~isfield(signal,'srcpot_all')
+    error('BCILAB:vis_csd:MissingSourcePotentials','signal does not contain field ''srcpot_all''. Please make sure ''KeepFullCsd'' option is enabled in SourceLocalization (flt_sourceLocalize)'); end
+
+if signal.trials > 1
+    signal = eeg_epoch2continuous(signal);
+    signal.srcpot_all = signal.srcpot_all(:,:);
+end
+
 times = g.times;
 title = g.title;
 
 hmObj = hlp_validateHeadModelObject(hmObj);
-
-if ~isfield(signal,'srcpot_all')
-    error('BCILAB:vis_csd:MissingSourcePotentials','signal does not contain field ''srcpot_all''. Please make sure ''KeepFullCsd'' option is enabled in SourceLocalization (flt_sourceLocalize)'); end
 
 if isempty(times)
     times = linspace(signal.xmin,signal.xmax,signal.pnts);
@@ -82,12 +88,12 @@ sampletimes = round((times-signal.xmin)*signal.srate)+1;
 srcpot = signal.srcpot_all(:,sampletimes,:);
 data   = signal.data(:,sampletimes,:);
 
-if signal.trials>1
-    data       = data(:,:);
-    srcpot     = srcpot(:,:);
-    sampletimes= repmat(sampletimes,[1 signal.trials]);
-    times      = repmat(times,[1 signal.trials]);
-end
+% if signal.trials>1
+%     data       = data(:,:);
+%     srcpot     = srcpot(:,:);
+%     sampletimes= repmat(sampletimes,[1 signal.trials]);
+%     times      = repmat(times,[1 signal.trials]);
+% end
 
 if showpower
     % compute power
