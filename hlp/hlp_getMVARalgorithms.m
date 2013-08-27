@@ -50,7 +50,7 @@ if nargin==1 && strcmp(varargin{1},'defaultNameOnly')
     defaultNameOnly = true;
 end
 
-if nargin==2 && ismember('mfileNameOnly',varargin);
+if nargin==2 && ismember_bc('mfileNameOnly',varargin);
     algName = varargin{2};
     if ~ischar(algName)
         error('SIFT:est_fitMVAR:hlp_getMVARalgorithms:badInput', ...

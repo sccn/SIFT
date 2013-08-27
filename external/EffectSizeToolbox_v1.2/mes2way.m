@@ -236,12 +236,12 @@ end
 % the tag column, extracted
 listTag=cat(1,list_analysis{:,2});
 % indices to currently requested analyses
-listIx=ismember(list_analysis(:,1),esm);
+listIx=ismember_bc(list_analysis(:,1),esm);
 % unique tags of these analyses
-uTag=unique(listTag(listIx));
+uTag=unique_bc(listTag(listIx));
 % catch a few silly errors:
 % - typos or non-existent analysis type
-if any(~ismember(esm,list_analysis(:,1)))
+if any(~ismember_bc(esm,list_analysis(:,1)))
   error('An illegal type of analysis was specified');
 end
 
@@ -292,7 +292,7 @@ end
 % replacing the values in variable group (i.e. the levels of the factors)
 % by integers 1,2,... because function dummyvar used below requires this
 for g=1:nFactor
-  [factor(g).level,nada,intG]=unique(group(:,g));
+  [factor(g).level,nada,intG]=unique_bc(group(:,g));
   group(:,g)=intG;
   factor(g).nLevel=numel(factor(g).level);
   % factor(g).levelName=cellstr([repmat('level',factor(g).nLevel,1) int2str((1:factor(g).nLevel)')]);
@@ -315,7 +315,7 @@ nGroup=prod([factor.nLevel]);
 % order of groups established below by unique, namely, the rank order of
 % the (numeric) group labels!
 % *************************************************************************
-[uGroup,aIx,bIx]=unique(group,'rows');
+[uGroup,aIx,bIx]=unique_bc(group,'rows');
 % any empty cell?
 if nGroup~=size(uGroup,1)
   error('there is at least one empty group (cell), which is not allowed in factorial designs');
@@ -360,7 +360,7 @@ s2i2=reshape(1:nGroup,[factor.nLevel]);
 % just to be 100% sure, this is an internal check that elements of groupIx
 % are really integers incrementing in steps of 1
 for g=1:nGroup
-  tmp=unique(diff(groupIx{g}));
+  tmp=unique_bc(diff(groupIx{g}));
   if numel(groupIx{g})>1 && ~(numel(tmp)==1 && tmp==1)
     error('internal: groupIx messed up - tell the programmer');
   end
@@ -441,7 +441,7 @@ if ~isequal(size(isDep), [1 2])
 end
 % in repeated measures designs check whether sample sizes match
 if any(isDep)
-  if numel(unique(nSample))~=1
+  if numel(unique_bc(nSample))~=1
     error('in a design with within-subjects factors all cell sizes must be equal');
   end
 end
@@ -473,7 +473,7 @@ r=prepcomp(X,group,groupIx,factor,s2i2,nSample,isDep,doBoot,nBoot,contrast,ssTyp
 % all) in papers, if analytical ci for what the authors term eta squared or
 % omega squared are specified, in all likelihood these are the ci for the
 % partialled MES
-if any(ismember({'partialeta2','partialomega2'},esm)) && ~doBoot && ~any(isDep)
+if any(ismember_bc({'partialeta2','partialomega2'},esm)) && ~doBoot && ~any(isDep)
   % exact analytical confidence intervals for partial eta2 (Smithson 2003, p.43 [5.6])
   % - main effects
   for fi=1:2
@@ -1043,7 +1043,7 @@ switch sum(isDep)
       % loop over subjects
       for sIx=nSubj(rIx):-1:1
         % index to entries of current subject in current level of non-RM factor
-        tmpIx=intersect(sIx:nSubj(rIx):size(x,1),cat(1,groupIx{rIx,:}));
+        tmpIx=intersect_bc(sIx:nSubj(rIx):size(x,1),cat(1,groupIx{rIx,:}));
         % mean of those
         tmpMn=mean(x(tmpIx,:));
         % SS of subjects within levels of the non-RM factor (error between)
@@ -1135,7 +1135,7 @@ switch sum(isDep)
         % loop over subjects
         for sIx=nSubj:-1:1
           % index to entries of current subject in current level of current factor
-          tmpIx=intersect(sIx:nSubj:size(x,1),cat(1,groupIx{lix,:}));
+          tmpIx=intersect_bc(sIx:nSubj:size(x,1),cat(1,groupIx{lix,:}));
           % mean of those
           tmpMn=mean(x(tmpIx,:));
           % SS 

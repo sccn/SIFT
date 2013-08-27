@@ -247,7 +247,7 @@ end
 idx = find(strcmp(selection,spec.range));
 % if we should build the set of alternatives, do so now....
 if strcmp(reptype,'build')
-    for n=setdiff(1:length(sources),idx)
+    for n=setdiff_bc(1:length(sources),idx)
         arg_sel = arg_nogui('arg_selection',spec.range{n});
         spec.alternatives{n} = [arg_report('rich',sources{n}) arg_sel{1}([],arg_sel{2}{:})]; 
     end
@@ -264,7 +264,7 @@ end
 % toggle the displayable option for children which should be suppressed
 if ~isempty(suppressNames)
     % identify which children we want to suppress display
-    hidden = find(cellfun(@any,cellfun(@(x,y) ismember(x,suppressNames),{spec.children.names},'UniformOutput',false)));
+    hidden = find(cellfun(@any,cellfun(@(x,y) ismember_bc(x,suppressNames),{spec.children.names},'UniformOutput',false)));
     % set display flag to false
     for k=hidden(:)'
         spec.children(k).displayable = false;
@@ -274,7 +274,7 @@ if ~isempty(suppressNames)
     for alt_idx = 1:length(spec.alternatives)
         if isempty(spec.alternatives{alt_idx})
             continue; end
-        hidden = find(cellfun(@any,cellfun(@(x,y) ismember(x,suppressNames),{spec.alternatives{alt_idx}.names},'UniformOutput',false)));
+        hidden = find(cellfun(@any,cellfun(@(x,y) ismember_bc(x,suppressNames),{spec.alternatives{alt_idx}.names},'UniformOutput',false)));
         % set display flag to false
         for k=hidden(:)'
             spec.alternatives{alt_idx}(k).displayable = false;

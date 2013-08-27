@@ -147,7 +147,7 @@ idx = ~cellfun(@isempty,res);
 if all(idx==1)
     error(res{idx}{1});
 end
-if ~ismember('mode',lower(g.statTest.statcondargs))
+if ~ismember_bc('mode',lower(g.statTest.statcondargs))
     g.statTest.statcondargs = [g.statTest.statcondargs 'mode', 'perm'];
 end
 if g.verb==0
@@ -269,7 +269,7 @@ for m=1:length(g.connmethods)
             end
             
             % get the order in which to subtract the datasets...
-            [dummy setIdx] = ismember(g.statTest.datasetOrder,hlp_getCondOrderings(EEG));
+            [dummy setIdx] = ismember_bc(g.statTest.datasetOrder,hlp_getCondOrderings(EEG));
             Stats.diffOrder = fastif(setIdx==1,[1 2],[2 1]);
             % ... and reorder datasets
             PConn = PConn(Stats.diffOrder);
@@ -440,6 +440,8 @@ for m=1:length(g.connmethods)
             Stats.(g.connmethods{m}).pval = Stats.(g.connmethods{m}).pval * numel(Stats.(g.connmethods{m}).pval);
         case 'numvars'
             Stats.(g.connmethods{m}).pval = Stats.(g.connmethods{m}).pval * size(Stats.(g.connmethods{m}).pval,1)^2;
+        case 'custom_factor'
+            Stats.(g.connmethods{m}).pval = Stats.(g.connmethods{m}).pval * custom_factor;
     end
     
     % check if a singleton dimension was squeezed out and, if so,
@@ -449,7 +451,7 @@ for m=1:length(g.connmethods)
     if isfield(Stats.(g.connmethods{m}),'pval')
         szp = size(PConn(1).(g.connmethods{m}));
         szs = size(Stats.(g.connmethods{m}).pval);
-        [dummy dimidx] = setdiff(szp(1:end-1),szs);
+        [dummy dimidx] = setdiff_bc(szp(1:end-1),szs);
         if ~isempty(dimidx)
             % a singleton dimension was squeezed out, restore it
             Stats.(g.connmethods{m}).pval = hlp_insertSingletonDim(Stats.(g.connmethods{m}).pval,dimidx+1);
@@ -460,7 +462,7 @@ for m=1:length(g.connmethods)
     if isfield(Stats.(g.connmethods{m}),'ci')
         szp = size(PConn(1).(g.connmethods{m}));
         szs = size(Stats.(g.connmethods{m}).ci);
-        [dummy dimidx] = setdiff(szp(1:end-1),szs(2:end));
+        [dummy dimidx] = setdiff_bc(szp(1:end-1),szs(2:end));
         if ~isempty(dimidx)
             % a singleton dimension was squeezed out, restore it
             Stats.(g.connmethods{m}).ci = hlp_insertSingletonDim(Stats.(g.connmethods{m}).ci,dimidx+1);
@@ -473,7 +475,7 @@ for m=1:length(g.connmethods)
     if isfield(Stats.(g.connmethods{m}),'thresh')
         szp = size(PConn(1).(g.connmethods{m}));
         szs = size(Stats.(g.connmethods{m}).thresh);
-        [dummy dimidx] = setdiff(szp(1:end-1),szs);
+        [dummy dimidx] = setdiff_bc(szp(1:end-1),szs);
         if ~isempty(dimidx)
             % a singleton dimension was squeezed out, restore it
             Stats.(g.connmethods{m}).thresh = hlp_insertSingletonDim(Stats.(g.connmethods{m}).thresh,dimidx+1);
@@ -572,7 +574,7 @@ args = arg_define(0,varargin, ...
         arg({'testMethod','TestMethod'},'quantile',{'quantile'},sprintf('Comparison method.\nQuantile: Determines the quantile in which an observed sample lies within the null distribution. From this, one derives a p-value for rejecting the hypothesis that the data comes from the null distribution.')), ...
         arg({'tail','Tail'},'right',{'right','left','both','one'},'Tail. One-tailed (right-tailed) or two-tailed test. Right tailed test gives probability that A > B'), ...
         arg({'alpha','Alpha'},0.05,[0 1],'Significance level. This is used for significance thresholds. For example, a value of alpha=0.05 will produce p < alpha=0.05 threshold.'), ...
-        arg({'mcorrection','MultipleComparisonCorrection'},'fdr',{'none','fdr','bonferonni','numvars'},'Correction for multiple comparisons. Note: ''numvars'' does a bonferonni correction considering M^2 indep. degrees of freedom, where M is the dimension of the VAR model (i.e. number of channels)'), ...
+        arg({'mcorrection','MultipleComparisonCorrection'},'fdr',{'none','fdr','bonferonni','numvars','custom_factor'},'Correction for multiple comparisons. Note: ''numvars'' does a bonferonni correction considering M^2 indep. degrees of freedom, where M is the dimension of the VAR model (i.e. number of channels)'), ...
         arg_nogui('statcondargs',{'mode','perm'},{},'List of paired arguments for statcond()','type','expression','shape','row') ...
         );
 
@@ -585,7 +587,7 @@ args = arg_define(0,varargin, ...
         arg({'tail','Tail'},'both',{'right','left','both','one'},'Tail. One-tailed (right-tailed) or two-tailed test. Right tailed test gives probability that A > B'), ...
         arg({'computeci','ConfidenceIntervals'},true, [],'Compute empirical confidence intervals.'), ...
         arg({'alpha','Alpha'},0.05,[0 1],'Confidence interval significance level. For example, a value of alpha=0.05 will produce (1-alpha)*100 = 95% confidence intervals.'), ...
-        arg({'mcorrection','MultipleComparisonCorrection'},'fdr',{'none','fdr','bonferonni','numvars'},'Correction for multiple comparisons. Note: ''numvars'' does a bonferonni correction considering M^2 indep. degrees of freedom, where M is the dimension of the VAR model (i.e. number of channels)'), ...
+        arg({'mcorrection','MultipleComparisonCorrection'},'fdr',{'none','fdr','bonferonni','numvars','custom_factor'},'Correction for multiple comparisons. Note: ''numvars'' does a bonferonni correction considering M^2 indep. degrees of freedom, where M is the dimension of the VAR model (i.e. number of channels)'), ...
         arg_nogui('statcondargs',{'mode','perm'},{},'List of paired arguments for statcond()','type','expression','shape','row') ...
         );
     
@@ -601,7 +603,7 @@ args = arg_define(0,varargin, ...
         arg({'tail','Tail'},'both',{'right','left','both','one'},'Tail. One-tailed (right-tailed) or two-tailed test. Right tailed test gives probability that A > B'), ...
         arg({'computeci','ConfidenceIntervals'},true, [],'Compute empirical confidence intervals.'), ...
         arg({'alpha','Alpha'},0.05,[0 1],'Confidence interval significance level. For example, a value of alpha=0.05 will produce (1-alpha)*100 = 95% confidence intervals.'), ...
-        arg({'mcorrection','MultipleComparisonCorrection'},'fdr',{'none','fdr','bonferonni','numvars'},'Correction for multiple comparisons. Note: ''numvars'' does a bonferonni correction considering M^2 indep. degrees of freedom, where M is the dimension of the VAR model (i.e. number of channels)'), ...
+        arg({'mcorrection','MultipleComparisonCorrection'},'fdr',{'none','fdr','bonferonni','numvars','custom_factor'},'Correction for multiple comparisons. Note: ''numvars'' does a bonferonni correction considering M^2 indep. degrees of freedom, where M is the dimension of the VAR model (i.e. number of channels)'), ...
         arg_nogui('statcondargs',{'mode','perm'},{},'List of paired arguments for statcond()','type','expression','shape','row'), ...
         arg_norep('dummy',{{}},[],'dummy') ...
         );

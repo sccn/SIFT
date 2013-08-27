@@ -131,11 +131,11 @@ end
 
 if isempty(g.storage)
     [VAR MODEL.Q2] = mvaar(permute(EEG.CAT.srcdata,[2 1 3]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
-elseif ismember('residuals',lower(g.storage))
+elseif ismember_bc('residuals',lower(g.storage))
     [VAR MODEL.Q2, MODEL.residuals] = mvaar(permute(EEG.CAT.srcdata,[2 1 3]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
-elseif ismember('kalman',lower(g.storage));
+elseif ismember_bc('kalman',lower(g.storage));
     [VAR MODEL.Q2, MODEL.residuals MODEL.Kalman] = mvaar(permute(EEG.CAT.srcdata,[2 1 3]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
-elseif ismember('state_covariance',lower(g.storage))
+elseif ismember_bc('state_covariance',lower(g.storage))
     [VAR MODEL.Q2,MODEL.residuals,MODEL.Kalman, MODEL.Q1] = mvaar(permute(EEG.CAT.srcdata,[2 1 3]),g.morder,g.updatecoeff,g.updatemode,g.Kalman,g.verb,g.downsampleFactor,g.constraints);
 else
     error('unknown storage option %s',g.storage{1});

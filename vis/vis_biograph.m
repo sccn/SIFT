@@ -562,15 +562,15 @@ if any(cellfun(@isempty,{g.ALLEEG.dipfit}))
     error('SIFT:vis_causalBrainMovie3D','In order to use BrainMovie3D, source locations must be stored in EEG.dipfit');
 end
 
-if any(ismember({g.nodeSizeMapping, g.nodeColorMapping},'power')) && ~isfield(g.Conn,'S')
+if any(ismember_bc({g.nodeSizeMapping, g.nodeColorMapping},'power')) && ~isfield(g.Conn,'S')
     error('To modulate node color/size by power you must have pre-computed the spectral density measure (Conn object must contain field ''S'')');
 end
 
-if ~ismember(g.collapsefun,{'max','peak'}) && strcmpi(g.edgeColorMapping,'peakfreq')
+if ~ismember_bc(g.collapsefun,{'max','peak'}) && strcmpi(g.edgeColorMapping,'peakfreq')
     error('To use PeakFreq EdgeColorMapping, you must select ''max'' or ''peak'' as the FreqCollapseMethod');
 end
 
-if length(setdiff(MyComponentNames,g.nodesToExclude)) < 2
+if length(setdiff_bc(MyComponentNames,g.nodesToExclude)) < 2
     error('You must include at least two nodes in the BrainMovie');
 end
     
@@ -655,7 +655,7 @@ end
 N=g.ALLEEG(1).CAT.nbchan-length(g.nodesToExclude);
 
 % indices of nodes we will exclude
-nodeIndicesToExclude = find(ismember(MyComponentNames,g.nodesToExclude));
+nodeIndicesToExclude = find(ismember_bc(MyComponentNames,g.nodesToExclude));
 
 % get the indices of frequencies to collapse
 freqIndicesToCollapse = getindex(g.Conn(1).freqs,g.freqsToCollapse);
@@ -711,8 +711,8 @@ for cnd = 1:length(g.Conn)
         for ch2=1:N
 
             if ch1==ch2 ...
-               || ~isempty(intersect(nodeIndicesToExclude,[ch1 ch2])) ...
-               || all(ismember({g.edgeSizeMapping, g.edgeColorMapping},'none'))
+               || ~isempty(intersect_bc(nodeIndicesToExclude,[ch1 ch2])) ...
+               || all(ismember_bc({g.edgeSizeMapping, g.edgeColorMapping},'none'))
            
                 continue;
             end
@@ -798,7 +798,7 @@ for cnd = 1:length(g.Conn)
     end
     
     
-    if ~all(ismember({g.nodeSizeMapping, g.nodeColorMapping},'none'))
+    if ~all(ismember_bc({g.nodeSizeMapping, g.nodeColorMapping},'none'))
         % we will need the connectivity data in matrix format so we can
         % obtained graph statistics for mapping Node Size/Color
         
@@ -823,10 +823,10 @@ for cnd = 1:length(g.Conn)
     % Format node data (size/color)
     [NodeSize NodeColor] = deal(zeros(N,length(timeIndices),class(Conn(1))));
     
-    if ~all(ismember({g.nodeSizeMapping, g.nodeColorMapping},'none'))
+    if ~all(ismember_bc({g.nodeSizeMapping, g.nodeColorMapping},'none'))
         
         for ch1=1:N
-            if ismember(ch1,nodeIndicesToExclude)
+            if ismember_bc(ch1,nodeIndicesToExclude)
                 continue;
             end
 

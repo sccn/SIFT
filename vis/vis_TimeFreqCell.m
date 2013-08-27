@@ -560,7 +560,7 @@ for dir=1:numdirs
         set(h(11),'View',[90 90])
         divs = linspace(log(g.allfreqs(1)), log(g.allfreqs(end)), 10);
         set(gca, 'xtickmode', 'manual');
-        divs = ceil(exp(divs)); divs = unique(divs); % ceil is critical here, round might misalign
+        divs = ceil(exp(divs)); divs = unique_bc(divs); % ceil is critical here, round might misalign
         % out-of border label with within border ticks
         set(gca, 'xtick', divs);
     end;

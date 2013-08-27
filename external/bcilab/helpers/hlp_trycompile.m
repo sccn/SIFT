@@ -342,7 +342,7 @@ if isempty(o.idents) && ~isempty(o.dir)
     end
     fnames = {infos.name};
     % ... but exclude the support files
-    fnames = setdiff(fnames,o.support);
+    fnames = setdiff_bc(fnames,o.support);
     % and apply any renamings to get the corresponding identifiers
     if ~isempty(o.renaming)
         for n=1:length(fnames)
@@ -777,7 +777,7 @@ else
                 end
             else
                 if length(recompileid) > 1
-                    if isempty(setdiff(recompileid,failedid))
+                    if isempty(setdiff_bc(recompileid,failedid))
                         fprintf('All files in %s failed to build; this indicates a problem in your build environment/settings.\n',o.dir);
                     else
                         fprintf('Some files in %s failed to build. Please make sure that you have a supported compiler; otherwise, please report this issue.\n',o.dir);
@@ -787,7 +787,7 @@ else
                     disp('Also, please consider reporting this issue.');
                 end
                 % compilation failed; only a part of the binaries may be available...
-                retainid = setdiff(recompileid,failedid);
+                retainid = setdiff_bc(recompileid,failedid);
                 eraseid = [];
             end
             
@@ -825,7 +825,7 @@ else
                     disp(['Note: There were write permission problems for the file ' filename]);
                 end                
                 % move the targets over there...
-                movefiles = unique(o.idents(moveid));
+                movefiles = unique_bc(o.idents(moveid));
                 for t = 1:length(movefiles)
                     [d,n,x] = fileparts(which(movefiles{t}));
                     movefile([d filesep n x],[dest_path n x]);

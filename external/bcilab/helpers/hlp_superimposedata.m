@@ -82,25 +82,25 @@ elseif isstruct(A) && isstruct(B)
     elseif isequal(sort(fnA),sort(fnB))
         % order doesn't match -- impose A's order on B
         B = orderfields(B,fnA);
-    elseif isempty(setdiff(fnA,fnB))
+    elseif isempty(setdiff_bc(fnA,fnB))
         % B has a superset of A's fields: add the remaining fields to A, and order them according to B
-        remaining = setdiff(fnB,fnA);
+        remaining = setdiff_bc(fnB,fnA);
         for fn = remaining'
             A(1).(fn{1}) = []; end
         A = orderfields(A,fnB);
-    elseif isempty(setdiff(fnB,fnA))
+    elseif isempty(setdiff_bc(fnB,fnA))
         % A has a superset of B's fields: add the remaining fields to B, and order them according to A
-        remaining = setdiff(fnA,fnB);
+        remaining = setdiff_bc(fnA,fnB);
         for fn = remaining'
             B(1).(fn{1}) = []; end
         B = orderfields(B,fnA);
     else
         % A and B have incommensurable fields; add B's fields to A's fields, add A's fields to B's
         % and order according to A's fields
-        remainingB = setdiff(fnB,fnA);
+        remainingB = setdiff_bc(fnB,fnA);
         for fn = remainingB'
             A(1).(fn{1}) = []; end
-        remainingA = setdiff(fnA,fnB);
+        remainingA = setdiff_bc(fnA,fnB);
         for fn = remainingA'
             B(1).(fn{1}) = []; end
         B = orderfields(B,A);

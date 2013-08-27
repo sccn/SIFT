@@ -644,7 +644,7 @@ if g.plotNodeLabels
     g.nodelabels = g.nodelabels(SELECTED);
 end
 
-if ismember(lower(g.mode),{'init','init_and_render'})
+if ismember_bc(lower(g.mode),{'init','init_and_render'})
     
     % create movie
     % ------------
@@ -670,7 +670,7 @@ if ismember(lower(g.mode),{'init','init_and_render'})
             if ~isempty(g.rt{index})
                 timestep = (TIMES(2)-TIMES(1))/2;
                 for indeximage = 1:nwin
-                    RTdist(index, indeximage) = length( intersect( find( g.rt{index} > TIMES(indeximage)-timestep ) , ...
+                    RTdist(index, indeximage) = length( intersect_bc( find( g.rt{index} > TIMES(indeximage)-timestep ) , ...
                         find(  g.rt{index} <= TIMES(indeximage)+timestep ) ) );
                 end
                 RTdist(index,:) = RTdist(index,:)/max(RTdist(index,:));

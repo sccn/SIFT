@@ -50,7 +50,7 @@ if nargin==1 && strcmp(varargin{1},'defaultNameOnly')
     defaultNameOnly = true;
 end
 
-if nargin==2 && ismember('mfileNameOnly',varargin);
+if nargin==2 && ismember_bc('mfileNameOnly',varargin);
     simName = varargin{2};
     if ~ischar(simName)
         error('SIFT:sim_getSimExamples:badInput', ...

@@ -49,7 +49,7 @@ function NodeValue = hlp_computeGraphMeasure(causality,ch1,selectedvars,graphMea
 
 
 % get indices of all nodes we will plot, except the current one
-othervars = setdiff(selectedvars,ch1);
+othervars = setdiff_bc(selectedvars,ch1);
 
 switch lower(graphMeasure)
     case 'none'

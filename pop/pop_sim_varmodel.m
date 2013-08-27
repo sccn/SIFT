@@ -62,7 +62,7 @@ cfg    = [];
 fcnName     = strrep(mfilename,'pop_','');
 fcnHandle   = str2func(fcnName);
 
-if isempty(hlp_checkeegset(EEG,{'cat'})) && isfield(EEG.CAT.configs,fcnName)
+if ~isempty(hlp_checkeegset(EEG,{'cat'})) && isfield(EEG.CAT.configs,fcnName)
     % get default configuration (from prior use) and merge with varargin
     varargin = [hlp_struct2varargin(EEG.CAT.configs.(fcnName)) varargin];
 end

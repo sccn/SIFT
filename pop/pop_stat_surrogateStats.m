@@ -71,7 +71,7 @@ end
 % this ensures that config selections stored in each datset (i.e. Hbase) 
 % don't conflict with the allowable selection when two datasets are present
 if length(ALLEEG)>1 && ~isempty(varargin)
-    idx = find(ismember(varargin(1:2:end),'statTest'))*2;
+    idx = find(ismember_bc(varargin(1:2:end),'statTest'))*2;
     if ~isempty(idx)
         for k=1:length(idx)
             varargin{idx(k)} = {}; 
@@ -157,7 +157,7 @@ elseif length(ALLEEG)==1
     if ~isempty(ConnMean)
         % replace Conn object with mean of bootstrap distribution
         % insert missing fields into new Conn object
-%         extrafields = setdiff(fieldnames(ALLEEG.CAT.Conn),hlp_getConnMethodNames(ALLEEG.CAT.Conn));
+%         extrafields = setdiff_bc(fieldnames(ALLEEG.CAT.Conn),hlp_getConnMethodNames(ALLEEG.CAT.Conn));
 %         for i=1:length(extrafields)
 %             ConnMean(cnd).(extrafields{i}) = ALLEEG.CAT.Conn.(extrafields{i});
 %         end 

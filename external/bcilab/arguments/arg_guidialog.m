@@ -63,10 +63,10 @@ rawspec = arg_report('rich', func, params); %#ok<*NODEF>
 % extract a list of sub arguments...
 if ~isempty(subset) && subset{1}==-1
     % user specified a set of items to *exclude*
-    % convert subset to setdiff(all-arguments,subset)
+    % convert subset to setdiff_bc(all-arguments,subset)
     allnames = fieldnames(arg_tovals(rawspec));
     subset(1) = [];
-    subset = allnames(~ismember(allnames,[subset 'arg_direct']));
+    subset = allnames(~ismember_bc(allnames,[subset 'arg_direct']));
 end
 [spec,subset] = obtain_items(rawspec,subset);
 
@@ -95,7 +95,7 @@ for k = 1:length(spec)
             elseif strcmp(s.type,'logical')
                 if length(s.range)>1
                     % multiselect
-                    uilist{end+1} = {'Style','listbox', 'string',s.range, 'value',find(ismember(s.range,s.value)),'tag',tag,'min',1,'max',100000}; 
+                    uilist{end+1} = {'Style','listbox', 'string',s.range, 'value',find(ismember_bc(s.range,s.value)),'tag',tag,'min',1,'max',100000}; 
                     geomvert(k) = min(3.5,length(s.range));
                 else
                     % checkbox

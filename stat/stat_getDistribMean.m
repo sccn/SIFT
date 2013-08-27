@@ -37,7 +37,7 @@ function connmean = stat_getDistribMean(PConn)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 connmethods = hlp_getConnMethodNames(PConn(1));
-% otherfields = setdiff(fieldnames(PConn(1)),connmethods);
+% otherfields = setdiff_bc(fieldnames(PConn(1)),connmethods);
 
 for cnd=1:length(PConn)
             
@@ -46,7 +46,7 @@ for cnd=1:length(PConn)
         connmean(cnd).(connmethods{m}) = mean(PConn(cnd).(connmethods{m}),ndims(PConn(cnd).(connmethods{m})));   
     end
        
-    extrafields = setdiff(fieldnames(PConn(cnd)),connmethods);
+    extrafields = setdiff_bc(fieldnames(PConn(cnd)),connmethods);
     for i=1:length(extrafields)
         connmean(cnd).(extrafields{i}) = PConn(cnd).(extrafields{i});
     end 

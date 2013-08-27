@@ -219,12 +219,12 @@ end
 % the tag column, extracted
 listTag=cat(1,list_analysis{:,2});
 % indices to currently requested analyses
-listIx=ismember(list_analysis(:,1),esm);
+listIx=ismember_bc(list_analysis(:,1),esm);
 % unique tags of these analyses
-uTag=unique(listTag(listIx));
+uTag=unique_bc(listTag(listIx));
 % catch a few silly errors:
 % - typos or non-existent analysis type
-if any(~ismember(esm,list_analysis(:,1)))
+if any(~ismember_bc(esm,list_analysis(:,1)))
   error('An illegal type of analysis was specified');
 end
 
@@ -328,7 +328,7 @@ else
     end
   end
   % determine how many groups there are
-  [uGroup,aIx]=unique(group);
+  [uGroup,aIx]=unique_bc(group);
   nGroup=numel(uGroup);
   % revert sorting implicitly done by unique because the user probably
   % expects the original order to be maintained
@@ -387,7 +387,7 @@ end
 % just to be 100% sure, this is an internal check that elements of groupIx
 % are really integers incrementing in steps of 1
 for g=1:nGroup
-  tmp=unique(diff(groupIx{g}));
+  tmp=unique_bc(diff(groupIx{g}));
   if numel(groupIx{g})>1 && ~(numel(tmp)==1 && tmp==1)
     error('internal: groupIx messed up - tell the programmer');
   end
@@ -432,7 +432,7 @@ if doContrast
     warning('at least one set of contrast weights contains more than one zeroes - if you wish to exclude the corresponding groups from analysis you should eliminate them prior to computation')
   end
 end
-if ~any(ismember(tDenom,{'sd','msw'}))
+if ~any(ismember_bc(tDenom,{'sd','msw'}))
   error('bad choice for input parameter ''tDenom'' (choose ''sd'' or ''msw'')');
 end
 % -------------------------------------------------------------------------
@@ -454,7 +454,7 @@ r=prepcomp(X,groupIx,nSample,isDep,doBoot,nBoot,cWeight,tDenom);
 % independent, compute CI for partial eta2 here because those of most other
 % ESM can be derived from them (and computing all independently of each
 % other would be a waste).
-if any(ismember({'eta2','partialeta2','omega2','partialomega2'},esm)) && ~doBoot && ~isDep
+if any(ismember_bc({'eta2','partialeta2','omega2','partialomega2'},esm)) && ~doBoot && ~isDep
   % exact analytical confidence intervals for eta2 and/or partial eta2
   % (Smithson 2003, p.43 [5.6]), omnibus effects of which are identical in
   % oneway independent designs

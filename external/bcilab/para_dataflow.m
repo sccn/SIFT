@@ -134,7 +134,7 @@ switch op
         result = flt_pipeline('signal',data,flt);
         
     case 'learn'
-        classes = unique(set_gettarget(data));
+        classes = unique_bc(set_gettarget(data));
         if ~(plugs.vote && numel(classes) > 2)
             % learn a model
             [result.featuremodel,result.predictivemodel] = learn_model(data,cfg);
