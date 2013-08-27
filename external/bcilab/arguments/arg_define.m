@@ -324,7 +324,7 @@ else
             try
                 disallowed_nvp = fast_setdiff(nvps(1:2:end),[joint_names {'arg_selection','arg_direct'}]);
             catch
-                disallowed_nvp = setdiff(nvps(1:2:end),[joint_names {'arg_selection','arg_direct'}]);
+                disallowed_nvp = setdiff_bc(nvps(1:2:end),[joint_names {'arg_selection','arg_direct'}]);
             end
         else
             disallowed_nvp = {'or the sequence of names and values was confused'};
@@ -391,7 +391,7 @@ else
             try
                 disallowed_pos = fast_setdiff(nvps(1:2:end),[joint_names {'arg_selection','arg_direct'}]);
             catch
-                disallowed_pos = setdiff(nvps(1:2:end),[joint_names {'arg_selection','arg_direct'}]);
+                disallowed_pos = setdiff_bc(nvps(1:2:end),[joint_names {'arg_selection','arg_direct'}]);
             end
             if ~isempty(disallowed_pos)
                 % If you are getting this error, it is most likely due to a mis-typed argument name

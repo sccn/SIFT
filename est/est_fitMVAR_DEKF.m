@@ -137,9 +137,9 @@ end
 
 if isempty(g.storage)
     [VAR MODEL.Q2] = DEKF(EEG.CAT.srcdata,g.morder,g.updatecoeff,g.verb,g.downsampleFactor,g.resetStateOnNewTrial);
-elseif ismember('residuals',lower(g.storage))
+elseif ismember_bc('residuals',lower(g.storage))
     [VAR MODEL.Q2, MODEL.residuals] = DEKF(EEG.CAT.srcdata,g.morder,g.updatecoeff,g.verb,g.downsampleFactor,g.resetStateOnNewTrial);
-elseif ismember('state_covariance',lower(g.storage))
+elseif ismember_bc('state_covariance',lower(g.storage))
     [VAR MODEL.Q2,MODEL.residuals,MODEL.Q1] = DEKF(EEG.CAT.srcdata,g.morder,g.updatecoeff,g.verb,g.downsampleFactor,g.resetStateOnNewTrial);
 else
     error('unknown storage option %s',g.storage{1});

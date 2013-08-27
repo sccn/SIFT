@@ -144,7 +144,7 @@ try
     if isempty(plotchans)
         plotchans = 1:stream.CAT.nbchan;
     else
-        plotchans = intersect(1:stream.CAT.nbchan,plotchans);
+        plotchans = intersect_bc(1:stream.CAT.nbchan,plotchans);
     end
     
     % get range of frequencies

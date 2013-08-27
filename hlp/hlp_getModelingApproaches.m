@@ -21,7 +21,7 @@ if nargin==1 && strcmp(varargin{1},'defNameOnly')
     defNameOnly = true;
 end
 
-if nargin==2 && ismember('mfileNameOnly',varargin);
+if nargin==2 && ismember_bc('mfileNameOnly',varargin);
     approachName = varargin{2};
     if ~ischar(approachName)
         error('hlp_getModelingApproaches:badInput','Bad argument pair for ''mfileNameOnly'''); 

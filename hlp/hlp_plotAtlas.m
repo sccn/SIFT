@@ -32,7 +32,7 @@ if strcmpi(colormode,'LONI_Atlas') && isfield(Surface,'label')
             % array of atlas roi labels and whose second cell contains a
             % [num_roi x 3] matrix of colorings for these rois.
             roiLabels = color{1};
-            roiInds = ismember(Surface.colortable.struct_names,roiLabels);
+            roiInds = ismember_bc(Surface.colortable.struct_names,roiLabels);
             Surface.colortable.table(roiInds,1:3) = color{2};
             color = [];
         else

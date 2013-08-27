@@ -87,7 +87,7 @@ end
 % Get all the objects in the figure
 axs = findall(fh);
 % Delete everything except for the input axes and associated items
-delete(axs(~ismember(axs, [ah; allchildren(ah); allancestors(ah)])));
+delete(axs(~ismember_bc(axs, [ah; allchildren(ah); allancestors(ah)])));
 return
 
 function ah = allchildren(ah)

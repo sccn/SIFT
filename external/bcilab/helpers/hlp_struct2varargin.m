@@ -37,7 +37,7 @@ fields = fieldnames(struc)';
 data = struct2cell(struc)'; 
 % suppress some of the original field names
 if ~isempty(opts.suppress)
-    [fields,I] = setdiff(fields,opts.suppress);
+    [fields,I] = setdiff_bc(fields,opts.suppress);
     data = data(I);
 end
 % rewrite some of the original field names into new field names
@@ -45,7 +45,7 @@ for c=1:2:length(opts.rewrite)
     fields(strcmp(fields,opts.rewrite{c})) = opts.rewrite(c+1); end
 % restrict to a subset of old/new field names
 if ~isempty(opts.restrict)
-    [fields,I,J] = intersect(fields,opts.restrict);  %#ok<NASGU>
+    [fields,I,J] = intersect_bc(fields,opts.restrict);  %#ok<NASGU>
     data = data(I);
 end
 

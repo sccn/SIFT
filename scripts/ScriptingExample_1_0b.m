@@ -40,7 +40,7 @@ disp('PRE-PROCESSING DATA');
 % select time range
 EEG = pop_select( EEG,'time',EpochTimeRange );
 % select components
-EEG = pop_subcomp( EEG, setdiff(1:EEG.nbchan,Components), 0);
+EEG = pop_subcomp( EEG, setdiff_bc(1:EEG.nbchan,Components), 0);
 % resample data
 if ~isempty(NewSamplingRate)
     EEG = pop_resample( EEG, NewSamplingRate);

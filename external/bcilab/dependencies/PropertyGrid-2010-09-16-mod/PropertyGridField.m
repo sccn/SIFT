@@ -219,7 +219,7 @@ classdef PropertyGridField < hgsetget
                 if strcmp(s.type,'logical') && iscell(s.range)
                     s.shape = 'row';
                     if iscell(s.value)
-                        s.value = ismember(lower(strtrim(s.range)),lower(strtrim(s.value))); 
+                        s.value = ismember_bc(lower(strtrim(s.range)),lower(strtrim(s.value))); 
                     elseif ~isempty(s.value)
                         error('Only cell arrays supported for the value...');
                     else

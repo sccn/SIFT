@@ -145,7 +145,7 @@ switch lower(method)
                                 % check if it's extent-neighborhood is
                                 % greater than mph
                                 
-                                if all(cc(setdiff(max(1,ii-extent):min(rows,ii+extent),ii),setdiff(max(1,jj-extent):min(cols,jj+extent),jj))<=mph)
+                                if all(cc(setdiff_bc(max(1,ii-extent):min(rows,ii+extent),ii),setdiff_bc(max(1,jj-extent):min(cols,jj+extent),jj))<=mph)
                                     pk(ii,jj)=0;
                                 end
                             end

@@ -30,7 +30,7 @@ if ~isempty(tag)
 else
     h = findobj(findall(0), '-property', 'UserData');
 end
-h = unique(h);
+h = unique_bc(h);
 try
     for k=1:length(h)
         pred = fcn(get(h(k), 'UserData'));

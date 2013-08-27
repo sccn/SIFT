@@ -60,7 +60,7 @@ try
                 type = PropertyType.AutoDiscoverType(range);
             elseif iscell(range)
                 types = cellfun(@PropertyType.AutoDiscoverType,range,'UniformOutput',false);
-                if length(unique(types)) == 1
+                if length(unique_bc(types)) == 1
                     type = types{1}; end
             end
         end
@@ -74,7 +74,7 @@ try
                 shape = 'scalar';
             elseif iscell(range)
                 shapes = cellfun(@PropertyType.AutoDiscoverShape,range,'UniformOutput',false);
-                if length(unique(shapes)) == 1
+                if length(unique_bc(shapes)) == 1
                     shape = shapes{1}; end
             end
         end

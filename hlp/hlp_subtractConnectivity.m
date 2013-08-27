@@ -10,7 +10,7 @@ function Conn = hlp_subtractConnectivity(Conn1,Conn2)
         Conn.(connmethods{c}) = Conn1.(connmethods{c}) - Conn2.(connmethods{c});
     end
     
-    otherfields = setdiff(fieldnames(Conn1),connmethods);
+    otherfields = setdiff_bc(fieldnames(Conn1),connmethods);
     for f=1:length(otherfields)
         Conn.(otherfields{f}) = Conn1.(otherfields{f});
     end

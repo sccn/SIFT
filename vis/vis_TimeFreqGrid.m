@@ -357,8 +357,8 @@ if isempty(stats)
     def_alpha = 0.05;
 else
     usestatsdef = {};  % true
-    methods = intersect(fieldnames(stats),ConnNames);
-    StatThreshMethods = intersect(fieldnames(stats.(methods{1})),{'pval','thresh','logical'});
+    methods = intersect_bc(fieldnames(stats),ConnNames);
+    StatThreshMethods = intersect_bc(fieldnames(stats.(methods{1})),{'pval','thresh','logical'});
     StatThreshMethods = [StatThreshMethods 'none'];
     def_alpha = stats.alpha;
 end
@@ -649,7 +649,7 @@ if isempty(g.channels)
 if ~isempty(g.plotorder)
     for cnd=1:length(Conn)
         sz = size(Conn(cnd).(CEstimator));
-        if sz(1)~=length(unique(g.plotorder)) || any(g.plotorder>sz(1))
+        if sz(1)~=length(unique_bc(g.plotorder)) || any(g.plotorder>sz(1))
             fprintf('error: each channel index in connectivity matrix must appear in ''plotorder'' exactly once\n');
             figureHandles = [];
             return;
@@ -901,7 +901,7 @@ if strcmpi(g.thresholding.arg_selection,'simple')
             % get percentiles across a specified dimension
             dim=g.thresholding.prcthresh(2);
             sz=size(ConnMatrix); nd=length(sz);
-            odims = setdiff(1:nd,dim);
+            odims = setdiff_bc(1:nd,dim);
             Cntmp = permute(ConnMatrix,[odims(1) dim odims(2:end)]);    % put dim in second dim (for reshape)
             Cntmp = reshape(Cntmp,[prod(sz(odims)) sz(dim)]);           % we'll take percentiles for ea. col
             
@@ -1035,7 +1035,7 @@ end
 if ~isempty(g.windows)
     % Instead of Time-Frequency plots, user wishes to plot causal
     % spectra for individual selected window(s)
-    g.windows = unique(g.windows);
+    g.windows = unique_bc(g.windows);
     windowIndex = getindex(erWinCenterTimes,g.windows);
     ConnMatrix=ConnMatrix(:,:,:,windowIndex);
     if ~isempty(StatsMatrix) && ~isscalar(StatsMatrix)

@@ -128,7 +128,7 @@ nmethods = 3;
 if ~isempty(g.timedim)
     timedim = g.timedim;
 elseif isfield(Conn,'dims')
-    timedim=find(ismember(Conn.dims,'time'));
+    timedim=find(ismember_bc(Conn.dims,'time'));
 else
     timedim = [];
 end
@@ -136,7 +136,7 @@ end
 if ~isempty(g.freqdim)
     freqdim = g.freqdim;
 elseif isfield(Conn,'dims')
-    freqdim=find(ismember(Conn.dims,'freq'));
+    freqdim=find(ismember_bc(Conn.dims,'freq'));
 else
     freqdim = [];
 end
@@ -227,7 +227,7 @@ for m=1:length(g.connmethods)
                 
                 curmethod = g.method{mm};
                 
-                if ~ismember(curmethod,{'time','freq'})
+                if ~ismember_bc(curmethod,{'time','freq'})
                     error('unknown method %s',curmethod);
                 end
                 

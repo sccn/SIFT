@@ -77,7 +77,7 @@ end
 
 FN = cat(1,FN{:}) ;
 VAL = cat(1,VAL{:}) ;
-[UFN,ind] = unique(FN) ;
+[UFN,ind] = unique_bc(FN) ;
 
 if numel(UFN) ~= numel(FN),
     warning('catstruct:DuplicatesFound','Duplicate fieldnames found. Last value is used and fields are sorted') ;

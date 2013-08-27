@@ -30,6 +30,6 @@ siftrootmnu  = findobj(findobj(0,'tag','EEGLAB'),'type','uimenu','tag','siftroot
 siftmenus    = get(siftrootmnu(1),'children');
 for k=1:length(mnu_state)
     mnutag  = checks{k};
-    mnu     = unique(findobj(siftmenus,'tag',mnutag));
+    mnu     = unique_bc(findobj(siftmenus,'tag',mnutag));
     set(mnu,'checked',fastif(mnu_state(k),'on','off'));
 end

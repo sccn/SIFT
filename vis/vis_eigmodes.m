@@ -133,7 +133,7 @@ function res = vis_eigmodes(varargin)
         end
         topmodes(isnan(topmodes))=[];
         
-%         [b m n] = unique(topmodes);
+%         [b m n] = unique_bc(topmodes);
 %         mostFreqModes = topmodes(sort(m));
         res.topEigmodesIndex = repmat(topmodes,1,nwins);
     else

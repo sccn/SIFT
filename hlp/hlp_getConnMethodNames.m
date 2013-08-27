@@ -35,7 +35,12 @@ function [names] = hlp_getConnMethodNames(Conn)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-    names = fieldnames(Conn(1));
-    names = setdiff(names,{'winCenterTimes','erWinCenterTimes','freqs','mode','options','resampleTrialIdx','dims'});
+if isempty(Conn)
+    names = {};
+    return;
+end
+
+names = fieldnames(Conn(1));
+names = setdiff_bc(names,{'winCenterTimes','erWinCenterTimes','freqs','mode','options','resampleTrialIdx','dims'});
     
     

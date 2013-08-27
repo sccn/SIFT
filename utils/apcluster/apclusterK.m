@@ -61,7 +61,7 @@ while ~dn
     fprintf('  Trying p=%f\n',tmppref);
     [idx,netsim,dpsim,expref]=apcluster(S,tmppref,'dampfact',0.9, ...
         'convits',200,'maxits',2000,'nonoise');
-    tmpk=length(unique(idx));
+    tmpk=length(unique_bc(idx));
     if tmpk<=kk dn=1;
     elseif i==-1 tmpk=lowk; tmppref=lowpref; dn=1;
     else i=i+1;
@@ -78,7 +78,7 @@ if abs(tmpk-kk)/kk*100>prc
         tmppref=0.5*highpref+0.5*lowpref;
         [idx,netsim,dpsim,expref]=apcluster(S,tmppref,'dampfact',0.9, ...
             'convits',200,'maxits',2000,'nonoise');
-        tmpk=length(unique(idx));
+        tmpk=length(unique_bc(idx));
         if kk>tmpk lowpref=tmppref; lowk=tmpk;
         else highpref=tmppref; highk=tmpk;
         end;

@@ -643,7 +643,7 @@ if any(cellfun(@isempty,{g.ALLEEG.dipfit}))
     error('SIFT:vis_causalBrainMovie3D','In order to use BrainMovie3D, source locations must be stored in EEG.dipfit');
 end
 
-if any(ismember({g.nodeSizeMapping, g.nodeColorMapping},'power')) && ~isfield(g.Conn,'S')
+if any(ismember_bc({g.nodeSizeMapping, g.nodeColorMapping},'power')) && ~isfield(g.Conn,'S')
     error('To modulate node color/size by power you must have pre-computed the spectral density measure (Conn object must contain field ''S'')');
 end
 
@@ -655,11 +655,11 @@ if ~isfield(g.BMopts,'renderBrainMovie')
     g.BMopts.renderBrainMovie = true;
 end
 
-if ~ismember(g.collapsefun,{'max','peak','absmax','minmax'}) && strcmpi(g.edgeColorMapping,'peakfreq')
+if ~ismember_bc(g.collapsefun,{'max','peak','absmax','minmax'}) && strcmpi(g.edgeColorMapping,'peakfreq')
     error('To use PeakFreq EdgeColorMapping, you must select ''max'' or ''peak'' as the FreqCollapseMethod');
 end
 
-if length(setdiff(MyComponentNames,g.nodesToExclude)) < 2
+if length(setdiff_bc(MyComponentNames,g.nodesToExclude)) < 2
     error('You must include at least two nodes in the BrainMovie');
 end
     
@@ -914,7 +914,7 @@ if isempty(g.timeRange)
 erWinCenterTimes = g.Conn(1).erWinCenterTimes;
 
 % identify the indices of the components to keep
-g.BMopts.selected = find(~ismember(MyComponentNames,g.nodesToExclude));
+g.BMopts.selected = find(~ismember_bc(MyComponentNames,g.nodesToExclude));
 
 % obtain factors for resampling
 if g.resample
@@ -931,7 +931,7 @@ end
 N=g.ALLEEG(1).CAT.nbchan;
 
 % indices of nodes we will exclude
-nodeIndicesToExclude = find(~ismember(1:N,g.BMopts.selected));
+nodeIndicesToExclude = find(~ismember_bc(1:N,g.BMopts.selected));
 
 % get the indices of frequencies to collapse
 freqIndicesToCollapse = getindex(g.Conn(1).freqs,g.freqsToCollapse);
@@ -994,8 +994,8 @@ for cnd = 1:length(g.Conn)
         for ch2=1:N
 
             if ch1==ch2 ...
-               || ~isempty(intersect(nodeIndicesToExclude,[ch1 ch2])) ...
-               || all(ismember({g.edgeSizeMapping, g.edgeColorMapping},'none'))
+               || ~isempty(intersect_bc(nodeIndicesToExclude,[ch1 ch2])) ...
+               || all(ismember_bc({g.edgeSizeMapping, g.edgeColorMapping},'none'))
            
                 % don't compute data for this channel pair
 %                 EdgeSize(ch1,ch2,:)=zeros(1,length(timeIndices),class(Conn(1)));
@@ -1105,7 +1105,7 @@ for cnd = 1:length(g.Conn)
 
     
     
-    if ~all(ismember({g.nodeSizeMapping, g.nodeColorMapping},'none'))
+    if ~all(ismember_bc({g.nodeSizeMapping, g.nodeColorMapping},'none'))
         % we will need the connectivity data in matrix format so we can
         % obtained graph statistics for mapping Node Size/Color
         
@@ -1130,10 +1130,10 @@ for cnd = 1:length(g.Conn)
     % Format node data (size/color)
     [NodeSize NodeColor] = deal(zeros(N,length(timeIndices),class(Conn(1))));
     
-    if ~all(ismember({g.nodeSizeMapping, g.nodeColorMapping},'none'))
+    if ~all(ismember_bc({g.nodeSizeMapping, g.nodeColorMapping},'none'))
         
         for ch1=1:N
-            if ismember(ch1,nodeIndicesToExclude)
+            if ismember_bc(ch1,nodeIndicesToExclude)
 
     %             NodeSize(ch1,:) = zeros(size(EdgeSize{1,2}),class(Conn(1)));
     %             NodeColor(ch1,:) = NodeSize{ch1,1};
@@ -1226,7 +1226,7 @@ for cnd = 1:length(g.Conn)
             
             case 'Chan_ERPenvelope'
                 % compute ERP of selected channels
-                erpvars     = find(ismember(MyChannelNames, ...                 % select chans
+                erpvars     = find(ismember_bc(MyChannelNames, ...                 % select chans
                                        g.footerPanelSpec.chanenvelopevars));
                 erpdata     = mean(g.ALLEEG(cnd).data(erpvars,:,:),3);         % compute ERP
                 
@@ -1252,9 +1252,9 @@ for cnd = 1:length(g.Conn)
             case 'ICA_ERPenvelope'
                 % compute ERP of selected backprojected components
                 erpvars     = g.ALLEEG(cnd).CAT.curComps( ...
-                                ismember(MyComponentNames(g.BMopts.selected),...  % select comps
+                                ismember_bc(MyComponentNames(g.BMopts.selected),...  % select comps
                                        g.footerPanelSpec.icaenvelopevars));
-                erpchans    = find(ismember(MyChannelNames,g.footerPanelSpec.backprojectedchans));
+                erpchans    = find(ismember_bc(MyChannelNames,g.footerPanelSpec.backprojectedchans));
                 erpdata     = mean(g.ALLEEG(cnd).icaact(erpvars,:,:),3);       % obtain ERP
                 if ~isempty(erpchans)
                     erpdata     = g.ALLEEG(cnd).icawinv(erpchans,erpvars)*erpdata;        % backproject ERPs to scalp
@@ -1295,9 +1295,9 @@ for cnd = 1:length(g.Conn)
                 
             case 'GraphMetric'
 %                 erpvars     = g.ALLEEG(cnd).CAT.curComps( ...
-%                                 ismember(MyComponentNames(g.BMopts.selected),...  % select comps
+%                                 ismember_bc(MyComponentNames(g.BMopts.selected),...  % select comps
 %                                        g.footerPanelSpec.nodes));
-                erpvars     = find(ismember(MyComponentNames(g.BMopts.selected),...  % select comps
+                erpvars     = find(ismember_bc(MyComponentNames(g.BMopts.selected),...  % select comps
                                             g.footerPanelSpec.nodes));
                 % compute graph metric over selected nodes
                 eval(sprintf('tmp=%s;',g.footerPanelSpec.metric));

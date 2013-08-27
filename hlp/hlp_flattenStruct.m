@@ -58,7 +58,7 @@ function flat = hlp_flattenStruct(s,depth,exclude)
     
     for i=1:length(fn)
         fni = fn{i};
-        if isstruct(s.(fni)) && ~ismember({fni},exclude)
+        if isstruct(s.(fni)) && ~ismember_bc({fni},exclude)
             substruct = hlp_flattenStruct(s.(fni),depth-1,exclude);     % recursively flatten the child struct
             fnsub = fieldnames(substruct);
             for j=1:length(fnsub);                      % assign all child fields to parent

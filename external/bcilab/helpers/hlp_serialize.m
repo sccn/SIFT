@@ -212,7 +212,7 @@ function m = serialize_cell(v)
             if all(cellfun('isclass',v(:),'double')) || all(cellfun('isclass',v(:),'cell')) || all(cellfun('isclass',v(:),'struct'))
                 % of standard data types: Tag, Type Tag, #Dims, Dims
                 m = [uint8(37); class2tag(class(v{1})); ndims(v); typecast(uint32(size(v)),'uint8').'];
-            elseif length(unique(cellfun(@class,v(:),'UniformOutput',false))) == 1
+            elseif length(unique_bc(cellfun(@class,v(:),'UniformOutput',false))) == 1
                 % of uniform class with prototype
                 m = [uint8(38); hlp_serialize(class(v{1})); ndims(v); typecast(uint32(size(v)),'uint8').'];
             else

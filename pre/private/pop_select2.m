@@ -213,9 +213,9 @@ if ~isempty(g.sort)
     end;
 end;
 if strcmpi(g.sorttrial, 'on')
-    g.trial = sort(setdiff( g.trial, g.notrial ));
+    g.trial = sort(setdiff_bc( g.trial, g.notrial ));
 else
-    g.trial(ismember(g.trial,g.notrial)) = [];
+    g.trial(ismember_bc(g.trial,g.notrial)) = [];
 %     % still warn about & remove duplicate trials (may be removed in the future)
 %     p = g.trial;
 %     if length(p) ~= length(g.trial)
@@ -238,13 +238,13 @@ end;
 
 if strcmpi(g.sorttrial, 'on')
     if iscell(g.channel)
-         g.channel = sort(setdiff( lower(g.channel), lower(g.nochannel) ));
-    else g.channel = sort(setdiff( g.channel, g.nochannel ));
+         g.channel = sort(setdiff_bc( lower(g.channel), lower(g.nochannel) ));
+    else g.channel = sort(setdiff_bc( g.channel, g.nochannel ));
     end;
 else
-    g.channel(ismember(lower(g.channel),lower(g.nochannel))) = [];
+    g.channel(ismember_bc(lower(g.channel),lower(g.nochannel))) = [];
     % still warn about & remove duplicate channels (may be removed in the future)
-    [p,q] = unique(g.channel);
+    [p,q] = unique_bc(g.channel);
     if length(p) ~= length(g.channel)
         disp('Warning: channel selection contained duplicated elements, which were removed.'); 
     end    
@@ -260,7 +260,7 @@ if ~isempty(EEG.chanlocs)
             % translate channel names into indices
             [inds,names] = eeg_decodechan(EEG.chanlocs, g.channel);
             % and sort the indices back into the original order of channel names
-            [tmp,I] = ismember(lower(g.channel),lower(names)); 
+            [tmp,I] = ismember_bc(lower(g.channel),lower(names)); 
             g.channel = inds(I);
         end
     end
@@ -346,8 +346,8 @@ if ~isempty(g.trialcond)
         tmpepoch = EEG.epoch;
 	    eval( [ 'Itriallow  = find( [ tmpepoch(:).' ttfields{index} ' ] >= tt.' ttfields{index} '(1) );' ] );
 	    eval( [ 'Itrialhigh = find( [ tmpepoch(:).' ttfields{index} ' ] <= tt.' ttfields{index} '(end) );' ] );
-	    Itrialtmp = intersect(Itriallow, Itrialhigh);
-	    g.trial = intersect( g.trial(:)', Itrialtmp(:)');
+	    Itrialtmp = intersect_bc(Itriallow, Itrialhigh);
+	    g.trial = intersect_bc( g.trial(:)', Itrialtmp(:)');
    end;	   
 end;
 
@@ -409,7 +409,7 @@ if length(g.trial) ~= EEG.trials & ~isempty(EEG.event)
 					EEG.event(indexevent).epoch = newindex;
 				end;                
 			end;
-            diffevent = setdiff([1:length(EEG.event)], keepevent);
+            diffevent = setdiff_bc([1:length(EEG.event)], keepevent);
 			if ~isempty(diffevent)
 				disp(['Pop_select: removing ' int2str(length(diffevent)) ' unreferenced events']);
 				EEG.event(diffevent) = [];
@@ -525,7 +525,7 @@ end;
 % ------------
 if ~isempty(EEG.icachansind)
     
-    rmchans = setdiff( EEG.icachansind, g.channel ); % channels to remove
+    rmchans = setdiff_bc( EEG.icachansind, g.channel ); % channels to remove
     
     % channel sub-indices
     % -------------------
@@ -598,7 +598,7 @@ if ~isempty(EEG.event)
     for index = 1:length( g.trial )
         currentevents = find( EEG.event(:,2) == g.trial(index));
         Indexes = [ Indexes ones(1, length(currentevents))*index ];
-        Ievent  = union( Ievent, currentevents );
+        Ievent  = union_bc( Ievent, currentevents );
     end;
     EEG.event = EEG.event( Ievent,: );
     EEG.event(:,2) = Indexes(:);

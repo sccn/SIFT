@@ -42,7 +42,7 @@ function A = sim_genTVMVARStructure(Aproto,Nl,ndisc,p)
     if iscell(Aproto)
         % find all the function handles
         numidx = find(cellfun(@(x)isnumeric(x),Aproto));
-        funidx = setdiff(1:numel(Aproto),numidx);
+        funidx = setdiff_bc(1:numel(Aproto),numidx);
 
         % funidx = find(cellfun(@(x)strcmpi(class(x),'function_handle'),Aproto));
 
