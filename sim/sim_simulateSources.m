@@ -209,19 +209,3 @@ if nargout>2
     LFM = g.LFM;
 end
 
-
-% %%
-% nlambdas = 100;
-% plotGCV  = true;
-% threshold = [25 85]; % threshold = [1 99]; threshold = [];  
-% J = inverseSolutionLoreta(Vtrue,K,L,nlambdas,plotGCV,threshold);  % J contains the solution for the source potentials within the chosen space, the remaining elements are zero
-% Jest(vertinds) = J;
-% Vest = K*Jest(vertinds);
-% hmObj.plotOnModel(Jtrue,Vtrue,'True source');
-% hmObj.plotOnModel(Jest,Vest,'Estimated source');
-% 
-% disp('adding noise');
-% % adding noise
-% snr = 5;
-% vn = std(Vtrue)/snr*randn(length(Vtrue),1);
-% Vtrue_noise = Vtrue + vn;
