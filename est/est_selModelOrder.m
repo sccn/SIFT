@@ -89,6 +89,7 @@ if hlp_isToolboxInstalled('Parallel Computing Toolbox')
     [tmp parprofs] = hlp_microcache('sift_domain',@defaultParallelConfig);
 else
     pardef = 'off';
+    parprofs = {'local'};
 end
 
 g = arg_define([0 1],varargin, ...
