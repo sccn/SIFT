@@ -95,6 +95,7 @@ if hlp_isToolboxInstalled('Parallel Computing Toolbox')
     [tmp parprofs] = hlp_microcache('sift_domain',@defaultParallelConfig);
 else
     pardef = 'off';
+    parprofs = {'local'};
 end
 
 g = arg_define([0 1],varargin, ...
@@ -112,6 +113,11 @@ g = arg_define([0 1],varargin, ...
                 arg_sub({'ridge_args','RegressionOptions'},[],@ridge_gcv,'Ridge regression options.','suppress','verb'), ...
                 arg({'verb','Verbosity'},verb,{int32(0) int32(1) int32(2)},'Verbose output','type','int32','mapper',@(x)int32(x)) ...
                 );
+
+if strcmp(pardef,'off') && g.splitVars.arg_selection && g.splitVars.runPll.arg_selection
+    fprintf('Parallel Computing Toolbox not installed. Cannot use parallel option.\n');
+    g.splitVars.runPll.arg_selection = false;
+end
 
 arg_toworkspace(g);
 

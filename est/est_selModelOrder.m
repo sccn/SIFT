@@ -89,6 +89,7 @@ if hlp_isToolboxInstalled('Parallel Computing Toolbox')
     [tmp parprofs] = hlp_microcache('sift_domain',@defaultParallelConfig);
 else
     pardef = 'off';
+    parprofs = {'local'};
 end
 
 g = arg_define([0 1],varargin, ...
@@ -115,7 +116,7 @@ g = arg_define([0 1],varargin, ...
     );
 
 
-if strcmp(pardef,'off')
+if g.runPll.arg_selection && strcmp(pardef,'off')
     fprintf('Parallel Computing Toolbox not installed. Cannot use parallel option.\n');
     g.runPll.arg_selection = false;
 end
