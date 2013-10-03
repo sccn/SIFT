@@ -9,7 +9,7 @@ S=cell(N,1);                    %cell array for spatial location data
 C=cell(N,1);                    %cell array for time-varying connectivity data
 T=80; time=1:T;                 %number of time points in eeg time series
                              
-
+dataPath = '/Users/timmullen/Documents/WORK/Wes/MutiSubjectBayesian/Data/';
 %% The following block of code is my attempt to simplify the data by
 % removing on of the symmetric dipoles for each pair and removing sources
 % which were put in the same cluster.   
@@ -17,7 +17,7 @@ ind_keep=cell(N,1);
 ind_sym=cell(N,1);
 for i=1:N                       %find & remove symmetric components & repeated clusterings
     ii=subj_keep(i);
-    x=strcat('C:/aaa_wes/brains/multisubject_eeg/eeg_data/',subjectname{ii},'_theta_Wrong_Correct.mat');
+    x=strcat(dataPath,subjectname{ii},'_theta_Wrong_Correct.mat');
     load(x)
     clust_i=ones(1,length(clustcps{1}{ii}));
     ind_i=clustcps{1}{ii}; % Component numbers for subject i
@@ -55,7 +55,7 @@ end
 M_i=zeros(N,1);
 for i=1:N                      
     ii=subj_keep(i);
-    x=strcat('C:/aaa_wes/brains/multisubject_eeg/eeg_data/',subjectname{ii},'_theta_Wrong_Correct.mat');
+    x=strcat(dataPath,subjectname{ii},'_theta_Wrong_Correct.mat');
     load(x)
     C{i}=log(Conn(find(ind_keep{i}==1),find(ind_keep{i}==1),:)+1);
     M_i(i)=size(C{i},1);
