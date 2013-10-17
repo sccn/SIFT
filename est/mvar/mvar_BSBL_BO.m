@@ -59,7 +59,7 @@ function [AR PE State] = mvar_BSBL_BO(varargin)
 
 persistent initAR;
 
-g = arg_define([0 1],varargin, ...
+g = arg_define(varargin, ...
                 arg_norep({'data','Data'},mandatory,[],'Data Matrix. Dimensions are [nchs x npnts].'), ...
                 arg({'morder','ModelOrder'},10,[],'VAR Model order'), ...
                 arg({'normcols','NormCols'},'zscore',{'none','norm','zscore'},'Normalize columns of dictionary'), ...
@@ -140,7 +140,7 @@ g.bsbl_args.initState = initAR;
 [initAR] = BSBL_BO('Phi',X,'y',Y,'blks',blks,g.bsbl_args);
 
 % keyboard;
-% [initAR] = admm_gl(X, Y, blks, g.admm_args,'InitialState',initAR);  %,'InitialState',initAR
+% [initAR] = admm_gl('A',X, 'y',Y, 'blks',blks, g.admm_args,'InitialState',initAR);  %,'InitialState',initAR
 
 % assemble coefficient matrices
 AR = zeros(p,nchs,nchs);
