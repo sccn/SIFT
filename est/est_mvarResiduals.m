@@ -103,6 +103,20 @@ if ~tvar
             res(:,l,tr) = res(:,l,tr) - AR{1}(:, (k-1)*nchs+1:k*nchs)*X(:,l-k+p,tr);
         end
     end
+    
+    % reference code
+%     tmp = zeros(nchs,nres,ntr);
+%     for k=1:p
+%         tmp = tmp + AR{1}(:, (k-1)*nchs+1:k*nchs)*X(:,l-k+p,tr);
+%     end
+% 
+%     % code vectorization tests (not ready)
+%     ARx = reshape(AR{1},nchs,nchs,p);
+%     M = reshape(permute(ARx(:,:,end:-1:1),[1 3 2]),[],nchs) * X(:,:,tr);
+%     idx = bsxfun(@plus,bsxfun(@plus,[1:nchs]',[0:nres-1]*(nchs*p)),permute([0:p-1]*(nchs*p+nchs),[1 3 2]));
+%     N = reshape(M(idx(:)),nchs,p,[]);
+%     tmp2 = reshape(sum(N,2),nchs,[]);
+    
 else
     if ~instant
         % add initial AR coefficients (this delays coefficient matrix by one

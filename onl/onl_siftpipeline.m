@@ -6,7 +6,7 @@ function [signal g] = onl_siftpipeline(varargin)
 
 EEG = arg_extract(varargin,'EEG',struct([]));
 
-g = arg_define([0 Inf],varargin, ...
+g = arg_define(varargin, ...
         arg_norep({'EEG','Signal','signal'}), ...
         arg({'channels','Channels'}, [], [], 'Cell array of channel names to retain.','type','cellstr','shape','row'), ...
         arg_sub({'preproc','Preprocessing'},{'EEG',EEG},@pre_prepData,'Pre-processing options'), ...
@@ -48,7 +48,7 @@ end
 % g.EEG.data = bsxfun(@minus,g.EEG.data,mean(g.EEG.data)); end
 
 % pre-process data
-g.EEG = pre_prepData('EEG',g.EEG,g.preproc,'verb',g.verb);
+g.EEG = pre_prepData('EEG',g.EEG,g.preproc,'verb',g.verb,'arg_direct',true);
 
 % if strcmp(g.preproc.sigtype.arg_selection,'Sources')
 %     % if using sources, construct the dipfit matrix
@@ -64,7 +64,7 @@ if g.selModelOrder.arg_selection
     
     g.selModelOrder.modelOrderSelection.modelingApproach = g.modeling;
 
-    IC = est_selModelOrder('EEG',g.EEG,g.selModelOrder.modelOrderSelection);
+    IC = est_selModelOrder('EEG',g.EEG,g.selModelOrder.modelOrderSelection,'arg_direct',true);
     IC = IC{1};
     
     icselector = g.selModelOrder.modelOrderSelection.icselector{1};
@@ -81,11 +81,11 @@ if g.selModelOrder.arg_selection
 end
             
 % fit model
-g.EEG.CAT.MODEL = feval(modelingFuncName,'EEG',g.EEG,g.modeling,'verb',g.verb);
+g.EEG.CAT.MODEL = feval(modelingFuncName,'EEG',g.EEG,g.modeling,'verb',g.verb,'arg_direct',true);
 
 % perform model validation (optional)
 if g.validation.arg_selection
-    [whitestats PCstats stability residualstats] = est_validateMVAR('EEG',g.EEG,g.validation);
+    [whitestats PCstats stability residualstats] = est_validateMVAR('EEG',g.EEG,g.validation,'arg_direct',true);
 
     if isempty(whitestats)
         whitenessCriteria = {};
@@ -106,7 +106,7 @@ end
 
 % calculate connectivity
 if g.connectivity.arg_selection
-    g.EEG.CAT.Conn = est_mvarConnectivity('EEG',g.EEG,'MODEL',g.EEG.CAT.MODEL,g.connectivity,'verb',g.verb);
+    g.EEG.CAT.Conn = est_mvarConnectivity('EEG',g.EEG,'MODEL',g.EEG.CAT.MODEL,g.connectivity,'verb',g.verb,'arg_direct',true);
 else
     g.EEG.CAT.Conn = [];
 end
