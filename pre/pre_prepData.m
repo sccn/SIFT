@@ -246,7 +246,7 @@ end
 
 verb = arg_extract(varargin,{'verb','VerbosityLevel'},[],0);
 
-g = arg_define([0 Inf], varargin, ...
+g = arg_define(varargin, ...
     arg_norep({'EEG','ALLEEG'},mandatory,[],'An EEGLAB dataset'), ...
     arg({'verb','VerbosityLevel'},2,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical'), ...
     arg_subswitch({'sigtype','SignalType','chantype'},hlp_getSigTypeArglist(defSigType,true),hlp_getSigTypeArglist(defSigType),'Type of signal to analyze. If ''Components'', data in EEG.icaact will be processed. If ''Channels'' EEG.data will be processed. If ''Sources'' EEG.srcpot will be processed.','suppress',{'componentsToKeep'}), ...
@@ -389,18 +389,18 @@ end
 
 % detrend or center data
 if g.detrend.arg_selection
-    EEG.CAT.srcdata = pre_detrend('data',EEG.CAT.srcdata,'srate',EEG.srate,g.detrend,'verb',g.verb);
+    EEG.CAT.srcdata = pre_detrend('data',EEG.CAT.srcdata,'srate',EEG.srate,g.detrend,'verb',g.verb,'arg_direct',true);
 end
 
 % differencing
 if g.diff.arg_selection
-    EEG.CAT.srcdata = pre_diffData('data',EEG.CAT.srcdata,g.diff,'verb',g.verb);
+    EEG.CAT.srcdata = pre_diffData('data',EEG.CAT.srcdata,g.diff,'verb',g.verb,'arg_direct',true);
 end
 
 % compute band-limited amplitude envelope
 % these are added as additional channels
 if g.aamp.arg_selection
-    EEG = est_aamp('EEG',EEG,g.aamp,'verb',g.verb);
+    EEG = est_aamp('EEG',EEG,g.aamp,'verb',g.verb,'arg_direct',true);
 end
 
 % remove bad segments of data
@@ -416,7 +416,7 @@ end
 
 % normalize data
 if g.normalize.arg_selection
-    EEG.CAT.srcdata = pre_normData('data',EEG.CAT.srcdata,g.normalize,'verb',g.verb);
+    EEG.CAT.srcdata = pre_normData('data',EEG.CAT.srcdata,g.normalize,'verb',g.verb,'arg_direct',true);
 end
 
 % convert chanlocs to dipfit if desired
