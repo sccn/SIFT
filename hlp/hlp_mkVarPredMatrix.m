@@ -139,7 +139,7 @@ for itr = 1:ntr
     % initialize delay-embedding blocks
     Xi = zeros(blkrows,nchs,p);
     for d = 1:p % extract data at each delay lag...
-        Xi(:,:,d) = squeeze(data(:, p+1-d:end-d, itr))';
+        Xi(:,:,d) = data(:, p+1-d:end-d, itr)';
     end
     % permute to [npnts x p x nchs] so each page is a 
     % delay-embedding block for a given channel...

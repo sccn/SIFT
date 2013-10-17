@@ -81,13 +81,12 @@ function Conn = est_mvtransfer(varargin)
 
 %hlp_getValidConnMethods({'Directed Transfer Function'})
 
-
-g = arg_define([0 Inf],varargin, ...
+g = arg_define(varargin, ...
         arg_nogui({'AR'},mandatory,[],'AR coefficient matrix. This is an [M x M*p] Matrix of autoregressive coefficients for M-variate process of order p.'), ...
         arg_nogui({'C','NoiseCov'},mandatory,[],'Noise covariance matrix. This is an [M x M] process noise covariance matrix'), ...
         arg({'freqs','Frequencies'},[],[],'Frequencies to estimate'), ...
         arg_nogui({'srate','SamplingRate'},mandatory,[],'Process sampling rate'), ...
-        arg({'connmethods','ConnectivityMeasures'},false,hlp_getValidConnMethods,'Select a connectivity measure','cat','Connectivity','type','logical') ...
+        arg({'connmethods','ConnectivityMeasures'},false,hlp_microcache('connmethods',@hlp_getValidConnMethods),'Select a connectivity measure','cat','Connectivity','type','logical') ...
         );
         
 arg_toworkspace(g);
@@ -119,113 +118,140 @@ z = 2*pi*1i/srate;
 
 
 I = eye(nchs);
-Cinv=inverse(C);
+% Cinv=inverse(C);
 
 % initialize objects
-tmp=setdiff(methodsneeded,univariate_measures);
-for i=1:length(tmp)
+for tmp=fast_setdiff(methodsneeded,[univariate_measures singleton_measures])'
     % nchs x nchs x freqs (bivariate) measures
-    Conn.(tmp{i}) = zeros(nchs,nchs,nfreqs);
+    Conn.(tmp{1}) = zeros(nchs,nchs,nfreqs);
 end
-tmp=intersect(methodsneeded,univariate_measures);
-for i=1:length(tmp)
-    % nchs x 1 x freqs (univariate) measures
-    Conn.(tmp{i}) = zeros(nchs,1,nfreqs);
+for tmp=univariate_measures    
+    if any(strcmpi(tmp{1},methodsneeded))
+        % nchs x 1 x freqs (univariate) measures
+        Conn.(tmp{1}) = zeros(nchs,1,nfreqs); 
+    end
 end
-tmp=intersect(methodsneeded,singleton_measures);
-for i=1:length(tmp)
-    % nchs x 1 measures
-    Conn.(tmp{i}) = zeros(nchs,1);
+for tmp=singleton_measures
+    if any(strcmpi(tmp{1},methodsneeded))
+        % nchs x 1 measures
+        Conn.(tmp{1}) = zeros(nchs,1);
+    end
 end
 
 sqrtinvcov = diag(diag(C).^(-1/2));
 
-for n=1:nfreqs
     
-    if any(strcmpi('PDC',methodsneeded))
+if any(strcmpi('PDC',methodsneeded))
+    for n=1:nfreqs
         % complex non-normalized PDC
         % (Fourier transform of model coefficients)
-        for k = 1:morder
-            Conn.PDC(:,:,n) = Conn.PDC(:,:,n) + AR(:,(1:nchs)+(k-1)*nchs)*exp(-z*k*freqs(n));
-        end
-        Conn.PDC(:,:,n) = I-Conn.PDC(:,:,n);
+        % vectorized version of the below
+        Conn.PDC(:,:,n) = I - reshape(sum((bsxfun(@times,reshape(AR,nchs*nchs,morder),exp(-z*(1:morder)*freqs(n)))),2),nchs,nchs);
+        %         for k = 1:morder
+        %             Conn.PDC(:,:,n) = Conn.PDC(:,:,n) + AR(:,(1:nchs)+(k-1)*nchs)*exp(-z*k*freqs(n));
+        %         end
+        %         Conn.PDC(:,:,n) = I-Conn.PDC(:,:,n);
     end
-    
-    if any(strcmpi('DTF',methodsneeded))
+end
+
+if any(strcmpi('DTF',methodsneeded))
+    for n=1:nfreqs
         % complex non-normalized DTF
-        Conn.DTF(:,:,n)  = inverse(Conn.PDC(:,:,n));
+        Conn.DTF(:,:,n)  = inv(Conn.PDC(:,:,n)); % note: here we need the inverse directly
     end
-    
-    % --- SPECTRAL MEASURES ---
-    
-    if any(strcmpi('S',methodsneeded))
+end
+
+% --- SPECTRAL MEASURES ---
+
+if any(strcmpi('S',methodsneeded))
+    for n=1:nfreqs
         % complex spectral matrix
         Conn.S(:,:,n)  = Conn.DTF(:,:,n)*C*Conn.DTF(:,:,n)';  %/srate
     end
-    
-    if any(strcmpi('Sinv',methodsneeded))
+end
+
+if any(strcmpi('Sinv',methodsneeded))
+    for n=1:nfreqs
         % inverse spectral matrix:
         % inv(S) = inv(DTF*C*DTF') = inv(DTF)'inv(C)inv(DTF) = PDC'inv(C)PDC
-        Conn.Sinv(:,:,n) = Conn.PDC(:,:,n)'*Cinv*Conn.PDC(:,:,n);
+        %Conn.Sinv(:,:,n) = Conn.PDC(:,:,n)'*(Cinv*Conn.PDC(:,:,n));
+        Conn.Sinv(:,:,n) = Conn.PDC(:,:,n)'*(C\Conn.PDC(:,:,n)); % faster than Cinv method
         %         detSinv(n) = det(Conn.Sinv(:,:,n));
     end
-    
-    if any(strcmpi('Coh',methodsneeded))
+end
+
+if any(strcmpi('Coh',methodsneeded))
+    for n=1:nfreqs
         % complex coherency Cxy = Sxy/sqrt(abs(Sxx*Syy))
         autospect = diag(Conn.S(:,:,n));
-        Conn.Coh(:,:,n) = Conn.S(:,:,n)./sqrt(repmat(autospect,[1 nchs]).*repmat(autospect',[nchs 1]));
+        Conn.Coh(:,:,n) = Conn.S(:,:,n)./sqrt(autospect*autospect');
     end
-    
-    if any(strcmpi('pCoh',methodsneeded))
+end
+
+if any(strcmpi('pCoh',methodsneeded))
+    for n=1:nfreqs
         % complex partial coherency
         autospect = diag(Conn.Sinv(:,:,n));
-        Conn.pCoh(:,:,n) = Conn.Sinv(:,:,n)./sqrt(repmat(autospect,[1 nchs]).*repmat(autospect',[nchs 1]));
+        Conn.pCoh(:,:,n) = Conn.Sinv(:,:,n)./sqrt(autospect*autospect');
     end
-    
-    if any(strcmpi('iCoh',methodsneeded))
+end
+
+if any(strcmpi('iCoh',methodsneeded))
+    for n=1:nfreqs
         Conn.iCoh(:,:,n) = imag(Conn.Coh(:,:,n));
     end
-    % --- PARTIAL DIRECTED COHERENCE MEASURES ---
-    
-    if any(strcmpi('GPDC',methodsneeded))
+end
+% --- PARTIAL DIRECTED COHERENCE MEASURES ---
+
+if any(strcmpi('GPDC',methodsneeded))
+    for n=1:nfreqs
         % generalized PDC
         gtmp = abs(sqrtinvcov*Conn.PDC(:,:,n));
         gtmp_denom =diag(gtmp'*gtmp)';
         Conn.GPDC(:,:,n) = gtmp./sqrt(gtmp_denom(ones(1,nchs),:));
     end
-    
-    if any(strcmpi('nPDC',methodsneeded))
+end
+
+if any(strcmpi('nPDC',methodsneeded))
+    for n=1:nfreqs
         % complex normalized PDC (measures interactions with respect to
         % given signal source -- worse for identifying sources)
         pdc_denom = diag(abs(Conn.PDC(:,:,n))'*abs(Conn.PDC(:,:,n)))';
         Conn.nPDC(:,:,n) = Conn.PDC(:,:,n)./sqrt(pdc_denom(ones(1,nchs),:));
     end
-    
-    if any(strcmpi('pdc_denom',methodsneeded))
+end
+
+if any(strcmpi('pdc_denom',methodsneeded))
+    for n=1:nfreqs
         tmp = diag(abs(Conn.PDC(:,:,n))'*abs(Conn.PDC(:,:,n)))';
         Conn.pdc_denom(:,:,n) = tmp(ones(1,nchs),:);
     end
-    
-    if any(strcmpi('PDCF',methodsneeded))
+end
+
+if any(strcmpi('PDCF',methodsneeded))
+    for n=1:nfreqs
         % partial directed coherence factor
         pdcf_denom = diag(Conn.Sinv(:,:,n)).';
         Conn.PDCF(:,:,n) = abs(Conn.PDC(:,:,n))./sqrt(pdcf_denom(ones(1,nchs),:));
     end
-    
-    % --- DIRECTED TRANSFER FUNCTION MEASURES ---
-    
-    if any(strcmpi('dtf_denom',methodsneeded))
+end
+
+% --- DIRECTED TRANSFER FUNCTION MEASURES ---
+
+if any(strcmpi('dtf_denom',methodsneeded))
+    for n=1:nfreqs
         tmp = diag(abs(Conn.DTF(:,:,n))*abs(Conn.DTF(:,:,n))');
         Conn.dtf_denom(:,:,n) = tmp(:,ones(1,nchs));  % equivalent to repmat
     end
-    
-    if any(strcmpi('nDTF',methodsneeded))
+end
+
+if any(strcmpi('nDTF',methodsneeded))
+    for n=1:nfreqs
         % complex normalized DTF (measures interactions with respect to
         % given signal sink -- worse for identifying sinks)
         Conn.nDTF(:,:,n) = Conn.DTF(:,:,n)./sqrt(Conn.dtf_denom(:,:,n));
     end
-    
-end  % for each frequency
+end
 
 
 % --- MORE DTF MEASURES ---
@@ -284,7 +310,7 @@ if any(strcmpi('RPDC',methodsneeded))
     end
 end
 
-if any(ismember({'GGC','GGC2'},methodsneeded))
+if any(strcmpi('GGC',methodsneeded)) || any(strcmpi('GGC2',methodsneeded))
     absS = abs(Conn.S);
     absHsq = abs(Conn.DTF).^2;
 end
@@ -319,7 +345,7 @@ end
 
 
 % return only the measures requested
-Conn = rmfield(Conn,setdiff(fieldnames(Conn),connmethods));
+Conn = rmfield(Conn,fast_setdiff(fieldnames(Conn),connmethods));
 
 % use single-precision to save space (the double() is to force inverse
 % objects to be converted to numerics)
