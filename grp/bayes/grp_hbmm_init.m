@@ -65,7 +65,7 @@ if strcmp(initVals.arg_selection,'clustering')
             % Find clusters using Affinity Propagation
             % ------------------------------------------
             dmetric = initVals.clmethod.distance;
-            if ismember(dmetric,{'jaccard','hamming'})
+            if ismember_bc(dmetric,{'jaccard','hamming'})
                 % compute similarity matrix on mask
                 SM = squareform(1-pdist(S_clust,dmetric));
                 % NaNs occur where the two patterns being compared are zero vectors
@@ -89,7 +89,7 @@ if strcmp(initVals.arg_selection,'clustering')
                 end
                 [idx]=apcluster(S,initVals.clmethod.prefs,opts{:});
             end
-            uidx = unique(idx);
+            uidx = unique_bc(idx);
             % compute cluster centroids
             cc = arrayfun(@(ci)mean(S(idx==ci,:),1), uidx, 'UniformOutput',false);
             cc = cell2mat(cc);
@@ -113,7 +113,7 @@ if strcmp(initVals.arg_selection,'clustering')
 end
 
 % number of desired clusters
-M = length(unique(idx));
+M = length(unique_bc(idx));
 % number of dipoles for each subject
 M_i = cellfun(@(B_i) size(B_i,1),B);
 % length of connectivity sequence (same for all subjects)
