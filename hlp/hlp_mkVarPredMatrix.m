@@ -152,10 +152,10 @@ for itr = 1:ntr
 end
 
 if ntr>1
-% reshape X and Y to stack trials vertically and form final 2D matrix
-X = permute(X,[1 3 2]);
-Y = permute(Y,[1 3 2]);
-X = reshape(X,blkrows*ntr,blkcols);
-Y = reshape(Y,blkrows*ntr,nchs);
+    % reshape X and Y to stack trials vertically and form final 2D matrix
+    X = permute(X,[1 3 2]);
+    Y = permute(Y,[1 3 2]);
+    X = reshape(X,blkrows*ntr,blkcols);
+    Y = reshape(Y,blkrows*ntr,nchs);
 end
 
