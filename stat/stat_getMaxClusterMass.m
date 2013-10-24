@@ -28,7 +28,7 @@ cdims = g.cdims;
 % discontinuous dims 
 % (to be clustered using apcluster 
 % with similarity computed over cdims)
-dcdims = setdiff(1:nd,cdims); 
+dcdims = setdiff_bc(1:nd,cdims); 
 
 if ~isscalar(g.Ft) && ~isequal(size(g.Ft),sz)
     error('Size of threshold matrix must equal that of Connectivity matrix');
@@ -76,7 +76,7 @@ else
         end
     end
 
-    if ismember(g.smetric,{'jaccard','hamming'})
+    if ismember_bc(g.smetric,{'jaccard','hamming'})
         % compute similarity matrix on mask
         S = squareform(1-pdist(mask,g.smetric));
         % NaNs occur where the two patterns being compared are zero vectors
@@ -103,7 +103,7 @@ else
         end
     end
 
-    v = unique(clidx);
+    v = unique_bc(clidx);
     if all(isnan(clidx)) || length(v) == 1  || all(isnan(v)) == 1
         % there is no special cluster 
         adj = [];

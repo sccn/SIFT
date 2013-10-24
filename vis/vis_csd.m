@@ -76,7 +76,7 @@ end
 chanlabels = lower({signal.chanlocs.labels});
 lookup = lower(hmObj.label);
 % got channel names: look them up from the chanlocs, but ordered according to lookup
-[x,a,b] = intersect(lookup,chanlabels); %#ok<ASGLU>
+[x,a,b] = intersect_bc(lookup,chanlabels); %#ok<ASGLU>
 [x,I] = sort(a); remaining = b(I);
 hmObj.label = hmObj.label(x);   
 hmObj.channelSpace = hmObj.channelSpace(x,:);

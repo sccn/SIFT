@@ -46,7 +46,7 @@ end
 % initialize vars based on last state of MCMC_InitState
 % this will initialize the following variables:
 % 'Z','S_BAR','SIGMA_S','B_BAR','SIGMA_B','N_k','N_k1k2'
-varnames = setdiff(fieldnames(MCMC_InitState),'initstate');
+varnames = setdiff_bc(fieldnames(MCMC_InitState),'initstate');
 if MCMC_InitState.initstate
     % initialize to initial state of MCMC iterator
     for i = 1:length(varnames)
