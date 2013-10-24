@@ -367,8 +367,9 @@ classdef geometricTools
             end
         end
         %%
-        function atlas = labelSurface(Surf,imgAtlasfile, txtAtlasLabel,maxColorValue)
+        function atlas = labelSurface(Surf,imgAtlasfile, txtAtlasLabel,maxColorValue,vol_permutation)
             if nargin < 4, maxColorValue = 90;end
+            if nargin < 5, vol_permutation = [1 2 3]; end
             % Atlas
             v =spm_vol(imgAtlasfile); % atlas
             A = spm_read_vols(v);
@@ -378,7 +379,8 @@ classdef geometricTools
             [x,y,z] = ndgrid(1:v.dim(1),1:v.dim(2),1:v.dim(3));
             M = v.mat;
             X = [x(:) y(:) z(:) ones(numel(x),1)]*M';
-            X = X(indNonZero,1:3);           
+            X = X(indNonZero,1:3);     
+            X = X(:,vol_permutation);
             clear x y z
             F = TriScatteredInterp(X,colorTable,'nearest');
             n = size(Surf.vertices,1);
@@ -402,7 +404,9 @@ classdef geometricTools
             atlas.label = atlas.label(1:max(atlas.colorTable));
             for it=1:length(atlas.label)
                 ind = find(atlas.label{it} == ' ');
-                atlas.label{it} = atlas.label{it}(ind(1)+1:ind(end)-1);
+                if ~isempty(ind)
+                    atlas.label{it} = atlas.label{it}(ind(1)+1:ind(end)-1);
+                end
             end
         end
         %%
