@@ -152,9 +152,9 @@ if strcmpi(typedip, 'besa')
     if ~isempty(comps)
         [tmp1 int] = intersect_bc( [ EEG.sources.component ], comps);
         if isempty(int), error ('Localization not found for selected components'); end;
-        dipplot_sift((EEG.sources(int), 'sphere', 1, options{:});
+        dipplot_sift(EEG.sources(int), 'sphere', 1, options{:});
     else
-        dipplot_sift((EEG.sources, options{:});
+        dipplot_sift(EEG.sources, options{:});
     end;      
 else 
     if ~isfield(EEG, 'dipfit'), error('No DIPFIT dipole information in dataset');end;
@@ -182,11 +182,11 @@ else
     % --------
     tmpoptions = { options{:} 'coordformat', EEG.dipfit.coordformat };
     if strcmpi(EEG.dipfit.coordformat, 'spherical')
-        dipplot_sift((EEG.dipfit.model(comps), tmpoptions{:});
+        dipplot_sift(EEG.dipfit.model(comps), tmpoptions{:});
     elseif strcmpi(EEG.dipfit.coordformat, 'CTF')
-        dipplot_sift((EEG.dipfit.model(comps), tmpoptions{:});
+        dipplot_sift(EEG.dipfit.model(comps), tmpoptions{:});
     else
-        dipplot_sift((EEG.dipfit.model(comps), 'meshdata', EEG.dipfit.hdmfile, tmpoptions{:});
+        dipplot_sift(EEG.dipfit.model(comps), 'meshdata', EEG.dipfit.hdmfile, tmpoptions{:});
     end;
 end;
     
