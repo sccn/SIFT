@@ -828,7 +828,7 @@ else
         case 'both'
             yTickLoc = 'BothMargins';
     end
-    axh=subplot1(numSubplotRows,numSubplotCols, ...
+    axh=hlp_subplot1(numSubplotRows,numSubplotCols, ...
         'Min',gridmargin_bot_left,'Max',gridmargin_top_right,...
         'Gap',[pmargin pmargin], ...
         'YTickL',yTickLoc,'LeftMarginCol',2);
@@ -1112,7 +1112,7 @@ end
 % ------------------------------------------------------------------
 if ~strcmpi(g.topoplot,'none')
     
-    subplot1(sub2ind([numSubplotRows,numSubplotCols],1,1));
+    hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],1,1));
     
     set(gca,'visible','off');
     chidx=0;
@@ -1121,7 +1121,7 @@ if ~strcmpi(g.topoplot,'none')
         
         % row marginals
         % --------------
-        subplot1(sub2ind([numSubplotRows,numSubplotCols],1,chidx+1));
+        hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],1,chidx+1));
         plotmarginal(ALLEEG,ch,g,'view',g.dipplot.row_view); % [0 -1 0] for zeynep
         pos = get(gca,'position');
         th = ylabel(g.nodelabels(ch),'color',g.textColor,  ...
@@ -1135,13 +1135,13 @@ if ~strcmpi(g.topoplot,'none')
         
         % column marginals
         % ----------------
-        subplot1(sub2ind([numSubplotRows,numSubplotCols],chidx+1,1));
+        hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],chidx+1,1));
         plotmarginal(ALLEEG,ch,g,'view',g.dipplot.col_view)  % [0 0 1] for zeynep
         title(g.nodelabels(ch),'color',g.textColor,'fontsize',g.axesFontSize);
         set(gco,'tag','coltitle');
     end
 else
-    subplot1(sub2ind([numSubplotRows,numSubplotCols],1,1));
+    hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],1,1));
     
     set(gca,'visible','off');
     chidx=0;
@@ -1149,9 +1149,9 @@ else
     for ch=g.plotorder
         chidx = chidx+1;
         
-        hsub=[hsub subplot1(sub2ind([numSubplotRows,numSubplotCols],1,chidx+1))];
+        hsub=[hsub hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],1,chidx+1))];
         set(gca,'visible','off')
-        hsub=[hsub subplot1(sub2ind([numSubplotRows,numSubplotCols],chidx+1,1))];
+        hsub=[hsub hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],chidx+1,1))];
         set(gca,'visible','off')
     end
     
@@ -1175,7 +1175,7 @@ for ch_i=1:nch
         
         % Index the appropriate subplot.
         % subplot1 counts linearly by columns, so we flip ch_i,ch_j
-        subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_j+numSubplotRows-nch,ch_i+numSubplotCols-nch));
+        hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_j+numSubplotRows-nch,ch_i+numSubplotCols-nch));
         set(gca,'tag','causalplot');
         
         % create column/row titles, if necessary
@@ -1214,13 +1214,13 @@ for ch_i=1:nch
             % then borrow x-y ticks from left,upper neighbors
             if ch_i==nch && ch_j == nch && isempty(get(gca,'children'));
                 % get left neighbor
-%                 subplot1(sub2ind([numSubplotRows,numSubplotCols],nch,nch));
+%                 hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],nch,nch));
                 curplot = gca;
-                leftplot=subplot1(sub2ind([numSubplotRows,numSubplotCols],(ch_j-1)+numSubplotRows-nch,ch_i+numSubplotCols-nch));
+                leftplot=hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],(ch_j-1)+numSubplotRows-nch,ch_i+numSubplotCols-nch));
                 xticks = get(leftplot,'Xtick');
                 xticklabels = get(leftplot,'XTickLabel');
                 xlim = get(leftplot,'XLim');
-                upperplot=subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_j+numSubplotRows-nch,(ch_i-1)+numSubplotCols-nch));
+                upperplot=hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_j+numSubplotRows-nch,(ch_i-1)+numSubplotCols-nch));
                 yticks = get(upperplot,'Ytick');
                 yticklabels = get(upperplot,'YTickLabel');
                 ylim = get(upperplot,'YLim');
@@ -1387,7 +1387,7 @@ for ch_i=1:nch
             
             % create a red border around diagonal plots
             if ch_i==ch_j
-                %                 subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_j+numSubplotRows-nch,ch_i+numSubplotCols-nch));
+                %                 hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_j+numSubplotRows-nch,ch_i+numSubplotCols-nch));
                 pos = get(gca,'position');
                 hborder = annotation('rectangle',pos,'edgecolor',[1 0 0],'linewidth',2);
                 set(hborder,'userdata',gca);
@@ -1632,7 +1632,7 @@ end
 set(gcf,'color',g.backgroundColor);
 
 for ch_i=1:nch
-    subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_i+numSubplotRows-nch,ch_i+numSubplotCols-nch));
+    hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_i+numSubplotRows-nch,ch_i+numSubplotCols-nch));
     % give diagonals a red-ish border/background
 %     set(gca,'color','r');
     set(gca,'xcolor','r');
@@ -1653,7 +1653,7 @@ for i=1:length(topos)
 end
 
 % create legend
-subplot1(1);
+hlp_subplot1(1);
 if isempty(findall(gcf,'tag','legendborder'))
     % create border around legend
     pos = get(gca,'position');
