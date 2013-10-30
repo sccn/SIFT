@@ -352,6 +352,11 @@ classdef geometricTools
             nVertices = vertices;
         end
         %%
+        function [nVertices,nFaces] = getSurfaceROI(vertices,faces,roiIndices)
+            rmIndices = setdiff(1:size(vertices,1),roiIndices);
+            [nVertices,nFaces] = geometricTools.openSurface(vertices,faces,rmIndices);
+        end
+        %%
         function yi = interpOnSurface(vertices,faces,elec,y,method)
             if nargin < 5, method = 'spline';end
             switch method
