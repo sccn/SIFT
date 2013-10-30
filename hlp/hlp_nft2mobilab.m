@@ -1,5 +1,7 @@
 function metadata = hlp_nft2mobilab(SubjPath,SubjName,MobilabHeadModelName,chanlabels,atlas,AtlasImgFile,AtlasRoiFile,AtlasNumRoi)
 % convert NFT forward model and surfaces to Mobilab object metadata
+% This function requires NFT, Mobilab and SPM (for Atlas generation)
+%
 % Author: Tim Mullen, SCCN/INC 2013
 
 %% set up defaults
@@ -29,10 +31,12 @@ sens = load([RootPath, '.sensors'],'-mat');
 
 %% Create Atlas
 if ~isempty(AtlasImgFile)
+    fprintf('Generating atlas...');
     % map AAL atlas onto this cortical surface
     surfd = struct('faces',Surfaces.bnd(3).tri,'vertices',Surfaces.bnd(3).pnt);
     atlas = geometricTools.labelSurface(surfd,AtlasImgFile, AtlasRoiFile, AtlasNumRoi);
     atlas.color = atlas.colorTable;
+    fprintf('done.\n');
 end
 
 % create a 'dummy' atlas, if needed
@@ -40,11 +44,7 @@ if isempty(atlas)
     atlas = struct('colorTable',ones(size(Surfaces.bnd(3).pnt,1)),'label',{'brain'}); 
 end
 
-%% Assemble the head model
-% surfaces
-% surfData   = cellfun(@(x) struct('faces',x.Faces,'vertices',x.Vertices), {HeadSurface InnerSkullSurface CortexSurface});
-% % leadfield matrix
-% K  = LFM;
+%% Assemble the head model metadata
 
 if isempty(chanlabels)
     chanlabels = cellstr(num2str((1:size(sens.pnt,1))')); end
@@ -62,7 +62,7 @@ end
 metadata.atlas          = atlas;
 metadata.channelSpace   = sens.pnt;
 metadata.label          = chanlabels;
-metadata.leadField      = LFM;
+metadata.leadField      = K;
 metadata.leadFieldFile  = [MobilabHeadModelName '_LFM.mat'];
 metadata.surfacesFilename = [MobilabHeadModelName '_Surfaces.mat'];
 metadata.surfaces       = arrayfun(@(bnd) struct('faces',bnd.tri,'vertices',bnd.pnt), Surfaces.bnd);
