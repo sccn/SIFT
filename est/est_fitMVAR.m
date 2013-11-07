@@ -188,7 +188,7 @@ end
 numWins   = length(g.winStartIdx);
 
 % construct the data taper
-g.taper = feval(g.taperfcn,winLenPnts).';
+g.taper = window_func(g.taperfcn,winLenPnts).';
 
 
 %% Prepare data for model fitting
