@@ -66,7 +66,8 @@ end
 
 % remove source node from target nodes
 if ignoreSelfConn
-    targNodes = setdiff_bc(targNodes,srcNodes);
+    cmatrix=hlp_setdiags(cmatrix,0);
+%     targNodes = setdiff_bc(targNodes,srcNodes);
 end
 
 % compute graph metrics
