@@ -79,7 +79,7 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     PreProc_callback        = [finalcmd catchstrs.new_and_hist refreshMenuCB];
     
-    % model fitting and vlisation
+    % model fitting and validation
     cmd = 'EEG = pop_est_fitMVAR(EEG,0);';
     finalcmd = [ trystrs.no_check cmd ];
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
@@ -133,6 +133,9 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     BranMovie_callback      = [finalcmd catchstrs.store_and_hist refreshMenuCB];
     
+    % group analysis
+    % ...
+    
     % help
     AboutSIFT_callback  = 'gui_splashscreen;';
     SIFTManual_callback = @(hObject,eventdata) open([siftroot filesep 'documentation' filesep 'SIFT_manual.pdf']);
@@ -175,6 +178,39 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
         uimenu( vismenu , 'label', 'BrainMovie3D', 'callback', BranMovie_callback ,'userdata', userdata);
         %uimenu( vismenu , 'label', 'Causal Projection', 'callback', CausalProjection_callback, 'enable','off' );
     
+    % Group Analysis
+    grpmenu     = uimenu( menu, 'label', 'Group Analysis' ,'userdata', userdata,'callback',@create_mpt_menus);
+        grpmenu_mpa = uimenu( grpmenu , 'label', 'Causal Projection (MPT)','userdata', 'study:on');
+        
+        function create_mpt_menus(h,ev)
+            if ~isempty(get(grpmenu_mpa,'children')) return; end
+            
+             % global variables that are used by measure projection
+            global visualize_menu_label
+            global visualize_by_measure_menu_label
+            global visualize_by_domain_menu_label
+            global visualize_by_significance_menu_label
+                
+            if exist('eegplugin_mproject','file')
+                set(grpmenu_mpa,'enable','on');
+                
+                visualize_menu_label = 'Show volume';
+                visualize_by_measure_menu_label = 'Show colored by Measure';
+                visualize_by_domain_menu_label = 'Show colored by Domain';
+                visualize_by_significance_menu_label =  'Show colored by Significance';
+
+                % create measure projection submenus
+                create_mpt_submenu(grpmenu_mpa, 'sift');  
+                uimenu(grpmenu_mpa, 'Label', 'Options', 'Callback', @show_gui_options, 'separator','on','userdata', 'study:on');
+                uimenu(grpmenu_mpa, 'Label', 'About', 'Callback', @show_about, 'separator','on', 'userdata', 'study:on');
+
+                update_domain_menu([],[],grpmenu_mpa);
+                set(grpmenu_mpa,'callback',@(h,tmp) update_domain_menu(h,tmp,grpmenu_mpa));
+            else
+                set(grpmenu_mpa,'enable','off');
+            end
+        end
+        
     % Help
     helpmenu    = uimenu( menu, 'label', 'Help','userdata', userdata, 'enable','on');
         aboutmenu   = uimenu( helpmenu, 'label', 'About SIFT' ,'callback',AboutSIFT_callback,'userdata', userdata);
@@ -186,3 +222,39 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     eeg_global;
     hlp_refreshEEGLABMenus(EEG);
     
+end
+
+% Helper Functions
+% ------------------------------------------------------------------------------------------------------
+function update_domain_menu(callerHandle, tmp,mprojection_SIFTmenu)
+    
+    maxDomainNo = 30;
+
+    try
+        studyHasSiftDomain = evalin('base', '~isempty(STUDY.measureProjection.sift.projection.domain)');
+    catch
+        studyHasSiftDomain = false;
+    end;
+
+    mainfig = findobj('tag','EEGLAB');
+    if ~isempty(mainfig)
+        siftDomainMenu = findobj('parent', mprojection_SIFTmenu , 'type', 'uimenu', 'label','Domains');
+        set(siftDomainMenu,'enable',fastif(studyHasSiftDomain,'on','off'));
+
+        if studyHasSiftDomain
+            nbSiftDomains = evalin('base','size(STUDY.measureProjection.sift.projection.domain,2)');
+            for i = 1:maxDomainNo
+                if i <= nbSiftDomains
+                    set(findobj('parent',siftDomainMenu,'Label',['Domain ' num2str(i)]),'visible','on');
+                else
+                    set(findobj('parent',siftDomainMenu,'Label',['Domain ' num2str(i)]),'visible','off');
+
+                end
+            end
+        end
+
+    else
+        evalin('base','eeglab redraw');
+        update_domain_menu;
+    end
+end
