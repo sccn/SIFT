@@ -1,7 +1,7 @@
 function varargout = grp_mpa_prjGraphMetric(varargin)
 % [STUDY obj] = grp_mpa_prjGraphMetric(STUDY,ALLEEG,...)
 %
-% Perform causal projection analysis [1] using the Measure Projection Toolbox [2]
+% Perform causal projection [1] using the Measure Projection Toolbox [2]
 %
 % Output: 
 %       STUDY:  modified STUDY with MPT dipoleAndMeasure object in STUDY.measureprojection.sift.object
@@ -56,23 +56,26 @@ g = arg_define([0 2],varargin, ...
         arg_norep('STUDY',mandatory,[],'STUDY object'),  ...
         arg_norep('ALLEEG',mandatory,[],'ALLEEG array'), ...
         arg({'connmethod','Estimator'},ConnNames{1},ConnNames,'Connectivity estimator to project'), ...
-        arg({'timeRange','TimeRange'},timeRangeDef,[],'[Min Max] Time range to smooth (sec). Leave blank to use all time points','shape','row','type','denserealdouble'), ...
-        arg({'freqRange','FrequencyRange'},freqRangeDef,[],'[Min Max] Frequency range to smooth (Hz). Leave blank to use all frequencies','type','expression','shape','row'), ...
-        arg({'collapseTime','CollapseTime'},false,[],'Average across time before smoothing'), ...
-        arg({'collapseFreqs','CollapseFreqs'},true,[],'Integrate across frequencies before smoothing'), ...
+        arg({'timeRange','TimeRange'},timeRangeDef,[],'[Min Max] Time range to project (sec). Leave blank to use all time points','shape','row','type','denserealdouble'), ...
+        arg({'freqRange','FrequencyRange'},freqRangeDef,[],'[Min Max] Frequency range to project (Hz). Leave blank to use all frequencies','type','expression','shape','row'), ...
+        arg({'collapseTime','CollapseTime'},false,[],'Average across time before projection'), ...
+        arg({'collapseFreqs','CollapseFreqs'},true,[],'Integrate across frequencies before projection'), ...
+        arg({'centerMeasure','CenterMeasure'},false,[],'Remove mean of each measure. Enabling this may affect interpretability'), ...
         arg({'rejOutsideBrain','RejectDipolesOutsideBrain'},true,[],'Reject dipoles outside the brain'), ...
         arg_sub({'graphMetric','GraphMetric'},{},@hlp_computeGraphMeasure,'Graph metric options','suppress',{'srcNodes','targNodes'}), ...
-        arg({'enableCache','EnableCaching'},true,[],'Enable caching of MPT object. This could use a lot of memory, but accelerate subsequent calls to this function'), ...
+        arg({'enableCache','EnableCaching'},false,[],'Enable caching of MPT object. This could use a lot of memory, but accelerate subsequent calls to this function'), ...
         arg({'verb','VerbosityLevel'},2,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical') ...
     );
     
 % basic error checking
 if g.collapseTime && g.collapseFreqs
-    error('At most one dimension can be collapsed. Otherwise, there is nothing to smooth!');
-end
-if any(arrayfun(@(x) ~isempty(hlp_checkeegset(x,{'conn'})), ALLEEG))
-    error('You must first run SIFT analysis on all datasets in the STUDY');
-end
+    error('At most one dimension can be collapsed. Otherwise, there is nothing to smooth!'); end
+if isempty(g.STUDY)
+    error('Please load a STUDY first'); end
+if isempty(g.ALLEEG)
+    error('ALLEEG cannot be empty. Did you forget to load a STUDY?'); end
+if any(arrayfun(@(x) ~isempty(hlp_checkeegset(x,{'conn'})), g.ALLEEG))
+   error(sprintf('You must first run SIFT on all datasets in the STUDY.\nALLEEG.CAT.Conn must be present')); end
 
 waitbarstr = ['Creating MPT Object for ',g.graphMetric.graphMetric];
 if g.verb==2
@@ -105,7 +108,7 @@ for sidx = 1:length(g.ALLEEG)
     % compute graph measure [nodes x freq x time]
     [gm nt nf] = ComputeGraphMeasure(g.ALLEEG(sidx).CAT.Conn, g);
     % subtract mean
-    gm  = bsxfun(@minus, gm, mean(gm,1));
+    if g.centerMeasure, gm  = bsxfun(@minus, gm, mean(gm,1)); end
     % store vectorized measures
     dipoleAndMeasure.linearizedMeasure(:,dipidx) = gm(:,:)';
     % update progress
@@ -115,8 +118,8 @@ for sidx = 1:length(g.ALLEEG)
 end
 
 % update some fields
-dipoleAndMeasure.time = nt*1000;
-dipoleAndMeasure.frequency = nf;
+dipoleAndMeasure.time = fastif(length(nt)==1,[],nt*1000);
+dipoleAndMeasure.frequency = fastif(length(nf)==1,[],nf);
 dipoleAndMeasure.measureLabel = g.graphMetric.graphMetric;
 dipoleAndMeasure.numberOfMeasureDimensions = ndims(gm)-1;
 
@@ -128,6 +131,7 @@ if nargout>1, varargout{2} = dipoleAndMeasure; end
 
 if g.verb==2
     multiWaitbar(waitbarstr,'Close');
+    drawnow;
 elseif g.verb==1, fprintf('done\n'); end
 
 
