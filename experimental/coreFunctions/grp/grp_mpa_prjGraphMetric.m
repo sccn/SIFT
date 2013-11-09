@@ -59,7 +59,7 @@ g = arg_define([0 2],varargin, ...
         arg({'timeRange','TimeRange'},timeRangeDef,[],'[Min Max] Time range to project (sec). Leave blank to use all time points','shape','row','type','denserealdouble'), ...
         arg({'freqRange','FrequencyRange'},freqRangeDef,[],'[Min Max] Frequency range to project (Hz). Leave blank to use all frequencies','type','expression','shape','row'), ...
         arg({'collapseTime','CollapseTime'},false,[],'Average across time before projection'), ...
-        arg({'collapseFreqs','CollapseFreqs'},true,[],'Integrate across frequencies before projection'), ...
+        arg({'collapseFreqs','CollapseFreqs'},false,[],'Integrate across frequencies before projection'), ...
         arg({'centerMeasure','CenterMeasure'},false,[],'Remove mean of each measure. Enabling this may affect interpretability'), ...
         arg({'rejOutsideBrain','RejectDipolesOutsideBrain'},true,[],'Reject dipoles outside the brain'), ...
         arg_sub({'graphMetric','GraphMetric'},{},@hlp_computeGraphMeasure,'Graph metric options','suppress',{'srcNodes','targNodes'}), ...
@@ -120,6 +120,7 @@ end
 % update some fields
 dipoleAndMeasure.time = fastif(length(nt)==1,[],nt*1000);
 dipoleAndMeasure.frequency = fastif(length(nf)==1,[],nf);
+dipoleAndMeasure.estimator = g.connmethod;
 dipoleAndMeasure.measureLabel = g.graphMetric.graphMetric;
 dipoleAndMeasure.numberOfMeasureDimensions = ndims(gm)-1;
 
@@ -169,49 +170,3 @@ newtimes = Conn.erWinCenterTimes;
 newfreqs = Conn.freqs;
 % compute graph measure
 gm = hlp_computeGraphMeasure('cmatrix',Conn.(g.connmethod{1}),g.graphMetric);
-
-
-
-
-
-
-
-
-
-    
-    
-%  arg_sub({'mpaOpts','MPA_Options'}, ...
-%             { ...
-%             arg({'rejOutsideBrain','RejectDipolesOutsideBrain'},true,[],'Reject dipoles outside the brain'), ...
-%             arg({'similarityThreshold','SimilarityThreshold'},0.9,[0 1],'Similarity Threshold'), ...
-%             
-%             similarityThreshold, significanceLevel, minNumberOfClusters, outlierThreshold
-% 
-
-
-
-
-% 
-% % compute optimal Gaussian width
-% [optimalGaussianWidth meanPredictionSimilarity gaussianStdValues] = pr.find_optimal_gaussian_width(dipoleAndMeasure);
-% 
-% % compute group-difference
-% gmProj = pr.meanProjection(dipoleAndMeasure, dipoleAndMeasure.getPairwiseFishersZSimilarity, pr.headGrid, 'stdOfDipoleGaussian', optimalGaussianWidth);
-% 
-% % project measures
-% gmProj = gmProj.createDomain(gmProj, 0.9, 0.05);
-%     
-
-
-% % build 'linearizedMeasure' under dipoleAndMeasure 
-% for i=1:length(dipoleAndMeasure.datasetIdAllConditions)
-%     outflow = ComputeGraphMeasure(ALLEEG(dipoleAndMeasure.datasetIdAllConditions(i)).CAT.Conn);
-%     
-% %     outflow = ALLEEG(dipoleAndMeasure.datasetIdAllConditions(i)).outflow(:,dipoleAndMeasure.numberInDataset(i));
-%     % outflow = outflow(goodFreqIdx);
-%     % outflow = log(outflow);
-%     % outflow = outflow - groupMeanOutflow'; % subtract mean
-%     outflow = bsxfun(@minus, outflow, mean(outflow)); % subtract mean
-%     dipoleAndMeasure.linearizedMeasure(:,i) = outflow;
-% end
-
