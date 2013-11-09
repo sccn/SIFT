@@ -179,37 +179,9 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
         %uimenu( vismenu , 'label', 'Causal Projection', 'callback', CausalProjection_callback, 'enable','off' );
     
     % Group Analysis
-    grpmenu     = uimenu( menu, 'label', 'Group Analysis' ,'userdata', userdata,'callback',@create_mpt_menus);
+    grpmenu     = uimenu( menu, 'label', 'Group Analysis' ,'userdata', userdata);
         grpmenu_mpa = uimenu( grpmenu , 'label', 'Causal Projection (MPT)','userdata', 'study:on');
-        
-        function create_mpt_menus(h,ev)
-            if ~isempty(get(grpmenu_mpa,'children')) return; end
-            
-             % global variables that are used by measure projection
-            global visualize_menu_label
-            global visualize_by_measure_menu_label
-            global visualize_by_domain_menu_label
-            global visualize_by_significance_menu_label
-                
-            if exist('eegplugin_mproject','file')
-                set(grpmenu_mpa,'enable','on');
-                
-                visualize_menu_label = 'Show volume';
-                visualize_by_measure_menu_label = 'Show colored by Measure';
-                visualize_by_domain_menu_label = 'Show colored by Domain';
-                visualize_by_significance_menu_label =  'Show colored by Significance';
-
-                % create measure projection submenus
-                create_mpt_submenu(grpmenu_mpa, 'sift');  
-                uimenu(grpmenu_mpa, 'Label', 'Options', 'Callback', @show_gui_options, 'separator','on','userdata', 'study:on');
-                uimenu(grpmenu_mpa, 'Label', 'About', 'Callback', @show_about, 'separator','on', 'userdata', 'study:on');
-
-                update_domain_menu([],[],grpmenu_mpa);
-                set(grpmenu_mpa,'callback',@(h,tmp) update_domain_menu(h,tmp,grpmenu_mpa));
-            else
-                set(grpmenu_mpa,'enable','off');
-            end
-        end
+        set(grpmenu,'callback',{@create_mpt_menus,grpmenu_mpa});
         
     % Help
     helpmenu    = uimenu( menu, 'label', 'Help','userdata', userdata, 'enable','on');
@@ -224,9 +196,38 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     
 end
 
-% Helper Functions
+% Helper Functions (callbacks)
 % ------------------------------------------------------------------------------------------------------
-function update_domain_menu(callerHandle, tmp,mprojection_SIFTmenu)
+function create_mpt_menus(h,ev,grpmenu_mpa)
+    if ~isempty(get(grpmenu_mpa,'children')) return; end
+
+     % global variables that are used by measure projection
+    global visualize_menu_label
+    global visualize_by_measure_menu_label
+    global visualize_by_domain_menu_label
+    global visualize_by_significance_menu_label
+
+    if exist('eegplugin_mproject','file')
+        set(grpmenu_mpa,'enable','on');
+
+        visualize_menu_label = 'Show volume';
+        visualize_by_measure_menu_label = 'Show colored by Measure';
+        visualize_by_domain_menu_label = 'Show colored by Domain';
+        visualize_by_significance_menu_label =  'Show colored by Significance';
+
+        % create measure projection submenus
+        create_mpt_submenu(grpmenu_mpa, 'sift');  
+        uimenu(grpmenu_mpa, 'Label', 'Options', 'Callback', @show_gui_options, 'separator','on','userdata', 'study:on');
+        uimenu(grpmenu_mpa, 'Label', 'About', 'Callback', @show_about, 'separator','on', 'userdata', 'study:on');
+
+        update_domain_menu([],[],grpmenu_mpa);
+        set(grpmenu_mpa,'callback',@(h,tmp) update_domain_menu(h,tmp,grpmenu_mpa));
+    else
+        set(grpmenu_mpa,'enable','off');
+    end
+end
+        
+function update_domain_menu(h,ev,mprojection_SIFTmenu)
     
     maxDomainNo = 30;
 
