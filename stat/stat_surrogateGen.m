@@ -301,21 +301,17 @@ for perm=1:nperms
         % Multiply each fourier amplitude by e^{iw)
         % where w is a random phase chosen in [0 2pi]
         % (c.f. Theiler, et al 1997)
-        % to generate hermitian phase distributions, I extract
-        % the phase of a random matrix. This ensures the random
+        % To generate hermitian phase distributions, we extract
+        % the phase of a random matrix. This ensures the surrogate
         % spectrum is conjugate symmetric
         EEG.CAT.srcdata = permute(EEG.CAT.srcdata,[2 1 3]);
         [npnts nchs ntr] = size(EEG.CAT.srcdata);
-        
-        % NFFT = 2^nextpow2(npnts); size(data,1);
-        
         for tr=1:ntr
             EEG.CAT.srcdata(:,:,tr) = ...
                 ifft(abs(fft(EEG.CAT.srcdata(:,:,tr))) ...
                 .* exp(1i*angle(fft(rand(npnts,nchs)))), ...
                 'symmetric');
         end
-        
         EEG.CAT.srcdata = ipermute(EEG.CAT.srcdata,[2 1 3]);
         
     else
