@@ -35,7 +35,7 @@ end
 hlpText = help(functionName);
 
 if isempty(hlpText)
-    error('I could not find a block of help text for this function!');
+    error('Error parsing %s.m: I could not find a block of help text for the function',functionName);
 end
 
 % parse the help text. We only want the text preceeding the first
@@ -43,7 +43,7 @@ end
 endpoint = strfind(hlpText,'-----');
 
 if isempty(endpoint)
-    error('I could not find the horizontal dashed line separating the preamble from other help text');
+    error('Error parsing %s.m: I could not find the horizontal dashed line separating the preamble from remaining help text',functionName);
 end
 
 % return the preamble

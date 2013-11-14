@@ -77,7 +77,11 @@ else
     for k=1:length(simFcns)
         
         % get the help text (H1) for the algorithm entry function
-        preText = hlp_getFcnPreambleText(simFcns{k});
+        try preText = hlp_getFcnPreambleText(simFcns{k});
+        catch err
+            disp(err.message);
+            continue;
+        end
         
         % extract the human-readable algorithm name from the text 
         % following the 'Simulation:' header
