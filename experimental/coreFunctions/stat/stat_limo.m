@@ -64,7 +64,7 @@ switch type
         one_sample = NaN(n,m,t,f,2);   
         for edge1 = 1:n
             for edge2 =1:m
-            Y = squeeze(data(m,n,:,:,find(~isnan(data(m,n,:,:,:))))); % time*freq minus missing guys
+            Y = squeeze(data(m,n,:,:,~isnan(data(m,n,:,:,:)))); % time*freq minus missing guys
             [one_sample(n,m,:,:,1),tm,tci,se,one_sample(n,m,:,:,2),tc,df]=limo_trimci(Y);
             clear tmp Y
             end
@@ -83,7 +83,7 @@ switch type
             for edge2 =1:m
                 for b=1:nboot
                     tmp = squeeze(data(m,n,:,:,boot_table(:,b)));
-                    Y = squeeze(tmp(m,n,:,:,find(~isnan(tmp(m,n,:,:,:))))); % time*freq minus missing guys
+                    Y = squeeze(tmp(m,n,:,:,~isnan(tmp(m,n,:,:,:)))); % time*freq minus missing guys
                     [H0_one_sample(n,m,:,:,1,b),tm,tci,se,H0_one_sample(n,m,:,:,2,b),tc,df]=limo_trimci(Y);
                     clear tmp Y
                 end
@@ -107,8 +107,8 @@ switch type
         
         for edge1 = 1:n
             for edge2 =1:m
-                Y1 = squeeze(data1(n,m,:,:,find(~isnan(data1(n,m,:,:,:)))));
-                Y2 = squeeze(data2(n,m,:,:,find(~isnan(data2(n,m,:,:,:)))));
+                Y1 = squeeze(data1(n,m,:,:,~isnan(data1(n,m,:,:,:))));
+                Y2 = squeeze(data2(n,m,:,:,~isnan(data2(n,m,:,:,:))));
                 [two_samples(n,m,:,:,1),d,se,ci,two_samples(n,m,:,:,2),tc,df]=limo_yuen_ttest(Y1,Y2); clear Y1 Y2
             end
         end
@@ -127,9 +127,9 @@ switch type
             for edge2 =1:m
                 for b=1:nboot
                     tmp = squeeze(data1(m,n,:,:,boot_table1(:,b)));
-                    Y1 = squeeze(tmp(m,n,:,:,find(~isnan(tmp(m,n,:,:,:))))); % time*freq minus missing guys
+                    Y1 = squeeze(tmp(m,n,:,:,~isnan(tmp(m,n,:,:,:)))); % time*freq minus missing guys
                     clear tmp; tmp = squeeze(data2(m,n,:,:,boot_table2(:,b)));
-                    Y2 = squeeze(tmp(m,n,:,:,find(~isnan(tmp(m,n,:,:,:))))); % time*freq minus missing guys
+                    Y2 = squeeze(tmp(m,n,:,:,~isnan(tmp(m,n,:,:,:)))); % time*freq minus missing guys
                     [H0_two_samples(n,m,:,:,1,b),d,se,ci,H0_two_samples(n,m,:,:,2,b),tc,df]=limo_yuen_ttest(Y1,Y2); clear Y1 Y2
                 end
             end
@@ -149,8 +149,8 @@ switch type
         paired_samples = NaN(n,m,t,p,2);
         for edge1 = 1:n
             for edge2 =1:m
-                Y1 = squeeze(data1(n,m,:,:,find(~isnan(data1(n,m,:,:,:)))); 
-                Y2 = squeeze(data1(n,m,:,:,find(~isnan(data1(n,m,:,:,:)))); 
+                Y1 = squeeze(data1(n,m,:,:,~isnan(data1(n,m,:,:,:)))); 
+                Y2 = squeeze(data1(n,m,:,:,~isnan(data1(n,m,:,:,:)))); 
                 [paired_samples(n,m,:,:,1),diff,se,ci,paired_samples(n,m,:,:,2),tc,df]=limo_yuend_ttest(Y1,Y2); clear Y1 Y2
             end
         end
@@ -169,9 +169,9 @@ switch type
             for edge2 =1:m
                 for b=1:nboot
                     tmp = squeeze(data1(m,n,:,:,boot_table(:,b)));
-                    Y1 = squeeze(tmp(m,n,:,:,find(~isnan(tmp(m,n,:,:,:))))); % time*freq minus missing guys
+                    Y1 = squeeze(tmp(m,n,:,:,~isnan(tmp(m,n,:,:,:)))); % time*freq minus missing guys
                     clear tmp; tmp = squeeze(data2(m,n,:,:,boot_table(:,b)));
-                    Y2 = squeeze(tmp(m,n,:,:,find(~isnan(tmp(m,n,:,:,:))))); % time*freq minus missing guys
+                    Y2 = squeeze(tmp(m,n,:,:,~isnan(tmp(m,n,:,:,:)))); % time*freq minus missing guys
                     [H0_paired_samples(n,m,:,:,1,b),diff,se,ci,H0_paired_samples(n,m,:,:,2,b),tc,df]=limo_yuend_ttest(Y1,Y2); clear Y1 Y2
                 end
             end
@@ -355,75 +355,75 @@ switch type
         index = 1;
         for edge1 = 1:n
             for edge2 =1:m
-            fprintf('analyse edge %g/%g\n ...', edge,n*m); 
-            index= index+1;
-            
-            tmp = squeeze(data(edge1,edge2,:,:,:,:));
-            Y = tmp(:,:,find(~isnan(tmp(1,1,:,1))),:);
-            gp = gp_vector(find(~isnan(tmp(1,1,:,1))),:);
-            if type == 3 || type == 4
-                XB = X(find(~isnan(tmp(1,1,:,1))),:);
+                fprintf('analyse edge %g/%g\n ...', edge,n*m); 
+                index= index+1;
+
+                tmp = squeeze(data(edge1,edge2,:,:,:,:));
+                Y = tmp(:,:,~isnan(tmp(1,1,:,1)),:);
+                gp = gp_vector(~isnan(tmp(1,1,:,1)),:);
+                if type == 3 || type == 4
+                    XB = X(~isnan(tmp(1,1,:,1)),:);
+                end
+
+                if type == 1
+                    for freq = 1:f
+                        result = limo_rep_anova(squeeze(Y(f,:,:,:)),gp,factor_levels,C); % usual means
+                        tmp_Rep_ANOVA(edge1,edge2,f,:,1,1) = result.F;
+                        tmp_Rep_ANOVA(edge1,edge2,f,:,1,2) = result.p;
+                    end
+
+                elseif type == 2
+                    for freq = 1:f
+                        result = limo_rep_anova(squeeze(Y(f,:,:,:)),gp,factor_levels,C); % usual means
+                        tmp_Rep_ANOVA(edge1,edge2,f,:,:,1) = result.F';
+                        tmp_Rep_ANOVA(edge1,edge2,f,:,:,2) = result.p';
+                    end
+
+                elseif type == 3
+                    for freq = 1:f
+                        result = limo_rep_anova(squeeze(Y(f,:,:,:)),gp,factor_levels,C,XB); % usual means
+                        tmp_Rep_ANOVA(edge1,edge2,f,:,1,1)                     = result.repeated_measure.F;
+                        tmp_Rep_ANOVA(edge1,edge2,f,:,1,2)                     = result.repeated_measure.p;
+                        Rep_ANOVA_Gp_effect(edge1,edge2,f,:,1)                 = result.gp.F;
+                        Rep_ANOVA_Gp_effect(edge1,edge2,f,:,2)                 = result.gp.p;
+                        tmp_Rep_ANOVA_Interaction_with_gp(edge1,edge2,f,:,1)   = result.interaction.F;
+                        tmp_Rep_ANOVA_Interaction_with_gp(edge1,edge2,f,:,2)   = result.interaction.p;
+                    end
+
+                elseif type == 4
+                    for freq = 1:f
+                        result = limo_rep_anova(squeeze(Y(f,:,:,:)),gp,factor_levels,C,XB); % usual means
+                        tmp_Rep_ANOVA(edge1,edge2,f,:,:,1)                     = result.repeated_measure.F';
+                        tmp_Rep_ANOVA(edge1,edge2,f,:,:,2)                     = result.repeated_measure.p';
+                        Rep_ANOVA_Gp_effect(edge1,edge2,f,:,1)                 = result.gp.F;
+                        Rep_ANOVA_Gp_effect(edge1,edge2,f,:,2)                 = result.gp.p;
+                        tmp_Rep_ANOVA_Interaction_with_gp(edge1,edge2,f,:,:,1) = result.interaction.F';
+                        tmp_Rep_ANOVA_Interaction_with_gp(edge1,edge2,f,:,:,2) = result.interaction.p';
+                    end
+                end
+                clear tmp Y gp result
             end
-            
-            if type == 1
-                for freq = 1:f
-                    result = limo_rep_anova(squeeze(Y(f,:,:,:)),gp,factor_levels,C); % usual means
-                    tmp_Rep_ANOVA(edge1,edge2,f,:,1,1) = result.F;
-                    tmp_Rep_ANOVA(edge1,edge2,f,:,1,2) = result.p;
-                end
-                
-            elseif type == 2
-                for freq = 1:f
-                    result = limo_rep_anova(squeeze(Y(f,:,:,:)),gp,factor_levels,C); % usual means
-                    tmp_Rep_ANOVA(edge1,edge2,f,:,:,1) = result.F';
-                    tmp_Rep_ANOVA(edge1,edge2,f,:,:,2) = result.p';
-                end
-                
-            elseif type == 3
-                for freq = 1:f
-                    result = limo_rep_anova(squeeze(Y(f,:,:,:)),gp,factor_levels,C,XB); % usual means
-                    tmp_Rep_ANOVA(edge1,edge2,f,:,1,1)                     = result.repeated_measure.F;
-                    tmp_Rep_ANOVA(edge1,edge2,f,:,1,2)                     = result.repeated_measure.p;
-                    Rep_ANOVA_Gp_effect(edge1,edge2,f,:,1)                 = result.gp.F;
-                    Rep_ANOVA_Gp_effect(edge1,edge2,f,:,2)                 = result.gp.p;
-                    tmp_Rep_ANOVA_Interaction_with_gp(edge1,edge2,f,:,1)   = result.interaction.F;
-                    tmp_Rep_ANOVA_Interaction_with_gp(edge1,edge2,f,:,2)   = result.interaction.p;
-                end
-                
-            elseif type == 4
-                for freq = 1:f
-                    result = limo_rep_anova(squeeze(Y(f,:,:,:)),gp,factor_levels,C,XB); % usual means
-                    tmp_Rep_ANOVA(edge1,edge2,f,:,:,1)                     = result.repeated_measure.F';
-                    tmp_Rep_ANOVA(edge1,edge2,f,:,:,2)                     = result.repeated_measure.p';
-                    Rep_ANOVA_Gp_effect(edge1,edge2,f,:,1)                 = result.gp.F;
-                    Rep_ANOVA_Gp_effect(edge1,edge2,f,:,2)                 = result.gp.p;
-                    tmp_Rep_ANOVA_Interaction_with_gp(edge1,edge2,f,:,:,1) = result.interaction.F';
-                    tmp_Rep_ANOVA_Interaction_with_gp(edge1,edge2,f,:,:,2) = result.interaction.p';
-                end
+        
+        
+            % save stuff
+            % ---------
+            for i=1:size(tmp_Rep_ANOVA,3)
+                name = sprintf('Rep_ANOVA_Factor_%g',i);
+                % save each factor effect as F/p values
+                Rep_ANOVA = squeeze(tmp_Rep_ANOVA(:,:,:,:,i,:)); 
+                save([name],'Rep_ANOVA', '-v7.3'); 
             end
-            clear tmp Y gp result
-        end
-        
-        
-        % save stuff
-        % ---------
-        for i=1:size(tmp_Rep_ANOVA,3)
-            name = sprintf('Rep_ANOVA_Factor_%g',i);
-            % save each factor effect as F/p values
-            Rep_ANOVA = squeeze(tmp_Rep_ANOVA(:,:,:,:,i,:)); 
-            save([name],'Rep_ANOVA', '-v7.3'); 
-        end
-        
-        if type == 3 || type ==4
-            for i=1:size(tmp_Rep_ANOVA_Interaction_with_gp,3)
-                name = sprintf('Rep_ANOVA_Interaction_gp_Factor_%g',i);
-                % save each interaction effect as F/p values
-                Rep_ANOVA_Interaction_with_gp = squeeze(tmp_Rep_ANOVA_Interaction_with_gp(:,:,:,:,i,:));
-                save([name],'Rep_ANOVA_Interaction_with_gp', '-v7.3'); clear Rep_ANOVA_Interaction_with_gp;
+
+            if type == 3 || type ==4
+                for i=1:size(tmp_Rep_ANOVA_Interaction_with_gp,3)
+                    name = sprintf('Rep_ANOVA_Interaction_gp_Factor_%g',i);
+                    % save each interaction effect as F/p values
+                    Rep_ANOVA_Interaction_with_gp = squeeze(tmp_Rep_ANOVA_Interaction_with_gp(:,:,:,:,i,:));
+                    save([name],'Rep_ANOVA_Interaction_with_gp', '-v7.3'); clear Rep_ANOVA_Interaction_with_gp;
+                end
+                save Rep_ANOVA_Gp_effect Rep_ANOVA_Gp_effect -v7.3; % always only 1 effect
             end
-            save Rep_ANOVA_Gp_effect Rep_ANOVA_Gp_effect -v7.3; % always only 1 effect
-        end
-        
+
         
         % ----------------------------------------------------------------
 %         if nboot > 0
@@ -548,6 +548,7 @@ switch type
 %                 end
 %             end
             
+        end
 end
 
 
