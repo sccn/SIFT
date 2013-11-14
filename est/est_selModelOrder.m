@@ -107,7 +107,7 @@ g = arg_define([0 1],varargin, ...
     arg({'profile','ProfileName'},parprofs{1},parprofs,'Profile name'), ...
     arg({'numWorkers','NumWorkers'},2,[1 Inf],'Number of workers') ...
     },'Run order selection in parallel. Only applies if downdating is disabled. Requires Parallel Computing Toolbox.'), ...
-    arg({'icselector','InformationCriteria'},{'sbc','aic','hq','fpe'},{'sbc','aic','fpe','hq','ris'},sprintf('Order selection criteria. This specifies the information criteria to use for order selection.\nOptions are: \n Swartz Bayes Criterion (SBC) \n Akaike Information Criterion (AIC) \n Logarithm of Akaike''s Final Prediction Error (FPE) \n Hannan-Quinn Criterion (HQ) \n Rissanen Criterion (RIS) \nConsult the SIFT Manual for details on these criteria.'),'cat','Modeling Parameters','type','logical'), ...
+    arg({'icselector','InformationCriteria'},{'sbc','aic', 'hq','fpe'},{'sbc','aic','aicc','fpe','hq','ris'},sprintf('Order selection criteria. This specifies the information criteria to use for order selection.\nOptions are: \n Swartz Bayes Criterion (SBC) \n Akaike Information Criterion (AIC) \n Corrected Akaike Information Criterion (AICc) \n Logarithm of Akaike''s Final Prediction Error (FPE) \n Hannan-Quinn Criterion (HQ) \n Rissanen Criterion (RIS) \nConsult the SIFT Manual for details on these criteria.'),'cat','Modeling Parameters','type','logical'), ...
     arg_nogui({'winStartIdx','WindowStartIndices'},[],[],'Starting indices for windows. This is a vector of sample points (start of windows) at which to estimate windowed VAR model','cat','Data Selection'), ...
     arg_nogui({'epochTimeLims','EpochTimeLimits'},[],[],'Epoch time limits (sec). This is relative to event time (e.g. [-1 2]). Default is the full epoch time range','cat','Data Selection'), ...
     arg({'prctWinToSample','WindowSamplePercent'},100,[1 100],'Percent of windows to sample','cat','Data Selection'), ...
@@ -116,7 +116,7 @@ g = arg_define([0 1],varargin, ...
     );
 
 
-if strcmp(pardef,'off')
+if g.runPll.arg_selection && strcmp(pardef,'off')
     fprintf('Parallel Computing Toolbox not installed. Cannot use parallel option.\n');
     g.runPll.arg_selection = false;
 end
@@ -238,12 +238,20 @@ if ~g.downdate
             end
 
             cnt = cnt + 1;
-
-            VARtmp(p-pmin+1) = feval(modelingFuncName,'EEG',EEG,g.modelingApproach, ...
+            tmp = feval(modelingFuncName,'EEG',EEG,g.modelingApproach, ...
                                     'ModelOrder',p,'verb',g.verb, ...
                                     'epochTimeLims',g.epochTimeLims, ...
                                     'winStartIdx',g.winStartIdx, ...
                                     'prctWinToSample',g.prctWinToSample);
+            if isempty(tmp)
+                % operation was cancelled
+                IC = [];
+                multiWaitbar(waitbarTitle,'Close');
+                return;
+            else
+                VARtmp(p-pmin+1) = tmp; 
+            end
+            
             if g.verb==2
                 % graphical waitbar
                 cancel = multiWaitbar(waitbarTitle,cnt/tot);
@@ -294,7 +302,7 @@ else
 end
 
 % initialize some variables
-[sbc fpe aic hq ris]    = deal(nan*ones(pmax-pmin+1,numWins));
+[sbc fpe aic aicc hq ris]    = deal(nan*ones(pmax-pmin+1,numWins));
 nparams = nbchan^2.*(pmin:pmax);
 
 npnts       = EEG.CAT.trials*max(1,round(winlen*EEG.srate));
@@ -303,29 +311,33 @@ for t=1:numWins
     
     % CALCULATE INFORMATION CRITERIA
     
-    ne    = npnts-((pmin:pmax)*EEG.CAT.trials);
+    ne    = npnts;
+    ner   = ne-((pmin:pmax)*EEG.CAT.trials);
     logdp = zeros(1,pmax-pmin+1);
     
     for p=pmin:pmax,
         % Get logarithm of determinant for each model order
-        logdp(p-pmin+1) = log(det(MODEL.PE{t}(:,p*nbchan+(1:nbchan))*(npnts-p)));
+        logdp(p-pmin+1) = log(det(MODEL.PE{t}(:,p*nbchan+(1:nbchan))));
+        %logdp(p-pmin+1) = log(det(MODEL.PE{t}(:,p*nbchan+(1:nbchan))*(npnts-p)));
     end
     
-    
     % Schwarz's Bayesian Criterion / Bayesian Information Criterion
-    sbc(:,t) = logdp + (log(ne).*nparams./ne);
+    sbc(:,t) = logdp + log(ner)./ner.*nparams;
     
     % Akaike Information Criterion
-    aic(:,t) = logdp + 2.*nparams./ne;
+    aic(:,t) = logdp + 2./ner.*nparams;
+    
+    % Corrected Akaike Information Criterion
+    aicc(:,t)= logdp + ((ne + nparams)./max(0,(ne-nparams-2)));
     
     % logarithm of Akaike's Final Prediction Error
-    fpe(:,t) = logdp + nbchan*log((ne+nbchan*(pmin:pmax)+1)./(ne-nbchan*(pmin:pmax)-1));
+    fpe(:,t) = logdp + nbchan*log((ner+nbchan*(pmin:pmax)+1)./(ner-nbchan*(pmin:pmax)-1));
     
     % Hannan-Quinn criterion
-    hq(:,t) = logdp + nparams.*2.*log(log(ne))./ne;
+    hq(:,t)  = logdp + 2.*log(log(ner))./ner.*nparams;
     
     % Rissanen criterion (NOTE: same as BIC/SBC)
-    ris(:,t) = logdp + (nparams./ne).*log(ne);  
+    ris(:,t) = logdp + (nparams./ner).*log(ner);  
     
     for i=1:length(g.icselector)
         % get index iopt of order that minimizes the order selection

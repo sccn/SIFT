@@ -1,6 +1,6 @@
-function [FIT MCMC_LastState]=stat_ubsplsm_mcmc(varargin)
-% Y is a cell array where Y{i} is the T x 1 vector of connectivities for
-% the ith channel pair of the jth subject
+function [FIT MCMC_LastState] = stat_ubsplsm_mcmc(varargin)
+% Y is a cell array where Y{i} is the T x 1 vector of time-varying (or freq-varying) 
+% connectivity for the kth channel pair of the sth subject.
 % Y = {s1(1,1) s1(1,2) s1(1,3) ... s1(2,1) s1(2,2) s1(2,3) ... s2(1,1) s2(1,2) ...}
 % If there are multiple subjects, then each subject's channel pairs are 
 % simply appended as additional cells of Y{:}. Thus for NC channels and NS
@@ -8,104 +8,91 @@ function [FIT MCMC_LastState]=stat_ubsplsm_mcmc(varargin)
 
 % FIT contains the MCMC estimates
 % MCMC_LastState contains the final state of the Gibbs sampler
+%
+% Author: Tim Mullen and Wes Thompson, 2010-12, SCCN/INC, UCSD.
+% Email:  tim@sccn.ucsd.edu
 
-if ~exist('verb','var')
-    verb = 2;
-end
+% This function is part of the Source Information Flow Toolbox (SIFT)
+%
+% This program is free software; you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation; either version 3 of the License, or
+% (at your option) any later version.
+%
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+%
+% You should have received a copy of the GNU General Public License
+% along with this program; if not, write to the Free Software
+% Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 g = arg_define([0 1],varargin, ...
     arg_norep({'Y','TSData'},mandatory,[],sprintf(['Cell array of data to smooth.\n' ...
-              'Generally, Y is a cell array where Y{i,s} is the T x 1 vector of time-varying (or freq-varying) connectivity for the ith channel pair of the sth subject.\n' ...
+              'Generally, Y is a cell array where Y{i} is the T x 1 vector of time-varying (or freq-varying) connectivity for the kth channel pair of the sth subject.\n' ...
               'e.g. Y = {s1(1,1) s1(1,2) s1(1,3) ... s1(N,1) s1(N,2) s1(N,3) ... \n' ...
               '          s2(1,1) s2(1,2) s2(1,3) ... } \n'])), ...
-    arg({'K','Knots'},5,[],'Positions of spline knots along frequency dimension (Hz). If K is a scalar, then K knots are evenly spaced from first to last frequency. A good heuristic is one knot every 5%','shape','row'), ...
-    arg({'Q','FPCABasisDim','fpcaBasisDim'},4,[0 Inf],'Number of FPCA basis functions.'), ...
-    arg({'smoothingLayout','MatrixElementsToSmooth'},{'diagonals','off-diagonals'},{'off-diagonals'},'Which parts of the matrix to smooth. Diagonals (e.g. auto-connectivity) and off-diagonals (e.g. cross-connectivity) will be smoothed separately','type','logical'), ...
-    arg({'niters','nMCMCiters','NumMcmcIters','niter'},1000, [1 Inf], 'Number of MCMC iterations for spline fitting'), ...
-    arg({'basisCoeffVarPrior'},1000,[eps Inf],'Variance of basis coefficient gaussian prior. Larger --> more wiggling allowed'), ...
-    arg({'noiseVarPriorShape'},0.01,[eps Inf],'Shape (D.O.F) of noise variance prior. This is the "alpha" parameter of the inverse gamma prior distribution. Increasing noiseVarPriorShape --> decreased variance of noise variance distribution.'), ...
-    arg({'noiseVarPriorScale'},0.01,[eps Inf],'Scale parameter of noise variance prior. This is the "theta" (1/beta) parameter of inverse gamma prior distribution. Increasing noiseVarPriorScale --> right-shift of distribution --> (increase in expected noise variance). In general MEAN(noiseVariance) = noiseVarPriorScale/noiseVarPriorShape and MODE(noiseVariance) = noiseVarPriorScale/(noiseVarPriorShape-1) for noiseVarPriorShape>=1.'), ...
-    arg({'initNoiseVariance'},0.1,[eps Inf],'Initial noise variance'), ...
     arg_norep({'MCMC_InitState'},struct([]),[],'Object containing initial state of Gibbs sampler'));
+    arg({'nMCMCiters','NumMcmcIters','niters','niter'},1000, [1 Inf], 'Number of MCMC iterations for spline fitting'), ...
+    arg({'burnInFraction','BurnInFractionForMCMC'},0.5,[0 0.99],'Fraction of initial MCMC samples to discard (burn in period).'), ...
+    arg({'thinFactor','ThinningFactor'},1,[1 Inf],'Thinning factor for MCMC. We keep every kth MCMC sample, where k=ThinningFactor. This is useful when we have limited available memory to store MCMC results since successive MCMC estimates are more likely to be correlated.'), ...
+    arg({'returnHistory','ReturnPosterior','ReturnHistory'},true,[],'Return complete posterior distibution in MCMC_LastState. Otherwise return only final state','cat','MCMC State'), ...
+    arg({'appendLastState','AppendLastState'},false,[],'Append new state to initial MCMC state','cat','MCMC State'), ... 
+    arg({'basisCoeffVarPrior'},1000,[eps Inf],'Variance of basis coefficient gaussian prior. Larger --> more wiggling allowed','cat','Hyperparameters'), ...
+    arg({'noiseVarPriorShape'},0.01,[eps Inf],'Shape (D.O.F) of noise variance prior. This is the "alpha" parameter of the inverse gamma prior distribution. Increasing noiseVarPriorShape --> decreased variance of noise variance distribution.','cat','Hyperparameters'), ...
+    arg({'noiseVarPriorScale'},0.01,[eps Inf],'Scale parameter of noise variance prior. This is the "theta" (1/beta) parameter of inverse gamma prior distribution. Increasing noiseVarPriorScale --> right-shift of distribution --> (increase in expected noise variance). In general MEAN(noiseVariance) = noiseVarPriorScale/noiseVarPriorShape and MODE(noiseVariance) = noiseVarPriorScale/(noiseVarPriorShape-1) for noiseVarPriorShape>=1.','cat','Hyperparameters'), ...
+    arg({'logtrans','LogTransform'},true,[],'Log-Transform data before smoothing. Inverse transform is applied after smoothing'), ...
     arg({'verb','VerbosityLevel'},2,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical'), ...
 
 arg_toworkspace(g);
 
+if isempty(MCMC_InitState)
+    error('You must provide an initial state for MCMC. See stat_ubsplsm_init');
+end
+
+% compute number of burn-in samples
+numBurnInSamples = floor(burnInFraction*nMCMCiters);
+niterToKeep      = round((nMCMCiters-numBurnInSamples)/thinFactor);
+if verb,
+    fprintf(['I will discard %d burn-in samples.\n' ...
+             'I will thin the distribution by a factor of %d samples\n', ...
+             'The distribution of the estimator will have %d samples\n'], ...
+            numBurnInSamples,thinFactor,niterToKeep);
+end
+
 % make Y a column vector
 Y = Y(:);
 
-R=size(Y,1);        % number of time-series to smooth across all subjects
-T=size(Y{1},1);     % number of time points
-
-%% Determine knot locations
-% -------------------------------------------------------------------------
-if isscalar(K)
-    idx   = 1:T;
-    order = 4;
-    K = K+order-1;
-    knots = quantile(idx,(0:1:(K-order+1)) / (K-order+1));
-    knots = knots(:)';
-else
-    % knots are already provided
-    knots = K(:);
-    K = length(knots)+2;
-end
-      
 
 %% Initialize Parameters
 % -------------------------------------------------------------------------
-ALPHA        = zeros(Q,R,niters+1);      % For each channel, the Q-dimensional vector of spline regression weights
-ALPHA_BAR    = zeros(Q,niters+1);        % Multivariate gaussian prior distribution for ALPHA
-SIGMA_EPS    = ones(1,niters+1);         % noise variance
-SIGMA_EPS(1) = initNoiseVariance;        % initial noise variance
-FIT          = zeros(T,R,niters+1);      % Smoothed measure estimates
-THETA        = zeros(K,Q,niters+1);      % Q FPCA component vectors
-        
+R = size(MCMC_InitState.ALPHA,2);        % number of connectivities to smooth across all subjects
+T = size(MCMC_InitState.FIT,1);          % dimensionality of connectivity (e.g. number of time points)
+Q = size(MCMC_InitState.ALPHA,1);        % number of FPCA basis functions   
+K = size(MCMC_InitState.THETA,1);        % number of smoothing spline knots
 
-if ~isempty(MCMC_InitState)
-    
-    % set initial state to user-provided
-    ALPHA(:,:,1)        = MCMC_InitState.ALPHA(:,:,end);
-    ALPHA_BAR(:,:,1)    = MCMC_InitState.ALPHA_BAR(:,:,end);
-    SIGMA_EPS(1)        = MCMC_InitState.SIGMA_EPS(end);
-    THETA(:,:,1)        = MCMC_InitState.THETA(:,:,end);
-    phi_t               = MCMC_InitState.phi_t;
-    
+% initalize outputs
+FIT = zeros(T,R,niterToKeep);            % Smoothed measure estimates
+if nargout>1 && returnHistory
+    % initialize state object
+    MCMC_LastState.THETA        = zeros(K,Q,niterToKeep);      % Q FPCA component vectors, K spline knots
+    MCMC_LastState.ALPHA        = zeros(Q,R,niterToKeep);      % For each connectivity edge, the Q-dimensional vector of weights for Q FPCA components
+    MCMC_LastState.ALPHA_BAR    = zeros(Q,niterToKeep);        % Mean of multivariate gaussian prior for ALPHA
+    MCMC_LastState.SIGMA_EPS    = zeros(1,niterToKeep);        % Noise variance
 else
-    
-    % Construct orthonormal basis functions
-    % -------------------------------------------------------------------------
-    phi_t = stat_ubsplsm_mkspl(knots,T,4,verb);
-
-    % Initialize FPCA
-    % -------------------------------------------------------------------------
-    if verb==2
-        multiWaitbar('Initializing FPCA','Reset','Color',hlp_getNextUniqueColor);
-    end
-
-    % Initialize the FPCA components to random, orthonormal vectors
-    THETA(:,1,1) = mvnrnd(zeros(K,1),eye(K));
-    THETA(:,1,1) = THETA(:,1,1)/norm(THETA(:,1,1));
-
-    for q = 2:Q                                                                     % [!] should be able to replace this whole section with a single line of orth(randn(...)). We only need orthonormal random vectors
-        if verb==2
-            multiWaitbar('Initializing FPCA',q/Q);
-        end
-        THETA(:,q,1) = mvnrnd(zeros(K,1),eye(K));
-
-        % orthonormalization of random vector
-        for r = 1:(q-1)
-
-            THETA(:,q,1) = THETA(:,q,1) ...
-                           -(THETA(:,q,1)'*THETA(:,q-r,1)/norm(THETA(:,q-r,1).^2)) ...
-                           * THETA(:,q-r,1);
-        end
-        THETA(:,q,1) = THETA(:,q,1)/norm(THETA(:,q,1));
-    end
-    
+    MCMC_LastState = [];
 end
+            
+% set initial values to last state stored in MCMC object
+THETA        = MCMC_InitState.THETA(:,:,end);
+ALPHA        = MCMC_InitState.ALPHA(:,:,end);
+ALPHA_BAR    = MCMC_InitState.ALPHA_BAR(:,end);
+SIGMA_EPS    = MCMC_InitState.SIGMA_EPS(end);
+phi_t        = MCMC_InitState.phi_t;  % basis vectors (splines)
+if ~appendLastState, clear MCMC_InitState; end
 
-% compute temporal sum of splice basis function covariance matrices:
+% compute temporal sum of spline basis function covariance matrices:
 % e.g. Sigma_phi_sum := sum_t { phi_t(:,t)*phi_t(:,t)' } = phi_t*phi_t';
 Sigma_phi_sum = phi_t*phi_t';
 
@@ -115,21 +102,26 @@ if verb==2
     multiWaitbar('Gibbs sampling','Reset','Color',hlp_getNextUniqueColor);
 end
 
+if logtrans
+    % log-transform data
+    Y = cellfun(@transform,Y,'UniformOutput',false);
+end
+
 % constants
 % -------------------------------------------------------------------------
 Iq              = eye(Q);
-Iq_sp           = speye(Q);
-Iqk             = eye(Q*K);
+% Iq_sp           = speye(Q);
+%Iqk             = eye(Q*K);
 Sigma_alpha_bar = Iq/(R + 1/basisCoeffVarPrior);
-
-for iter=1:niters
+sidx = 0;
+for iter=1:nMCMCiters
    
 
     % Draw ALPHA (spline regression coefficients (weights))
     % ---------------------------------------------------------------------
     
     % compute spline regression coeffs inverse covariance matrix
-    Sigma_alpha_i     = Iq + (THETA(:,:,iter)'*Sigma_phi_sum*THETA(:,:,iter))/SIGMA_EPS(iter);
+    Sigma_alpha_i     = Iq + (THETA'*Sigma_phi_sum*THETA)/SIGMA_EPS;
     Sigma_alpha_i     = covfixer(Sigma_alpha_i);
     
     % invert inverse covariance matrix to produce cov mat
@@ -137,37 +129,37 @@ for iter=1:niters
     Sigma_alpha_i_dbl = double(Sigma_alpha_i);
     
     % pre-compute product
-    tmpprod = THETA(:,:,iter)'*phi_t/SIGMA_EPS(iter);                      
-    for pair=1:R  % for each channel pair
+    tmpprod = THETA'*phi_t/SIGMA_EPS;                      
+    for i=1:R  % for each channel pair
         
         % compute regression coeffs mean
-        mu_alpha_i = Sigma_alpha_i*(ALPHA_BAR(:,iter) + tmpprod*Y{pair});
+        mu_alpha_i = Sigma_alpha_i*(ALPHA_BAR + tmpprod*Y{i});
         
         % draw spline regression coefficients for this channel pair
-        ALPHA(:,pair,iter+1) = mvnrnd(mu_alpha_i,Sigma_alpha_i_dbl)';
+        ALPHA(:,i) = mvnrnd(mu_alpha_i,Sigma_alpha_i_dbl)';
     end
     
     
     % Draw ALPHA_BAR (hyperparameter for ALPHA gaussian prior mean)
     % ---------------------------------------------------------------------
-    mu_alpha_bar        = sum(ALPHA(:,:,iter+1),2);
-    mu_alpha_bar        = Sigma_alpha_bar*mu_alpha_bar;
-    ALPHA_BAR(:,iter+1) = mvnrnd(mu_alpha_bar,Sigma_alpha_bar)';
+    mu_alpha_bar    = sum(ALPHA,2);
+    mu_alpha_bar    = Sigma_alpha_bar*mu_alpha_bar;
+    ALPHA_BAR       = mvnrnd(mu_alpha_bar,Sigma_alpha_bar)';
     
-    % Draw SIGMA_EPS (noise/residual variance)
+    % Draw SIGMA_EPS (residual variance a.k.a. noise)
     % ---------------------------------------------------------------------
     pi_eps_shape = noiseVarPriorShape + R*T/2;       % prior distribution shape 
     
     % compute the sum-squared error of residuals (data-fit)^2
-    pi_eps_scale = noiseVarPriorScale;               % prior distr. scale param
-    tmpprod      = phi_t'*THETA(:,:,iter);      % precompute product        
-    for pair=1:R
+    pi_eps_scale = noiseVarPriorScale;          % prior distr. scale param
+    tmpprod      = phi_t'*THETA;      % precompute product        
+    for i=1:R
         pi_eps_scale = pi_eps_scale ...
-               + sum((Y{pair}-tmpprod*ALPHA(:,pair,iter+1)).^2 / 2);            
+               + sum((Y{i}-tmpprod*ALPHA(:,i)).^2 / 2);            
     end
     % draw noise variance estimates from inverse gamma
     % note that we assume the noise variance is identical for all pairs         
-    SIGMA_EPS(:,iter+1)=1/gamrnd(pi_eps_shape,1/pi_eps_scale);                  
+    SIGMA_EPS = 1/gamrnd(pi_eps_shape,1/pi_eps_scale);                  
     
     % Draw THETA (FPCA component vectors)
     % ---------------------------------------------------------------------
@@ -182,68 +174,104 @@ for iter=1:niters
     mu_theta    = zeros(Q*K,1);
     
     for i = 1:R  % for each channel pair
-        Alpha_i    = ALPHA(:,i,iter+1)';
+        Alpha_i    = ALPHA(:,i)';
         Alpha_i_sq = Alpha_i'*Alpha_i;
         for t = 1:T  % for each time window                                     % [!] we should be able to get rid of this loop
-            Phi_D_t     = kron(Iq_sp,phi_t(:,t)');                              % [!] this can be pre-computed and moved to outside the loop
+            Phi_D_t     = blkdiageye(phi_t(:,t)',Q);                            % [!] this can be pre-computed (for each value of t) and moved to outside the i-loop
             Sigma_theta = Sigma_theta + Phi_D_t'*Alpha_i_sq*Phi_D_t;
             mu_theta    = mu_theta + Phi_D_t'*Alpha_i'*Y{i}(t);
         end
     end
     
-    Sigma_theta = Sigma_theta/SIGMA_EPS(iter+1);
-
-    % DEBUG: PROFILING
+    Sigma_theta = Sigma_theta/SIGMA_EPS;
     
     % enforce valid covariance matrix before and after inversion
     Sigma_theta = covfixer(Sigma_theta);
-    Sigma_theta = Iqk/Sigma_theta;
+    Sigma_theta = double(inverse(Sigma_theta));
     Sigma_theta = covfixer(Sigma_theta);
     
     % compute mu (mean)
-    mu_theta    = mu_theta/SIGMA_EPS(iter+1);
+    mu_theta    = mu_theta/SIGMA_EPS;
     mu_theta    = Sigma_theta*mu_theta;
     
     % draw theta
-    THETA(:,:,iter+1) = mvnrnd(mu_theta,Sigma_theta)';
-    THETA(:,:,iter+1) = reshape(THETA(:,:,iter+1),K,Q);
-    
-    % Calculate smoothed fits
-    % ---------------------------------------------------------------------
-    FIT(:,:,iter+1) = phi_t'*THETA(:,:,iter+1)*ALPHA(:,:,iter+1);
+    THETA = reshape(mvnrnd(mu_theta,Sigma_theta)',K,Q);
     
     if verb==2
-        multiWaitbar('Gibbs sampling',iter/niters);
+        multiWaitbar('Gibbs sampling',iter/nMCMCiters);
     end
     
+    % Store MCMC estimates of smoothed fits and other parameters
+    % ---------------------------------------------------------------------
+    if iter>=numBurnInSamples && thinFactor*round(iter/thinFactor)==iter
+        sidx = sidx + 1;
+        % calculate smoothed fits
+        FIT(:,:,sidx) = phi_t'*THETA*ALPHA;
+        if nargout > 1 && returnHistory
+            % store current MCMC state
+            MCMC_LastState.THETA(:,:,sidx)       = THETA;
+            MCMC_LastState.ALPHA(:,:,sidx)       = ALPHA;
+            MCMC_LastState.ALPHA_BAR(:,sidx)     = ALPHA_BAR;
+            MCMC_LastState.SIGMA_EPS(sidx)       = SIGMA_EPS;
+        end
+    end
 end
 
-
-if nargout>2
-    % store final state of Gibbs sampler
-    MCMC_LastState = struct( ...
-     'THETA'            , THETA(end),       ...   % FPCA component vectors
-     'ALPHA'            , ALPHA(end),       ...   % Spline regression weights
-     'ALPHA_BAR'        , ALPHA_BAR(end),   ...   % Gaussian prior for ALPHA
-     'SIGMA_EPS'        , SIGMA_EPS(end),   ...   % Noise variance
-     'phi_t'            , phi_t,            ...   % Spline basis functions
-     'Sigma_theta'      , Sigma_theta,      ...   % THETA cov mat (mvnrnd)
-     'mu_theta'         , mu_theta,         ...   % THETA mean (mvnrnd)
-     'Sigma_alpha_i'    , Sigma_alpha_i_dbl,...   % ALPHA cov mat (mnvnrnd)
-     'mu_alpha_i'       , mu_alpha_i,       ...   % ALPHA mean (mnvnrnd)
-     'Sigma_alpha_bar'  , Sigma_alpha_bar,  ...   % ALPHA_BAR cov mat (mnvnrnd)
-     'mu_alpha_bar'     , mu_alpha_bar      ...   % ALPHA_BAR mean (mnvnrnd)
-     );
+if logtrans
+    % invert transformation of results
+    FIT = untransform(FIT);
 end
-                     
 
+if nargout>1
+    % finalize MCMC state object
+    if ~returnHistory
+        % store final values of parameter estimates
+        MCMC_LastState.THETA       = THETA;         % Q FPCA component vectors, K spline knots
+        MCMC_LastState.ALPHA       = ALPHA;         % Q-dimensional spline regression weights
+        MCMC_LastState.ALPHA_BAR   = ALPHA_BAR;     % Gaussian prior mean for ALPHA
+        MCMC_LastState.SIGMA_EPS   = SIGMA_EPS;     % Noise variance
+    end
+    % add additional fields to object
+    MCMC_LastState ...
+        = catstruct(MCMC_LastState, ...
+                    struct( ...
+                     'phi_t'            , phi_t,            ...   % Spline basis functions
+                     'Sigma_theta'      , Sigma_theta,      ...   % THETA cov mat (mvnrnd)
+                     'mu_theta'         , mu_theta,         ...   % THETA mean (mvnrnd)
+                     'Sigma_alpha_i'    , Sigma_alpha_i_dbl,...   % ALPHA cov mat (mnvnrnd)
+                     'mu_alpha_i'       , mu_alpha_i,       ...   % ALPHA mean (mnvnrnd)
+                     'Sigma_alpha_bar'  , Sigma_alpha_bar,  ...   % ALPHA_BAR cov mat (mnvnrnd)
+                     'mu_alpha_bar'     , mu_alpha_bar,     ...   % ALPHA_BAR mean (mnvnrnd)
+                     'NumSamples'       , fastif(returnHistory,sidx,1), ... % # MCMC samples stored
+                     'NumMCMCIters'     , nMCMCiters, ...
+                     'initstate'        , false, ...
+                     'transform'        , fastif(logtrans,@transform,[]), ...
+                     'untransform'      , fastif(logtrans,@untransform,[]), ...
+                     'transformed'      , logtrans ...
+                     ));
+     if appendLastState
+        % append current state estimates to initial ones
+        MCMC_LastState.THETA       = cat(ndims(THETA)+1,    MCMC_InitState.THETA,     MCMC_LastState.THETA);
+        MCMC_LastState.ALPHA       = cat(ndims(ALPHA)+1,    MCMC_InitState.ALPHA,     MCMC_LastState.ALPHA);
+        MCMC_LastState.ALPHA_BAR   = cat(ndims(ALPHA_BAR)+1,MCMC_InitState.ALPHA_BAR, MCMC_LastState.ALPHA_BAR);
+        MCMC_LastState.SIGMA_EPS   = cat(ndims(SIGMA_EPS)+1,MCMC_InitState.SIGMA_EPS, MCMC_LastState.SIGMA_EPS);
+    end
+end
+     
 if verb==2
     % cleanup waitbars
     multiWaitbar('Gibbs sampling'   , 'Close');
-    multiWaitbar('Initializing FPCA', 'Close');
     multiWaitbar('Building Splines' , 'Close');
 end
 
+
+% log transform data
+function [X] = transform(X)
+    X = log(X);
+
+% invert log transform
+function X = untransform(X)
+    X = exp(X);
 
 
 

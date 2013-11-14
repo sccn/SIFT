@@ -132,31 +132,30 @@ blkrows   = npnts-p;
 blkcols   = p*nchs;
 
 % Assemble X, Y
-
 X = zeros(blkrows,blkcols,ntr);
 Y = zeros(blkrows,nchs,ntr);
 for itr = 1:ntr
-% initialize delay-embedding blocks
-Xi = zeros(blkrows,nchs,p);
-for d = 1:p % extract data at each delay lag...
-Xi(:,:,d) = squeeze(data(:, p+1-d:end-d, itr))';
-end
-% permute to [npnts x p x nchs] so each page is a 
-% delay-embedding block for a given channel...
-Xi = permute(Xi, [1 3 2]); 
-% ... and concatenate blocks horizontally to form 2D design mat
-% for this trial X(:,:,itr) = [X1 X2 ... XM]
-X(:,:,itr) = reshape(Xi, blkrows, blkcols);
-
-% extract 0-lag data matrix for this trial...
-Y(:,:,itr) = data(:, p+1:end,itr)';
+    % initialize delay-embedding blocks
+    Xi = zeros(blkrows,nchs,p);
+    for d = 1:p % extract data at each delay lag...
+        Xi(:,:,d) = data(:, p+1-d:end-d, itr)';
+    end
+    % permute to [npnts x p x nchs] so each page is a 
+    % delay-embedding block for a given channel...
+    Xi = permute(Xi, [1 3 2]); 
+    % ... and concatenate blocks horizontally to form 2D design mat
+    % for this trial X(:,:,itr) = [X1 X2 ... XM]
+    X(:,:,itr) = reshape(Xi, blkrows, blkcols);
+    
+    % extract 0-lag data matrix for this trial...
+    Y(:,:,itr) = data(:, p+1:end,itr)';
 end
 
 if ntr>1
-% reshape X and Y to stack trials vertically and form final 2D matrix
-X = permute(X,[1 3 2]);
-Y = permute(Y,[1 3 2]);
-X = reshape(X,blkrows*ntr,blkcols);
-Y = reshape(Y,blkrows*ntr,nchs);
+    % reshape X and Y to stack trials vertically and form final 2D matrix
+    X = permute(X,[1 3 2]);
+    Y = permute(Y,[1 3 2]);
+    X = reshape(X,blkrows*ntr,blkcols);
+    Y = reshape(Y,blkrows*ntr,nchs);
 end
 

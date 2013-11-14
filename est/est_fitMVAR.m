@@ -55,8 +55,8 @@ end
 
 g = arg_define([0 1],varargin, ...
     arg_norep({'EEG','ALLEEG'},mandatory,[],'EEGLAB dataset'), ...
-    arg_subswitch({'algorithm','Algorithm'},hlp_getMVARalgorithms('defaultNameOnly'), ...
-    hlp_getMVARalgorithms, ...
+    arg_subswitch({'algorithm','Algorithm'},hlp_microcache('algos',@hlp_getMVARalgorithms,'defaultNameOnly'), ...
+    hlp_microcache('algos',@hlp_getMVARalgorithms), ...
     {'Select a model fitting algorithm.',hlp_microcache('sift_domain',@hlp_buildMVARHelpText)}, ...
     'cat','Modeling Parameters','suppress',{'ModelOrder','OrderSelector','InitialState'}), ...
     arg({'morder','ModelOrder','modelOrder'},10,[1 Inf],'VAR model order.','cat','Modeling Parameters'), ...
@@ -188,7 +188,7 @@ end
 numWins   = length(g.winStartIdx);
 
 % construct the data taper
-g.taper = feval(g.taperfcn,winLenPnts).';
+g.taper = window_func(g.taperfcn,winLenPnts).';
 
 
 %% Prepare data for model fitting
@@ -250,7 +250,7 @@ for t=1:numWins
     winpnts = g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1;
     
     % execute the model-fitting algorithm
-    algFcnName = hlp_getMVARalgorithms('mfileNameOnly',g.algorithm.arg_selection);
+    algFcnName = hlp_microcache('algos',@hlp_getMVARalgorithms,'mfileNameOnly',g.algorithm.arg_selection);
     switch nargout(algFcnName)
         case 2
             [AR{t} PE{t}] = feval(algFcnName, ...
@@ -272,9 +272,8 @@ for t=1:numWins
             error('SIFT:est_fitMVAR:badAlgArgs','%s must output either 2 or 3 arguments',algFcnName);
     end
         
-    drawnow;
-    
     if g.verb==2
+        drawnow;
         % graphical waitbar
         cancel = multiWaitbar(waitbarTitle,t/numWins);
         if cancel

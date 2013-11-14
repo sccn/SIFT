@@ -363,7 +363,7 @@ else
     def_alpha = stats.alpha;
 end
 
-clear stats ALLEEG;
+% clear stats ALLEEG;
 
 % setup the argument list
 % -----------------------------------------------------
@@ -435,7 +435,10 @@ g = arg_define([0 2],varargin, ...
     arg_sub({'dipplot','DipolePlottingOptions'},[], ...
     { ...
     arg_nogui({'mri'},'',[],'Dipplot MRI structure. Can be the name of matlab variable (in the base workspace) containing MRI structure. May also be a path to a Matlab file containing MRI structure. Default uses MNI brain.','type','char','shape','row'), ...
-    arg_nogui({'coordformat','DipoleCoordinateFormat'},'mni',{'spherical','mni'},'Coordinate format for dipplot','type','char','shape','row'), ...
+    arg({'coordformat','DipoleCoordinateFormat'},'mni',{'spherical','mni'},'Coordinate format for dipplot','type','char','shape','row'), ...
+    arg({'showCortexMesh','ShowCortexMesh'},isstruct(ALLEEG) && ~isempty(ALLEEG.dipfit) && isfield(ALLEEG.dipfit.model,'meshVertices'),[],'Show cortex surface instead of MRI volume.'), ...
+    arg({'colorROIs','ColorROIs'},isstruct(ALLEEG) && isfield(ALLEEG.dipfit,'surfmesh'),[],'Color ROIs.'), ...
+    arg({'dipsize','DipoleSize'},80,[],'Dipole sphere size'), ...
     arg_nogui({'dipplotopt','DipplotOptions'},'{}','','Additional dipplot options. Cell array of <''name'',value> pairs of additional options for dipplot (see ''doc dipplot'')','type','expression','shape','row') ...
     arg({'row_view'},[1 0 0],[],'View angle for row marginals'), ...
     arg({'col_view'},[0 0 1],[],'View angle for column marginals'), ...
@@ -455,6 +458,7 @@ g = arg_define([0 2],varargin, ...
     arg({'patchcolor','PatchColor'},[1 1 1],[],'FaceColor for shaded regions','shape','row','type','denserealdouble','cat','TextAndFont'), ...
     arg({'colormap','Colormap'},'jet(300)',[],'Colormap. Matlab expression denoting colormap to use (e.g., ''jet(64)''). See ''help colormap''.','type','expression','cat','DisplayProperties'), ...
     arg({'backgroundColor','BackgroundColor'},[0 0 0],[],'Background Color. See ''doc ColorSpec''.','type','expression','shape','row','cat','TextAndFont'), ...
+    arg({'colorscheme','TFCellColorScheme','ColorScheme'},'black',{'black','white','eeglab'},'Color scheme for TimeFreqCell popout'), ...
     arg_norep({'report_args'},[],[],'Need this to allow recursive calls...') ...
     );
 
@@ -667,6 +671,11 @@ end
 if strcmpi(g.topoplot,'dipole')
     if isempty(g.dipplot.mri)
         g.dipplot.mri = ALLEEG(1).dipfit.mrifile;
+        if isempty(g.dipplot.mri)
+            eeglabpath = fileparts(which('eeglab'));
+            g.dipplot.mri = fullfile(eeglabpath,'plugins','dipfit2.2','standard_BEM','standard_mri.mat');
+%             g.dipplot.mri = fullfile(eeglabpath,'plugins','dipfit2.2','standard_BESA','avg152t1.mat');
+        end
         tmp = load(g.dipplot.mri);
         fn = fieldnames(tmp);
         g.dipplot.mri = tmp.(fn{1});
@@ -685,8 +694,36 @@ if strcmpi(g.topoplot,'dipole')
         % User specified an invalid path to MRI file
         error('Unable to load MRI file for dipplot');
     end
-end
+    
+    if isempty(ALLEEG.dipfit) || ~isfield(ALLEEG.dipfit,'surfmesh')
+        g.dipplot.showCortexMesh = false;
+    end
+    if g.dipplot.showCortexMesh && isempty(g.dipplot.dipplotopt)
+        dipsize = g.dipplot.dipsize;
+        BG_COLOR = [0.2 0.2 0.2];
+        FaceAlpha = 0.3;
+        if g.dipplot.colorROIs ...
+           && ~isempty(ALLEEG.dipfit) ...
+           && isfield(ALLEEG.dipfit.model,'meshVertices')
+            MeshColorTable = hlp_getROIVertexColorTable( ...
+                        'NumVerticesInMesh',size(ALLEEG.dipfit.surfmesh.vertices,1), ...
+                        'RoiVertices',{ALLEEG.dipfit.model.meshVertices},   ...
+                        'BackgroundColor',BG_COLOR,'RoiColors',@(x)distinguishable_colors(x,[1 0 0; BG_COLOR]));
 
+        else
+            MeshColorTable = [0.6 0.6 0.7];
+        end
+        g.dipplot.dipplotopt = {'spheres',fastif(dipsize>0,'on','off'),'dipolesize' dipsize ...
+                                'projlines' 'off' 'hidemri','on',   ...
+                                'mesh','on',    ...
+                                'meshdata',{'faces',ALLEEG.dipfit.surfmesh.faces, ...
+                                            'vertices',ALLEEG.dipfit.surfmesh.vertices}, ...
+                                'meshfacecolor','interp', 'meshedgecolor','none',   ...
+                                'meshoptions',{'facealpha',FaceAlpha,'edgealpha',FaceAlpha,   ...
+                                                'FaceVertexCData',MeshColorTable, ...
+                                                'facelighting','gouraud'}};
+    end
+end
 
 % set up figure labels
 if length(Conn)>1
@@ -828,7 +865,7 @@ else
         case 'both'
             yTickLoc = 'BothMargins';
     end
-    axh=subplot1(numSubplotRows,numSubplotCols, ...
+    axh=hlp_subplot1(numSubplotRows,numSubplotCols, ...
         'Min',gridmargin_bot_left,'Max',gridmargin_top_right,...
         'Gap',[pmargin pmargin], ...
         'YTickL',yTickLoc,'LeftMarginCol',2);
@@ -837,8 +874,7 @@ else
     set(axh,'Color',g.backgroundColor);
 end
 
-
-
+set(figureHandles(end),'defaultTextInterpreter','none');
 set(figureHandles(end),'color',g.backgroundColor);
 colormap(g.colormap);
 
@@ -1112,7 +1148,7 @@ end
 % ------------------------------------------------------------------
 if ~strcmpi(g.topoplot,'none')
     
-    subplot1(sub2ind([numSubplotRows,numSubplotCols],1,1));
+    hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],1,1));
     
     set(gca,'visible','off');
     chidx=0;
@@ -1121,7 +1157,7 @@ if ~strcmpi(g.topoplot,'none')
         
         % row marginals
         % --------------
-        subplot1(sub2ind([numSubplotRows,numSubplotCols],1,chidx+1));
+        hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],1,chidx+1));
         plotmarginal(ALLEEG,ch,g,'view',g.dipplot.row_view); % [0 -1 0] for zeynep
         pos = get(gca,'position');
         th = ylabel(g.nodelabels(ch),'color',g.textColor,  ...
@@ -1135,13 +1171,13 @@ if ~strcmpi(g.topoplot,'none')
         
         % column marginals
         % ----------------
-        subplot1(sub2ind([numSubplotRows,numSubplotCols],chidx+1,1));
+        hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],chidx+1,1));
         plotmarginal(ALLEEG,ch,g,'view',g.dipplot.col_view)  % [0 0 1] for zeynep
         title(g.nodelabels(ch),'color',g.textColor,'fontsize',g.axesFontSize);
         set(gco,'tag','coltitle');
     end
 else
-    subplot1(sub2ind([numSubplotRows,numSubplotCols],1,1));
+    hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],1,1));
     
     set(gca,'visible','off');
     chidx=0;
@@ -1149,9 +1185,9 @@ else
     for ch=g.plotorder
         chidx = chidx+1;
         
-        hsub=[hsub subplot1(sub2ind([numSubplotRows,numSubplotCols],1,chidx+1))];
+        hsub=[hsub hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],1,chidx+1))];
         set(gca,'visible','off')
-        hsub=[hsub subplot1(sub2ind([numSubplotRows,numSubplotCols],chidx+1,1))];
+        hsub=[hsub hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],chidx+1,1))];
         set(gca,'visible','off')
     end
     
@@ -1175,7 +1211,7 @@ for ch_i=1:nch
         
         % Index the appropriate subplot.
         % subplot1 counts linearly by columns, so we flip ch_i,ch_j
-        subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_j+numSubplotRows-nch,ch_i+numSubplotCols-nch));
+        hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_j+numSubplotRows-nch,ch_i+numSubplotCols-nch));
         set(gca,'tag','causalplot');
         
         % create column/row titles, if necessary
@@ -1214,13 +1250,13 @@ for ch_i=1:nch
             % then borrow x-y ticks from left,upper neighbors
             if ch_i==nch && ch_j == nch && isempty(get(gca,'children'));
                 % get left neighbor
-%                 subplot1(sub2ind([numSubplotRows,numSubplotCols],nch,nch));
+%                 hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],nch,nch));
                 curplot = gca;
-                leftplot=subplot1(sub2ind([numSubplotRows,numSubplotCols],(ch_j-1)+numSubplotRows-nch,ch_i+numSubplotCols-nch));
+                leftplot=hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],(ch_j-1)+numSubplotRows-nch,ch_i+numSubplotCols-nch));
                 xticks = get(leftplot,'Xtick');
                 xticklabels = get(leftplot,'XTickLabel');
                 xlim = get(leftplot,'XLim');
-                upperplot=subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_j+numSubplotRows-nch,(ch_i-1)+numSubplotCols-nch));
+                upperplot=hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_j+numSubplotRows-nch,(ch_i-1)+numSubplotCols-nch));
                 yticks = get(upperplot,'Ytick');
                 yticklabels = get(upperplot,'YTickLabel');
                 ylim = get(upperplot,'YLim');
@@ -1336,6 +1372,7 @@ for ch_i=1:nch
             subargs.foilines        = g.foilines;
             subargs.foilinecolor    = g.foilinecolor;
             subargs.smooth          = g.smooth;
+            subargs.colorscheme     = g.colorscheme;
             
             set(gca,'userdata',subargs)
             set([gca h],'buttondownfcn','vis_TimeFreqCell(get(gca,''UserData''));');
@@ -1387,7 +1424,7 @@ for ch_i=1:nch
             
             % create a red border around diagonal plots
             if ch_i==ch_j
-                %                 subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_j+numSubplotRows-nch,ch_i+numSubplotCols-nch));
+                %                 hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_j+numSubplotRows-nch,ch_i+numSubplotCols-nch));
                 pos = get(gca,'position');
                 hborder = annotation('rectangle',pos,'edgecolor',[1 0 0],'linewidth',2);
                 set(hborder,'userdata',gca);
@@ -1632,7 +1669,7 @@ end
 set(gcf,'color',g.backgroundColor);
 
 for ch_i=1:nch
-    subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_i+numSubplotRows-nch,ch_i+numSubplotCols-nch));
+    hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_i+numSubplotRows-nch,ch_i+numSubplotCols-nch));
     % give diagonals a red-ish border/background
 %     set(gca,'color','r');
     set(gca,'xcolor','r');
@@ -1653,7 +1690,7 @@ for i=1:length(topos)
 end
 
 % create legend
-subplot1(1);
+hlp_subplot1(1);
 if isempty(findall(gcf,'tag','legendborder'))
     % create border around legend
     pos = get(gca,'position');

@@ -686,6 +686,7 @@ if ismember_bc(lower(g.mode),{'init','init_and_render'})
         % create a new figure
         g.figurehandle = figure( 'position', [100, 100, ceil(nbconditions*g.size(1)/4)*4, ceil(g.size(2)/4)*4], ...
             'PaperPositionMode', 'auto', 'papertype', 'A1', 'visible',g.visible,'tag','BrainMovieFigure'); %'paperorientation', 'landscape' );
+        set(g.figurehandle,'DefaultTextInterpreter','none');
         if g.cameraMenu
             cameramenu('noreset');
         end

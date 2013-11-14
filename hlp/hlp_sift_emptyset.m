@@ -24,7 +24,7 @@ CAT.MODEL       = [];
 CAT.Conn        = [];
 
 % get names for config fields
-names = getPopFcnSuffixes;
+names = hlp_microcache('popfcn',@getPopFcnSuffixes);
 % initialize empty config struct for each pop function
 for k=1:length(names)
     CAT.configs.(names{k}) = struct([]);

@@ -1,8 +1,6 @@
 function [EEGout cfg] = pop_sim_varmodel(EEG,typeproc,varargin)
 %
-% Preprocess EEG dataset(s) for connectivity analysis. See [1] for
-% mathematical details on preprocessing steps.
-%
+% Simulate a Vector Autoregressive dynamical system
 %
 % Input:
 % Optional:
@@ -27,7 +25,7 @@ function [EEGout cfg] = pop_sim_varmodel(EEG,typeproc,varargin)
 % References:
 %
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
-%   Theoretical Handbook and User Manual. Section 6.5.1
+%   Theoretical Handbook and User Manual.
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift
 %
 % Author: Tim Mullen 2013, SCCN/INC, UCSD.
@@ -62,7 +60,7 @@ cfg    = [];
 fcnName     = strrep(mfilename,'pop_','');
 fcnHandle   = str2func(fcnName);
 
-if ~isempty(hlp_checkeegset(EEG,{'cat'})) && isfield(EEG.CAT.configs,fcnName)
+if isempty(hlp_checkeegset(EEG,{'cat'})) && isfield(EEG.CAT.configs,fcnName)
     % get default configuration (from prior use) and merge with varargin
     varargin = [hlp_struct2varargin(EEG.CAT.configs.(fcnName)) varargin];
 end

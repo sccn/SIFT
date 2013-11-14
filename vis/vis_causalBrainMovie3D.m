@@ -1225,9 +1225,14 @@ for cnd = 1:length(g.Conn)
         switch g.footerPanelSpec.arg_selection
             
             case 'Chan_ERPenvelope'
+                
                 % compute ERP of selected channels
                 erpvars     = find(ismember_bc(MyChannelNames, ...                 % select chans
                                        g.footerPanelSpec.chanenvelopevars));
+                if isempty(erpvars)
+                    g.footerPanelSpec.arg_selection = 'off';
+                    break; 
+                end
                 erpdata     = mean(g.ALLEEG(cnd).data(erpvars,:,:),3);         % compute ERP
                 
                 erptimes    = g.ALLEEG(cnd).times/1000;  % convert to sec
@@ -1250,10 +1255,15 @@ for cnd = 1:length(g.Conn)
                         tmpstr);
                     
             case 'ICA_ERPenvelope'
+                
                 % compute ERP of selected backprojected components
                 erpvars     = g.ALLEEG(cnd).CAT.curComps( ...
                                 ismember_bc(MyComponentNames(g.BMopts.selected),...  % select comps
                                        g.footerPanelSpec.icaenvelopevars));
+                if isempty(erpvars)
+                    g.footerPanelSpec.arg_selection = 'off';
+                    break; 
+                end               
                 erpchans    = find(ismember_bc(MyChannelNames,g.footerPanelSpec.backprojectedchans));
                 erpdata     = mean(g.ALLEEG(cnd).icaact(erpvars,:,:),3);       % obtain ERP
                 if ~isempty(erpchans)
@@ -1299,6 +1309,10 @@ for cnd = 1:length(g.Conn)
 %                                        g.footerPanelSpec.nodes));
                 erpvars     = find(ismember_bc(MyComponentNames(g.BMopts.selected),...  % select comps
                                             g.footerPanelSpec.nodes));
+                if isempty(erpvars)
+                    g.footerPanelSpec.arg_selection = 'off';
+                    break; 
+                end
                 % compute graph metric over selected nodes
                 eval(sprintf('tmp=%s;',g.footerPanelSpec.metric));
                 tmp(isnan(tmp) | isinf(tmp))=0;
@@ -1433,9 +1447,9 @@ if strcmpi(BMopts.outputFormat.moviename,'prompt')
 end
 
 
-BMopts.footerPanelTimes     = envtimes;
-BMopts.footerPanelData      = envdata;
 if ~strcmpi(g.footerPanelSpec.arg_selection,'off')
+    BMopts.footerPanelTimes     = envtimes;
+    BMopts.footerPanelData      = envdata;
     BMopts.footerPanelPlotMode = g.footerPanelSpec.plottingmode;
 else
     BMopts.footerPanelPlotMode = [];

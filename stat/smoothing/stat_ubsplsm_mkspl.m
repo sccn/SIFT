@@ -23,11 +23,6 @@ function phi_t = stat_ubsplsm_mkspl(knots,N,order,verb)
 % See Also: stat_bsplSmoother()
 %
 %
-% References:
-%
-% [1] Thompson, W. Mullen, T. Makeig, S. (2012). A Bayesian Spatiotemporal 
-%     Model for Multi-Subject Inference of EEG Source Connectivity. In prep.
-%
 % Author: Tim Mullen and Wes Thompson, 2010-12, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
 

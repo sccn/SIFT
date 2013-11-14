@@ -41,10 +41,10 @@ xwt=((1:n)-n/2)/(n/2);
 wt=(1-abs(xwt).^3).^3;
 for j=1:nwin, 
 	tseg=y(dn*(j-1)+1:dn*(j-1)+n);
-	y1=mean(tseg); 
+	y1=sum(tseg)/n;
     
     if strcmpi(method,'linear')
-        y2=mean((1:n)'.*tseg)*2/(n+1);
+        y2=sum((1:n)'.*tseg)*2/(n*(n+1));
         a=(y2-y1)*6/(n-1); b=y1-a*(n+1)/2;
         yfit(j,:)=(1:n)*a+b;
     else
