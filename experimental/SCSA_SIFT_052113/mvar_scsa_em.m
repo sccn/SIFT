@@ -197,7 +197,7 @@ end
 if nargout>1
     res = est_mvarResiduals(out.S,AR,zeros(1,g.PCA));
     res = res(:,:);
-    PE = cov(res');
+    PE = cov(res',1);
 end
 
 
