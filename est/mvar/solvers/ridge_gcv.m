@@ -49,6 +49,11 @@ arg_define([0 Inf],varargin, ...
 
 [nr,nc] = size(A);
 
+% if A is not sufficiently sparse, convert to full
+if issparse(A) && nnz(A)/numel(A) > 0.9
+    A = full(A);
+end
+
 if isempty(svd_state)
     if verb, fprintf('Computing SVD of design matrix.\nr'); end
     

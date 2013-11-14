@@ -14,7 +14,8 @@ if ischar(hmObj)
     catch err1
         % try to open it as a file names
         try
-            hmObj = hlp_microcache('headmodels',@headModel.loadFromFile,env_translatepath(hmObj));
+            if ~exist(hmObj,'file'), hmObj = env_translatepath(hmObj); end
+            hmObj = hlp_microcache('headmodels',@headModel.loadFromFile,hmObj);
         catch err2
             disp_once('BCILAB:HeadmodelMissing',['Note: The head model named "' hmObj '" was neither found in the base workspace nor could it be loaded as a file.']);
             hmObj = '';

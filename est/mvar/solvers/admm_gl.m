@@ -33,7 +33,7 @@ function [z, u, history] = admm_gl(varargin)
 % [1] http://www.stanford.edu/~boyd/papers/distr_opt_stat_learning_admm.html
 % [2] http://www.stanford.edu/~boyd/papers/admm/group_lasso/group_lasso_example.html
 
-g = arg_define([0 3],varargin, ...
+g = arg_define(varargin, ...
                 arg_norep({'A','DesignMatrix'},mandatory,[],'The design matrix. This is the data matrix (ie X).'), ...
                 arg_norep({'y','TargetVector'},mandatory,[],'The target vector'), ...
                 arg_norep({'blks','Blocks'},mandatory,[],'Block (Group) size. Array containing the number of elements in each block (group) of coefficients. ie: blks = [5 5 10] is two blocks of size 5 followed by a block of size 10.'), ...
@@ -65,7 +65,7 @@ g = arg_define([0 3],varargin, ...
                         }, ...
                     },{'Method used to update parameters x.', sprintf('\n\nIf ''direct'' then a cholesky factorization of A (data/design matrix) is pre-cached and used to update x directly. This is usually a good choice, unless A is very large.\n\nIf ''iterative'', then x is updated using an iterative method (lsqr.m)')}) ...
                 );
-                
+     
 arg_toworkspace(g);
 
 
@@ -74,7 +74,7 @@ if verb
 end
 
 %% defaults
-g.compute_objval = nargout > 1 || g.compute_objval;
+g.compute_objval = nargout > 2 || g.compute_objval;
 
 
 %% Data preprocessing
@@ -161,10 +161,12 @@ if verb
 end
 
 lambda_counter = 0;
+is_direct = strcmp(x_update.arg_selection,'direct');
+is_iterative = strcmp(x_update.arg_selection,'iterative');
 
 for k = 1:max_iter
 
-    if strcmp(x_update.arg_selection,'direct')
+    if is_direct
         % x-update using direct method
         q = Aty + g.rho*(z - u);    % temporary value
         if( m >= n )    % if skinny
@@ -204,7 +206,7 @@ for k = 1:max_iter
     u = u + (x_hat - z);
     
     % diagnostics, reporting, termination checks
-    if strcmp(x_update.arg_selection,'iterative')
+    if is_iterative
         history.lsqr_iters(k) = iters;
     end
     history.r_norm(k)  = norm(x - z);
@@ -214,7 +216,7 @@ for k = 1:max_iter
     history.eps_dual(k)= sqrt(n)*g.abstol + g.reltol*norm(g.rho*u);
 
     if g.compute_objval
-        history.objval(k)  = objective(A, y, g.lambda, cum_part, x, z);
+        history.objval(k)  = objective(A, y, g.lambda, cum_part, x, z, eqSizeBlocks);
     end
     
     if verb
@@ -287,15 +289,19 @@ end
 end
 
 %% objective function
-function p = objective(A, y, lambda, cum_part, x, z)
-    obj = 0;
-    start_ind = 1;
-    for i = 1:length(cum_part),
-        sel = start_ind:cum_part(i);
-        obj = obj + norm(z(sel));
-        start_ind = cum_part(i) + 1;
+function p = objective(A, y, lambda, cum_part, x, z, eqSizeBlocks)
+    if eqSizeBlocks
+        p = 1/2*sum((A*x - y).^2) + lambda*sum(sqrt(sum(reshape(z.*conj(z),cum_part(1),[]))));
+    else
+        obj = 0;    
+        start_ind = 1;
+        for i = 1:length(cum_part),
+            sel = start_ind:cum_part(i);
+            obj = obj + norm(z(sel));
+            start_ind = cum_part(i) + 1;
+        end
+        p = ( 1/2*sum((A*x - y).^2) + lambda*obj );
     end
-    p = ( 1/2*sum((A*x - y).^2) + lambda*obj );
 end
 
 %% shrinkage function
@@ -303,7 +309,8 @@ function z = shrinkage(x, kappa)
     % OPTIMIZATION NOTE: the call to norms() can be replaced
     % with sqrt(mtimesx(x,'t',x)) or a call to DNorm2.m (FEX)
     % This will produce faster performance, but requires compilation
-    z = bsxfun(@times,pos(1 - kappa./norms(x)),x);
+    % z = bsxfun(@times,pos(1 - kappa./norms(x)),x);
+    z = bsxfun(@times,max(0,1 - kappa./sqrt(sum(x.*conj(x)))),x);    
 end
 
 %% cholesky factorization

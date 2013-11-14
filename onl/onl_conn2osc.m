@@ -76,7 +76,7 @@ end
 % deleter = onCleanup(@()osc_free_address(conn)); % if the last reference to this is dropped, the connection is closed (on MATLAB 2008a+)
 
 % prepare OSC object
-connmat = EEG.CAT.Conn;
+connmat = EEG.CAT.Conn.(estimator);
 
 
 

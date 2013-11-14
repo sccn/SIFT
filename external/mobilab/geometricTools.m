@@ -34,7 +34,7 @@ classdef geometricTools
             Xcentered = Xcentered(1:3,:)';
         end
         %%
-        function [Aff,Sn] = affineMapping(S,T)
+        function [Aff,Sn, scale] = affineMapping(S,T)
             % S: source space
             % T: target space
             % S = [sx1 sy1 sz1; sx2 sy2 sz2; ... sxk syn szk]
@@ -44,6 +44,7 @@ classdef geometricTools
             % Sn = S*Aff';
             
             [~,~,transform] = procrustes(T,S);
+            scale = transform.b;
             Aff = [[transform.b*transform.T;transform.c(1,:)] [0;0;0;1]]';
             Sn = geometricTools.applyAffineMapping(S,Aff);
         end
@@ -75,8 +76,15 @@ classdef geometricTools
         end
         %%
         function [neighbors,D,loc] = nearestNeighbor(vertices,T)
-            dt = DelaunayTri(vertices(:,1),vertices(:,2),vertices(:,3));
-            [loc,D] = nearestNeighbor(dt, T);
+            if exist('DelaunayTri','file')
+                 dt = DelaunayTri(vertices(:,1),vertices(:,2),vertices(:,3)); %#ok
+            else dt = delaunayTriangulation(vertices(:,1),vertices(:,2),vertices(:,3));
+            end
+            try [loc,D] = nearestNeighbor(dt, T);
+            catch
+                loc = nearestNeighbor(dt, T);
+                D = sqrt(sum((vertices(loc,:)-T).^2,2));
+            end
             neighbors = vertices(loc,:);
         end
         %%
@@ -154,7 +162,7 @@ classdef geometricTools
         %%
         function sVertices = smoothSurface(vertices,faces,lambda,method)
             if nargin < 2, error('Not enough input arguments.');end
-            if nargin < 3, lambda = 1;end
+            if nargin < 3, lambda = 0.2;end
             if nargin < 4, method = 'lowpass';end
             
             maxIter = 20;
@@ -168,7 +176,7 @@ classdef geometricTools
                     indices = faces(ind,:);
                     indices = indices(:);
                     indices(indices==it) = [];
-                    W = geometricTools.localGaussianInterpolator(vertices(indices,:),vertices(it,:),length(indices),8);
+                    W = geometricTools.localGaussianInterpolator(vertices(indices,:),vertices(it,:),length(indices),10);
                     sVertices(it,:) = sum((1./W)*vertices(indices,:),1)./sum(1./W);
                 end
                 return;
@@ -205,7 +213,7 @@ classdef geometricTools
             I = d < dmax;
             while any(I)
                 I2 = ismember_bc(verticesExt,nVerticesInt(I,:),'rows');
-                verticesExt(I2,:) = 1.01*verticesExt(I2,:);
+                verticesExt(I2,:) = 1.005*verticesExt(I2,:);
                 [nVerticesInt,d] = geometricTools.nearestNeighbor(verticesExt,verticesInt);
                 I = d < dmax;
             end
@@ -263,7 +271,7 @@ classdef geometricTools
             % Nelson Trujillo Barreto
             % Pedro antonio Valdes Hernandez
             % Cuban Neuroscience Center
-            
+
             Cortex.vertices = vertices;
             Cortex.faces = faces;
             vtx = Cortex.vertices;
@@ -278,10 +286,12 @@ classdef geometricTools
                 rj = vtx(j,:);
                 Nj = length(nei_j);
                 for k=1:Nj,
+                    
                     [indi,indj]=find(nei_tri_j==nei_j(k)); %#ok
                     nei_tri_jk = nei_tri_j(indi,:);
+                    if size(nei_tri_jk,1) < 2, break;end
                     nei_k_lr = setxor(nei_tri_jk(1,:),nei_tri_jk(2,:));
-
+                    
                     rk2 = sum((rj-vtx(nei_j(k),:)).^2);
                     rl2 = sum((rj-vtx(nei_k_lr(1),:)).^2);
                     rr2 = sum((rj-vtx(nei_k_lr(2),:)).^2);
@@ -293,19 +303,25 @@ classdef geometricTools
                     sin_phi_kl = sqrt(1-cos_phi_kl.^2);
                     sin_phi_kr = sqrt(1-cos_phi_kr.^2);
                     
-                    PHI_jk = [PHI_jk (1-cos_phi_kl)./sin_phi_kl+(1-cos_phi_kr)./sin_phi_kr]; %#ok
-                    
+                    PHI_jk = [PHI_jk (1-cos_phi_kl)./(sin_phi_kl+eps)+(1-cos_phi_kr)./(sin_phi_kr+eps)]; %#ok
                 end
-                
-                rjk = sqrt(sum((vtx(nei_j,:)-repmat(rj,Nj,1)).^2,2));
-                rj_bar = mean(rjk);
-                
-                theta_jk = 4*PHI_jk'./(rj_bar*sum(PHI_jk)*rjk);
-                L(j,nei_j) = theta_jk'; %#ok
+                if ~isempty(PHI_jk)
+                    rjk = sqrt(sum((vtx(nei_j,:)-repmat(rj,Nj,1)).^2,2));
+                    rj_bar = mean(rjk);
+                    
+                    theta_jk = 4*PHI_jk'./(rj_bar*sum(PHI_jk)*rjk);
+                    L(j,nei_j) = theta_jk'; %#ok
+                else
+                    L(j,nei_j) = 0;     %#ok
+                    L(j,j) = 1;         %#ok
+                end
             end;
             
             L = L - speye(Nvtx,Nvtx);
             L = L - spdiags(sum(L,2),0,Nvtx,Nvtx);
+            d = diag(L);
+            ind = find(d==0);
+            if ~isempty(ind), for it=1:length(ind), L(ind(it),ind(it)) = 1;end;end
         end
         %%
         function [nei,nei_tri] = get_neis(P)
@@ -337,7 +353,7 @@ classdef geometricTools
         end
         %%
         function [nVertices,nFaces] = getSurfaceROI(vertices,faces,roiIndices)
-            rmIndices = setdiff_bc(1:size(vertices,1),roiIndices);
+            rmIndices = setdiff(1:size(vertices,1),roiIndices);
             [nVertices,nFaces] = geometricTools.openSurface(vertices,faces,rmIndices);
         end
         %%
@@ -353,7 +369,50 @@ classdef geometricTools
                     yi = geometricTools.spSplineInterpolator(elec,y,vertices);
                 otherwise
                     yi = geometricTools.spSplineInterpolator(elec,y,vertices);
-            end           
+            end
+        end
+        %%
+        function atlas = labelSurface(Surf,imgAtlasfile, txtAtlasLabel,maxColorValue,vol_permutation)
+            if nargin < 4, maxColorValue = 90;end
+            if nargin < 5, vol_permutation = [1 2 3]; end
+            % Atlas
+            v =spm_vol(imgAtlasfile); % atlas
+            A = spm_read_vols(v);
+            A(A>maxColorValue) = 0;
+            indNonZero = A(:)~=0;
+            colorTable = A(indNonZero);
+            [x,y,z] = ndgrid(1:v.dim(1),1:v.dim(2),1:v.dim(3));
+            M = v.mat;
+            X = [x(:) y(:) z(:) ones(numel(x),1)]*M';
+            X = X(indNonZero,1:3);     
+            X = X(:,vol_permutation);
+            clear x y z
+            F = TriScatteredInterp(X,colorTable,'nearest');
+            n = size(Surf.vertices,1);
+            labelsValue = F(Surf.vertices);
+            colorTable = labelsValue;
+            hwait = waitbar(0,'Atlas correction...');
+            for it=1:n
+                neigInd = any(Surf.faces == it,2);
+                vertexInedex = Surf.faces(neigInd,:);
+                vertexInedex = vertexInedex(:);
+                [y,x] = hist(labelsValue(vertexInedex));
+                [~,loc] = max(y);
+                [~,loc] = min(abs(labelsValue(vertexInedex) - x(loc)));
+                labelsValue(it) = colorTable(vertexInedex(loc));
+                waitbar(it/n,hwait);
+            end
+            waitbar(1,hwait);
+            close(hwait);
+            atlas.colorTable = labelsValue;
+            atlas.label = textfile2cell(txtAtlasLabel);
+            atlas.label = atlas.label(1:max(atlas.colorTable));
+            for it=1:length(atlas.label)
+                ind = find(atlas.label{it} == ' ');
+                if ~isempty(ind)
+                    atlas.label{it} = atlas.label{it}(ind(1)+1:ind(end)-1);
+                end
+            end
         end
         %%
         function Yi = spSplineInterpolator(X,Y,Xi,plotFlag)

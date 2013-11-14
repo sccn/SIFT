@@ -42,6 +42,7 @@ function [AR PE lambdaOpt] = mvar_ridge(varargin)
 %
 % Author Credits:
 % 
+% Implemented by Tim Mullen.
 % The ridge regression implementation (ridgeGCV.m) was
 % contributed by Alejandro Ojeda (SCCN/INC).
 %
@@ -98,7 +99,7 @@ else
     parprofs = {'local'};
 end
 
-g = arg_define([0 1],varargin, ...
+g = arg_define(varargin, ...
                 arg_norep({'data','Data'},mandatory,[],'Data Matrix. Dimensions are [nchs x npnts x ntr].'), ...
                 arg({'morder','ModelOrder','p'},10,[],'VAR Model order'), ...
                 arg({'normcols','NormCols'},'norm',{'none','norm','zscore'},'Normalize data. Columns of data matrix X and target vector Y are normalized using the chosen method.'), ...
@@ -113,6 +114,11 @@ g = arg_define([0 1],varargin, ...
                 arg_sub({'ridge_args','RegressionOptions'},[],@ridge_gcv,'Ridge regression options.','suppress','verb'), ...
                 arg({'verb','Verbosity'},verb,{int32(0) int32(1) int32(2)},'Verbose output','type','int32','mapper',@(x)int32(x)) ...
                 );
+
+if strcmp(pardef,'off') && g.splitVars.arg_selection && g.splitVars.runPll.arg_selection
+    fprintf('Parallel Computing Toolbox not installed. Cannot use parallel option.\n');
+    g.splitVars.runPll.arg_selection = false;
+end
 
 arg_toworkspace(g);
 
@@ -208,5 +214,5 @@ AR = reshape(AR,[nchs nchs*p]);
 if nargout>1
     res = est_mvarResiduals(data,AR,zeros(1,nchs));
     res = res(:,:);
-    PE = cov(res');
+    PE  = cov(res',1);
 end

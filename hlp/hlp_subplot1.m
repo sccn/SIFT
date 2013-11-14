@@ -1,4 +1,4 @@
-function h=subplot1(M,N,varargin)
+function h=hlp_subplot1(M,N,varargin)
 %-------------------------------------------------------------------------
 % subplot1 function         An mproved subplot function
 % Input  : - If more than one input argumenst are given,
@@ -39,8 +39,8 @@ function h=subplot1(M,N,varargin)
 %           -  'YScale' : scale of y axis:
 %                        'linear', default.
 %                        'log'
-% Example: subplot1(2,2,'Gap',[0.02 0.02]);
-%          subplot1(2,3,'Gap',[0.02 0.02],'XTickL','None','YTickL','All','FontS',16);
+% Example: hlp_subplot1(2,2,'Gap',[0.02 0.02]);
+%          hlp_subplot1(2,3,'Gap',[0.02 0.02],'XTickL','None','YTickL','All','FontS',16);
 % See also : subplot1c.m
 % Tested : Matlab 5.3
 %     By : Eran O. Ofek           June 2002

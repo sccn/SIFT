@@ -112,7 +112,7 @@ function [AR PE] = mvar_dalSCSA(varargin)
 persistent initAR;
 
 
-g = arg_define([0 1],varargin, ...
+g = arg_define(varargin, ...
                 arg_norep({'data','Data'},mandatory,[],'Data Matrix. Dimensions are [nchs x npnts].'), ...
                 arg({'morder','ModelOrder','p'},10,[],'VAR Model order'), ...
                 arg_nogui({'AR0','InitialState'},[],[],'Initial VAR coefficient matrix','shape','matrix','type','expression'), ...
@@ -235,7 +235,7 @@ AR = reshape(AR,[nchs nchs*p]);
 if nargout>1
     res = est_mvarResiduals(data,AR,zeros(1,nchs));
     res = res(:,:);
-    PE = cov(res');
+    PE = cov(res',1);
 end
 
 % if nargout>2
