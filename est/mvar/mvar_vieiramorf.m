@@ -12,12 +12,12 @@ function [ARF,PE,argsout] = mvar_vieiramorf(varargin)
 % Author Credits:
 %
 % This implementation is based on the mvar()
-% function from Alois Schl�gl's BIOSIG and TSA 
+% function from Alois Schloegl's BIOSIG and TSA 
 % toolboxes [3][4]
 % 
 % References and Code:
 %
-% [1] A. Schl�gl, Comparison of Multivariate Autoregressive Estimators. Signal processing, Elsevier B.V.
+% [1] A. Schloegl, Comparison of Multivariate Autoregressive Estimators. Signal processing, Elsevier B.V.
 % [2] S.L. Marple. Digital Spectral Analysis with Applications. Prentice Hall, 1987
 % [3] http://biosig.sourceforge.net/
 % [4] http://hci.tugraz.at/schloegl/matlab/tsa/
@@ -84,7 +84,6 @@ g = arg_define(varargin, ...
             );
         
 arg_toworkspace(g);
-
 % make data [time x chans x trials]
 data = permute(data,[2 1 3]);
 % make 2D [(pnts+padding)*trials x chans)]

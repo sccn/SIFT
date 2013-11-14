@@ -223,7 +223,7 @@ AR = reshape(AR,[nchs nchs*p]);
 if nargout>1
     res = est_mvarResiduals(g.data,AR,zeros(1,nchs));
     res = res(:,:);
-    PE = cov(res');
+    PE = cov(res',1);
 end
 
 function v = vec(x)
