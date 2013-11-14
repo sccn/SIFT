@@ -238,12 +238,20 @@ if ~g.downdate
             end
 
             cnt = cnt + 1;
-
-            VARtmp(p-pmin+1) = feval(modelingFuncName,'EEG',EEG,g.modelingApproach, ...
+            tmp = feval(modelingFuncName,'EEG',EEG,g.modelingApproach, ...
                                     'ModelOrder',p,'verb',g.verb, ...
                                     'epochTimeLims',g.epochTimeLims, ...
                                     'winStartIdx',g.winStartIdx, ...
                                     'prctWinToSample',g.prctWinToSample);
+            if isempty(tmp)
+                % operation was cancelled
+                IC = [];
+                multiWaitbar(waitbarTitle,'Close');
+                return;
+            else
+                VARtmp(p-pmin+1) = tmp; 
+            end
+            
             if g.verb==2
                 % graphical waitbar
                 cancel = multiWaitbar(waitbarTitle,cnt/tot);
@@ -303,32 +311,33 @@ for t=1:numWins
     
     % CALCULATE INFORMATION CRITERIA
     
-    ne    = npnts-((pmin:pmax)*EEG.CAT.trials);
+    ne    = npnts;
+    ner   = ne-((pmin:pmax)*EEG.CAT.trials);
     logdp = zeros(1,pmax-pmin+1);
     
     for p=pmin:pmax,
         % Get logarithm of determinant for each model order
-        logdp(p-pmin+1) = log(det(MODEL.PE{t}(:,p*nbchan+(1:nbchan))*(npnts-p)));
+        logdp(p-pmin+1) = log(det(MODEL.PE{t}(:,p*nbchan+(1:nbchan))));
+        %logdp(p-pmin+1) = log(det(MODEL.PE{t}(:,p*nbchan+(1:nbchan))*(npnts-p)));
     end
     
-    
     % Schwarz's Bayesian Criterion / Bayesian Information Criterion
-    sbc(:,t) = logdp + (log(ne).*nparams./ne);
+    sbc(:,t) = logdp + log(ner)./ner.*nparams;
     
     % Akaike Information Criterion
-    aic(:,t) = logdp + 2*nparams./ne;
+    aic(:,t) = logdp + 2./ner.*nparams;
     
     % Corrected Akaike Information Criterion
-    aicc(:,t)= aic(:,t) + 2*(nparams.*(nparams+1)./(ne-nparams-1));
+    aicc(:,t)= logdp + ((ne + nparams)./max(0,(ne-nparams-2)));
     
     % logarithm of Akaike's Final Prediction Error
-    fpe(:,t) = logdp + nbchan*log((ne+nbchan*(pmin:pmax)+1)./(ne-nbchan*(pmin:pmax)-1));
+    fpe(:,t) = logdp + nbchan*log((ner+nbchan*(pmin:pmax)+1)./(ner-nbchan*(pmin:pmax)-1));
     
     % Hannan-Quinn criterion
-    hq(:,t)  = logdp + nparams.*2*log(log(ne))./ne;
+    hq(:,t)  = logdp + 2.*log(log(ner))./ner.*nparams;
     
     % Rissanen criterion (NOTE: same as BIC/SBC)
-    ris(:,t) = logdp + (nparams./ne).*log(ne);  
+    ris(:,t) = logdp + (nparams./ner).*log(ner);  
     
     for i=1:length(g.icselector)
         % get index iopt of order that minimizes the order selection
