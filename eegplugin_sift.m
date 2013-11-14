@@ -73,6 +73,11 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
     SimVar_callback        = [finalcmd catchstrs.new_and_hist refreshMenuCB];
     
+    cmd = 'EEG = pop_sim_eegdata(EEG);';
+    finalcmd = [ trystrs.no_check cmd ];
+    finalcmd = [finalcmd 'LASTCOM = ''' cmd ''';' ];
+    SimEEG_callback        = [finalcmd catchstrs.new_and_hist refreshMenuCB];
+    
     % pre-processing
     cmd = 'EEG = pop_pre_prepData(EEG);';
     finalcmd = [ trystrs.no_check cmd ];
@@ -152,7 +157,8 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
     simmenu     = uimenu( menu, 'label', 'Simulation','userdata', userdata, 'enable','on');
         simmenu_LDS = uimenu( simmenu, 'label', 'Linear Dynamical System','userdata', userdata);
             uimenu( simmenu_LDS, 'label', 'Vector Autoregressive Process', 'callback', SimVar_callback,'userdata', userdata,'tag','sim');
-    
+        simmenu_EEG = uimenu( simmenu, 'label', 'EEG Simulator','callback', SimEEG_callback,'userdata', userdata,'tag','sim');
+            
     % Preprocessing
     uimenu( menu, 'label', 'Pre-processing', 'callback', PreProc_callback,'userdata', userdata,'tag','cat');
     
