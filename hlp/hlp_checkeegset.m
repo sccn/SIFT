@@ -57,6 +57,11 @@ if ~iscell(checks)
     checks = {checks};
 end
 
+if isempty(EEG)
+    res = {sprintf('SIFT: \nEEG structure is empty')};
+    return;
+end
+
 for cnd=1:length(EEG)
     for i=1:length(checks)
         switch lower(checks{i})
