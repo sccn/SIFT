@@ -1,6 +1,7 @@
-function [EEGout cfg] = pop_sim_varmodel(EEG,typeproc,varargin)
+function [EEGout cfg] = pop_sim_eegdata(EEG,typeproc,varargin)
 %
-% Simulate a Vector Autoregressive dynamical system
+% Simulate EEG data using a dynamical modeling framework and 
+% a forward head model.
 %
 % Input:
 % Optional:
@@ -20,7 +21,7 @@ function [EEGout cfg] = pop_sim_varmodel(EEG,typeproc,varargin)
 %   cfg:            Argument specification structure.
 %
 %
-% See Also: sim_varmodel()
+% See Also: sim_varmodel(), sim_eegdata(),
 %
 % References:
 %
@@ -84,7 +85,7 @@ end
 
 drawnow;
 
-if ~cfg.makeEEGset.arg_selection
+if ~cfg.srcdyn.makeEEGset.arg_selection
     error('SIFT:sim_varmodel',['If using pop_' fcnName '(), you must enable the BuildEEGLABStructure option.\n' ...
                                'Use ' fcnName '() from the command-line to return a raw dataset']);
 end

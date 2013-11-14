@@ -1,4 +1,4 @@
-function dipfit = hlp_makeDipfitStruct(sourceSpace,roiVertices,reducedSpace,CSD)
+function dipfit = hlp_makeDipfitStruct(sourceSpace,roiVertices,reducedSpace,CSD,sourceCoords)
 % create dipfit structure containing the locations (.posxyz) and moments 
 % (.momxyz) of a set of dipoles located at each vertex of the source space.  
 % Alternately, one can provide a cell array of integers (roiVertices) where
@@ -42,6 +42,9 @@ end
 if nargin<4
     CSD = [];
 end
+if nargin<5
+    sourceCoords = [];
+end
 
 % determine number of dipoles
 if isempty(roiVertices)
@@ -66,7 +69,11 @@ else
     momxyz = zeros(numDipoles,3);
 end
 
-posxyz = zeros(numDipoles,3);
+if isempty(sourceCoords)
+    posxyz = zeros(numDipoles,3);
+else
+    posxyz = sourceCoords;
+end
 
 % compute ROI averages
 if ~isempty(roiVertices)
@@ -79,7 +86,9 @@ if ~isempty(roiVertices)
                                                    sourceSpace.faces,   ...
                                                    roiVertices{k});
         surfmesh{k} = struct('vertices',v,'faces',f);
-        posxyz(k,:) = mean(meshcentroid(v,f));
+        if isempty(sourceCoords)
+            posxyz(k,:) = mean(meshcentroid(v,f));
+        end
     end
     
     % average vertex moments
