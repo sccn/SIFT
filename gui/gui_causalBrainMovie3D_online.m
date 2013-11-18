@@ -23,7 +23,7 @@ function varargout = gui_causalBrainMovie3D_online(varargin)
 
 % Edit the above text to modify the response to help gui_causalBrainMovie3D_online
 
-% Last Modified by GUIDE v2.5 22-Aug-2012 18:37:53
+% Last Modified by GUIDE v2.5 19-Feb-2013 00:02:42
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -165,7 +165,7 @@ else
     varargout = {[] handles.output};
 end
 
-evalin('base','opts.doBrainMovie=false;');
+evalin('base','opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection=false;');
 % evalin('base','if ishandle(figHandles.BMDisplay), close(figHandles.BMDisplay); end');
 
 try
@@ -285,27 +285,104 @@ function gui_BrainMovie3D_WindowKeyPressFcn(hObject, eventdata, handles)
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
 
-if strcmpi(eventdata.Key,'s') ...
-        && (strcmpi(eventdata.Modifier,'control') ...
-        || strcmpi(eventdata.Modifier,'command'))
-    
-    varname = inputdlg2({'Enter name of variable in workspace to store configuration'}, ...
-                        'Save GUI configuration to workspace',1,{''});
-     
-    if isempty(varname)
-        return;
-    end
-    
-    % get the property specification
-    pg = handles.PropertyGridHandle;
-    ps = pg.GetPropertySpecification;
-    cfg = arg_tovals(ps,false);
-    
-    % save configuration structure to workspace
-    assignin('base',varname{1},cfg);
+% if strcmpi(eventdata.Key,'s') ...
+%         && (strcmpi(eventdata.Modifier,'control') ...
+%         || strcmpi(eventdata.Modifier,'command'))
+%     
+%     
+%     % get current contents of property grid
+%     pg    = handles.PropertyGridHandle;
+%     ps    = pg.GetPropertySpecification;
+%     BMCFG = arg_tovals(ps,false);
+% 
+%     % select the path/file for saving configs
+%     [fname fpath] = uiputfile('*.mat','Save BrainMovie Config File');
+%     if ~fname
+%         return;
+%     end
+%     % save the opts structure
+%     save(fullfile(fpath,fname),'BMCFG');
+% 
+%     
+% %     varname = inputdlg2({'Enter name of variable in workspace to store configuration'}, ...
+% %                         'Save GUI configuration to workspace',1,{''});
+% %      
+% %     if isempty(varname)
+% %         return;
+% %     end
+% %     
+% %     % get the property specification
+% %     pg = handles.PropertyGridHandle;
+% %     ps = pg.GetPropertySpecification;
+% %     cfg = arg_tovals(ps,false);
+% %     
+% %     % save configuration structure to workspace
+% %     assignin('base',varname{1},cfg);
+% end
+% 
+% % load configuration
+% if strcmpi(eventdata.Key,'l') ...
+%         && (strcmpi(eventdata.Modifier,'control') ...
+%         || strcmpi(eventdata.Modifier,'command'))
+%     
+%     % load the configs
+%     [fname fpath] = uigetfile('*.mat','Load BrainMovie Config File');
+%     if ~fname
+%         return;
+%     end
+%     tmp   = load(fullfile(fpath,fname));
+%     fn    = fieldnames(tmp);
+%     BMCFG = tmp.(fn{1});
+% 
+%     % pause the brainmovie rendering
+%     evalin('base','opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection=false;');
+%     
+%     % close existing brainmovie figure 
+%     evalin('base','close(figHandles.BMDisplay);  figHandles.BMDisplay = [];');
+%     % update configs in base workspace
+%     assignin('base','BMCFG',BMCFG);
+%     assignin('base','BM_CFG_CHANGED',true);
+%     assignin('base','newBrainmovie',true);
+%     % close the BrainMovie control panel (a new one will be opened)
+%     close(hObject);
+%     % resume the brainmovie rendering
+%     evalin('base','opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection=true;');
+%     
+% %     % pause the brainmovie rendering
+% %     evalin('base','opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection=false;');
+% %     % redraw the property grids
+% %     handles = redrawPropertyGrid(hObject,handles,BMCFG);
+% %     % close existing brainmovie figure 
+% %     evalin('base','close(figHandles.BMDisplay);  figHandles.BMDisplay = [];');
+% %     % update configs in base workspace
+% %     assignin('base','BMCFG',BMCFG);
+% %     assignin('base','BM_CFG_CHANGED',true);
+% %     % resume the brainmovie rendering
+% %     evalin('base','opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection=true;');
+% 
+%     guidata(hObject,handles);
+% end
+
+
+% --- User-defined function to (re)draw Property Grids
+function handles = redrawPropertyGrid(hObject,handles,BMCFG)
+
+try
+    % delete existing property grids
+    delete(handles.PropertyGridHandle.Control);
+catch err
 end
+ 
+% render the PropertyGrid in the correct panel
+handles.PropertyGridHandle = arg_guipanel( ...
+                 handles.pnlPropertyGrid, ...
+                'Function',@vis_causalBrainMovie3D, ...
+                'params',{'ALLEEG',handles.ud.ALLEEG, 'Conn',handles.ud.Conn, BMCFG});
 
 
+             
+             
+             
 % --- Executes on button press in cmdPause.
 function cmdPause_Callback(hObject, eventdata, handles)
 % hObject    handle to cmdPause (see GCBO)
@@ -322,5 +399,97 @@ else
     set(hObject,'String','Pause');
 end
 
-evalin('base',sprintf('opts.doBrainMovie=%s;',fastif(doBrainMovie,'true','false')));
+evalin('base',sprintf('opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection=%s;',fastif(doBrainMovie,'true','false')));
 guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function mnuLoad_Callback(hObject, eventdata, handles)
+% hObject    handle to mnuLoad (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% load the configs
+[fname fpath] = uigetfile('*.mat','Load BrainMovie Config File');
+if ~fname
+    return;
+end
+tmp   = load(fullfile(fpath,fname));
+fn    = fieldnames(tmp);
+BMCFG = tmp.(fn{1});
+
+if ~isstruct(BMCFG) || ~isfield(BMCFG,'BMopts')
+    fprintf('Invalid BrainMovie Config\n');
+    return; 
+end
+
+% pause the brainmovie rendering
+evalin('base','opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection=false;');
+
+% close existing brainmovie figure 
+evalin('base','close(figHandles.BMDisplay);  figHandles.BMDisplay = [];');
+% update configs in base workspace
+assignin('base','BMCFG',BMCFG);
+assignin('base','BM_CFG_CHANGED',true);
+assignin('base','newBrainmovie',true);
+% close the BrainMovie control panel (a new one will be opened)
+close(handles.figureHandle);
+% resume the brainmovie rendering
+evalin('base','opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection=true;');
+
+%     % pause the brainmovie rendering
+%     evalin('base','opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection=false;');
+%     % redraw the property grids
+%     handles = redrawPropertyGrid(hObject,handles,BMCFG);
+%     % close existing brainmovie figure 
+%     evalin('base','close(figHandles.BMDisplay);  figHandles.BMDisplay = [];');
+%     % update configs in base workspace
+%     assignin('base','BMCFG',BMCFG);
+%     assignin('base','BM_CFG_CHANGED',true);
+%     % resume the brainmovie rendering
+%     evalin('base','opts.miscOptCfg.doSIFT.dispBrainMovie.arg_selection=true;');
+
+guidata(handles.figureHandle,handles);
+    
+
+% --------------------------------------------------------------------
+function mnuSave_Callback(hObject, eventdata, handles)
+% hObject    handle to mnuSave (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% get current contents of property grid
+pg    = handles.PropertyGridHandle;
+ps    = pg.GetPropertySpecification;
+BMCFG = arg_tovals(ps,false);
+
+% select the path/file for saving configs
+[fname fpath] = uiputfile('*.mat','Save BrainMovie Config File');
+if ~fname
+    return;
+end
+% save the opts structure
+save(fullfile(fpath,fname),'BMCFG');
+
+
+%     varname = inputdlg2({'Enter name of variable in workspace to store configuration'}, ...
+%                         'Save GUI configuration to workspace',1,{''});
+%      
+%     if isempty(varname)
+%         return;
+%     end
+%     
+%     % get the property specification
+%     pg = handles.PropertyGridHandle;
+%     ps = pg.GetPropertySpecification;
+%     cfg = arg_tovals(ps,false);
+%     
+%     % save configuration structure to workspace
+%     assignin('base',varname{1},cfg);
+
+
+% --------------------------------------------------------------------
+function Untitled_1_Callback(hObject, eventdata, handles)
+% hObject    handle to Untitled_1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
