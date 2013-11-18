@@ -150,7 +150,9 @@ try
             handles.MiscPropertyGridHandle.Control]);
 catch err
 end
- 
+
+handles = arg_setdirect(handles,false);
+
 % render the PropertyGrids in the correct panels
 handles.SiftPipPropertyGridHandle = arg_guipanel( ...
                 handles.pnlPropertyGridSiftPip, ...
