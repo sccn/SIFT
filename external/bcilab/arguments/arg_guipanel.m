@@ -1,0 +1,84 @@
+function result = arg_guipanel(varargin)
+% Create a uipanel that displays an argument property inspector for a Function.
+% Result = arg_guipanel(Options ...)
+% Result = arg_guipanel(Parent, Options ...)
+%
+% The handle supports the method .GetPropertySpecification(), by means of which the edited argument
+% specification can be retrieved. This result can be turned into a valid Function argument using
+% arg_tovals(). Additional Parameters may be passed to the Function, in order to override some of
+% its defaults.
+%
+% In:
+%   Parent : optional parent widget
+%
+%   Options : name-value pairs; possible names are:
+%              'Function' : the function for which to display arguments
+%
+%              'Parameters' : cell array of parameters to the function
+%
+%              'Position' : position of the panel within the parent widget
+%
+%              'PanelOnly' : if true, generate only a uipanel that can be embedded in a dialog;
+%                            otherwise generate a figure and wait until it is closed.
+%                            (default: true)
+%
+% Out:
+%   Result : * if PanelOnly, this is the handle to the panel; supports .GetPropertySpecification() 
+%              to obain the edited specification (when done)
+%            * otherwise this is the Propertyspecification of the function at the time when the 
+%              figure is closed
+%
+% Examples:
+%   % get a uipanel that allows to edit parameters to a function
+%   f = figure;
+%   h = arg_guipanel(f,'Function',@myfunction);
+%
+%   % get a uipanel that allows to edit parameters to a function, and customize initial settings
+%   f = figure;
+%   h = arg_guipanel(f,'Function',@myfunction,'Parameters',{3,21,'test'});
+%
+%   % get a uipanel that allows to edit parameters to a function, and put it in a specific position
+%   f = figure;
+%   h = arg_guipanel(f,'Function',@myfunction,'Position',[0 0 100 200]);
+%
+% See also:
+%   arg_guidialog, arg_guidialog_ex, arg_define
+%
+%                                Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
+%                                2010-10-24
+
+% separate the parent, if specified
+if isscalar(varargin{1}) && ishandle(varargin{1})
+    parent = varargin{1};
+    varargin = varargin(2:end);
+else
+    mp = get(0,'MonitorPositions')';
+    parent = figure('MenuBar','none','Position',[mp(3)/2-200,mp(4)/2-200,400,400]);
+end
+
+% get the options
+opts = hlp_varargin2struct(varargin, {'Function','function','func'},mandatory, {'Parameters','parameters','params'},{}, {'Position','position','pos'},[0 0 1 1],{'PanelOnly','panel_only'},true);
+
+% obtain the argument specification for the function
+spec = arg_report('rich', opts.Function, opts.Parameters);
+% ... and turn it into an array of PropertyGridField's
+properties = PropertyGridField.GenerateFrom(spec);
+
+% instantiate the grid
+args = hlp_struct2varargin(opts,'suppress',{'Function','Parameters','PanelOnly'});
+hpanel = PropertyGrid(parent,args{:},'Properties',properties);
+
+if ~opts.PanelOnly
+    % in this case a figure is generated and we wait until the figure is closed
+    set(hpanel.Parent,'CloseRequestFcn',@(hfig,v)extract_properties(hfig));
+    uiwait(hpanel.Parent);
+else
+    result = hpanel;
+end
+
+function extract_properties(hfig)
+    result = arg_tovals(hpanel.GetPropertySpecification);
+    delete(hfig);
+end
+
+end
