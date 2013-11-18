@@ -1,4 +1,3 @@
-
 function [EEG g] = pre_prepData(varargin)
 %
 % Preprocess EEG dataset(s) for connectivity analysis. See [1] for
@@ -234,7 +233,7 @@ if ~isempty(EEG)
         % if EEG contains icaweights, allow components
         defSigType = [defSigType {'Components'}];
     end
-    if any(arrayfun(@(x) isfield(x,'srcpot') && ~isempty(x.srcpot), EEG))
+    if any(arrayfun(@(x) isfield(x,'srcpot'), EEG))
         % if EEG contains the field 'srcpot', allow sources
         defSigType = [defSigType {'Sources'}];
     end
