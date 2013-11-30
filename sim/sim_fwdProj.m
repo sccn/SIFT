@@ -85,7 +85,7 @@ chaninds          = 1:length(g.hmObj.getChannelLabels());
 % Initiate progress bar
 waitbarTitle = 'Generating Forward Projection...';
 if g.verb
-    fprintf(waitbarTitle); end
+    fprintf([waitbarTitle '\n']); end
 if g.verb==2
     multiWaitbar(waitbarTitle, ...
                  'Color', [1.0 0.4 0.0], ...
