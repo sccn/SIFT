@@ -40,8 +40,21 @@ noise = randn(size(X));
 noise = noise / norm(vec(noise));
 X1 = snr*X + (1-snr)*noise;
 
+% tic
+% [H_est1 PE1 out1] = mvar_scsa_em(struct('data', X1, 'morder', K, 'lambda', lambda, 'warmStart', [], 'PCA', nPCA));
+% toc
+% 
+% noise = randn(size(X));
+% noise = noise / norm(vec(noise));
+% X2 = snr*X + (1-snr)*noise;
+% tic
+% [H_est2 PE2 out2] = mvar_scsa_em(struct('data', X2, 'morder', K, 'lambda', lambda, ...
+% 'warmStart', struct('B', out1.scsafilt, 'H', H_est1), 'PCA', struct('pcafilt', out1.pcafilt, 'pcapat', out1.pcapat)));
+% toc
+
+
 tic
-[H_est1 PE1 out1] = mvar_scsa_em(struct('data', X1, 'morder', K, 'lambda', lambda, 'warmStart', [], 'PCA', nPCA));
+[H_est1 PE1 out1] = mvar_scsa_em(struct('data', X1, 'morder', K,'scsa_opts',struct('lambda', lambda), 'warmStart', [], 'PCA', struct('dim',5)));
 toc
 
 noise = randn(size(X));
