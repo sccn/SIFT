@@ -683,11 +683,19 @@ classdef headModel < handle & matlab.mixin.Copyable
             cd(binDir);
             
             try
-                system(['./om_assemble -HM "' headModelGeometry '" "' headModelConductivity '" "' hmFile '"']);
-                system(['./om_minverser "' hmFile '" "' hmInvFile '"']);
-                system(['./om_assemble -DSM "' headModelGeometry '" "' headModelConductivity '" "' dipolesFile '" "' dsmFile '"']);
-                system(['./om_assemble -H2EM "' headModelGeometry '" "' headModelConductivity '" "' electrodesFile '" "' h2emFile '"']);
-                system(['./om_gain -EEG "' hmInvFile '" "' dsmFile '" "' h2emFile '" "' lfFile '"']);
+                if ispc
+                    system(['om_assemble -HM "' headModelGeometry '" "' headModelConductivity '" "' hmFile '"']);
+                    system(['om_minverser "' hmFile '" "' hmInvFile '"']);
+                    system(['om_assemble -DSM "' headModelGeometry '" "' headModelConductivity '" "' dipolesFile '" "' dsmFile '"']);
+                    system(['om_assemble -H2EM "' headModelGeometry '" "' headModelConductivity '" "' electrodesFile '" "' h2emFile '"']);
+                    system(['om_gain -EEG "' hmInvFile '" "' dsmFile '" "' h2emFile '" "' lfFile '"']);
+                else
+                    system(['./om_assemble -HM "' headModelGeometry '" "' headModelConductivity '" "' hmFile '"']);
+                    system(['./om_minverser "' hmFile '" "' hmInvFile '"']);
+                    system(['./om_assemble -DSM "' headModelGeometry '" "' headModelConductivity '" "' dipolesFile '" "' dsmFile '"']);
+                    system(['./om_assemble -H2EM "' headModelGeometry '" "' headModelConductivity '" "' electrodesFile '" "' h2emFile '"']);
+                    system(['./om_gain -EEG "' hmInvFile '" "' dsmFile '" "' h2emFile '" "' lfFile '"']);
+                end
             catch ME
                 cd(wDir);
                 error(ME.message);
