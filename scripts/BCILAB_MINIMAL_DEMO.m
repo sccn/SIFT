@@ -140,11 +140,12 @@ end
 % 
 % You might want to save the pipeline config (fltPipCfg) at this point for
 % later reload (from 'opts.BCILAB_PipelineConfigFile')
-% save(opts.SIFT_PipelineConfigFile,'siftPipCfg');
-% save(opts.BCILAB_PipelineConfigFile,'fltPipCfg');
+% save(env_translatepath([opts.datapath opts.SIFT_PipelineConfigFile]),'-struct','siftPipCfg');
+% save(env_translatepath([opts.datapath opts.BCILAB_PipelineConfigFile]),'-struct','fltPipCfg');
 % ..........................................................................
 
-% ...apply the pipeline to calibration data                      
+% ...apply the pipeline to calibration data    
+disp('-- Calibrating pipeline on training data (please wait) --');
 cleaned_data = exp_eval(flt_pipeline('signal',calibData,fltPipCfg));
 
 % ..........................................................................
@@ -179,9 +180,12 @@ cleaned_data = exp_eval(flt_pipeline('signal',calibData,fltPipCfg));
 % initialize the pipeline for streaming data
 pipeline     = onl_newpipeline(cleaned_data,opts.lsl.StreamName);
 
+% render a panel for viewing streams
+gui_vis_filtered;
+
 %% Main loop
 % -------------------------------------------------------------------------
-disp('-- Running pipeline --');
+disp('-- Running pipeline on playback data --');
 chunk_len = round(opts.winlen*cleaned_data.srate);
 ConnData = [];
 while true

@@ -382,8 +382,12 @@ function mnu_LoadCfg_Callback(hObject, eventdata, handles)
 if ~fname
     return;
 end
-tmp = load(fullfile(fpath,fname),'opts');
-handles.opts = tmp.opts;
+tmp = load(fullfile(fpath,fname));
+if isfield(tmp,'opts')
+    handles.opts = tmp.opts;
+else
+    handles.opts = tmp;
+end
 
 % redraw the property grids
 handles = redrawPropertyGrids(hObject,handles);
