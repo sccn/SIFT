@@ -1,4 +1,4 @@
-function SurfaceDS = resample_bst_mesh(CortexSurfacePath,NewNumVertices,OutputPath,PromptAtlas)
+function SurfaceDS = resample_bst_mesh(CortexSurfacePath,NewNumVertices,OutputPath,PromptAtlas,RepairMesh)
 % Resample a BrainStorm3 cortical surface object using iso2mesh
 % This preserves (resamples) the atlases stored in the surface object
 %
@@ -6,6 +6,10 @@ function SurfaceDS = resample_bst_mesh(CortexSurfacePath,NewNumVertices,OutputPa
 % is the number of new vertices in the mesh
 %
 % Author: Tim Mullen, SCCN/INC/UCSD, 10-6-2013
+
+if ~exist('RepairMesh','var')
+    RepairMesh = true;
+end
 
 CortexSurface = load(CortexSurfacePath);
 
@@ -30,9 +34,15 @@ SurfaceDS = [];
 Scouts    = [];
 
 % resample the surface mesh (requires iso2mesh)
-fprintf('Resampling surface (ratio=%0.2f)...',dsfactor);
+fprintf('Resampling surface mesh (ratio=%0.2f)...',dsfactor);
 [SurfaceDS.Vertices,SurfaceDS.Faces] = hlp_microcache('resample_bst_mesh',@meshresample,CortexSurface.Vertices,CortexSurface.Faces,dsfactor);
 fprintf('done\n');
+
+if RepairMesh
+    fprintf('Checking and repairing surface mesh...');
+    [SurfaceDS.Vertices,SurfaceDS.Faces]=meshcheckrepair(SurfaceDS.Vertices,SurfaceDS.Faces);
+    fprintf('done\n');
+end
 
 % resample each atlas
 for ai = 1:length(atlasList)
