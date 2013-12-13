@@ -110,7 +110,7 @@ if makedipfit
     fn  = fieldnames(tmp);
     sourceSpace = tmp.(fn{1})(3);  % dim3 = cortical surface
 
-    brainStructsToRemove = setdiff_bc(unique(hmObj.atlas.label),fwdproj.sourceAtlasLabels);
+    brainStructsToRemove = setdiff_bc(unique_bc(hmObj.atlas.label),fwdproj.sourceAtlasLabels);
     reducedSpace = getSourceSpace4PEB(hmObj,brainStructsToRemove);
 
     EEGsim.dipfit = hlp_makeDipfitStruct(sourceSpace,roiVertices,reducedSpace,[],sourceCoords);
