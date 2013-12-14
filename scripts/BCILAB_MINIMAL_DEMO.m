@@ -71,14 +71,14 @@ opts.silence = true;
 % folder in the bcilab root dir)
 % ..........................................................................
 opts.datapath         = 'data:/';
-% (required) calibration data set
+% (required) calibration data set2
 opts.TrainingDataFile = 'Simulation_EEGLAB_XVII.set'; %'MyCalibrationFile.set'; 
 % (optional) file to "playback" if opts.runlsl = false
 opts.PlaybackDataFile = 'Simulation_EEGLAB_XVII.set'; %'MyPlaybackFile.set';      
 % (optional) pipeline config file
-opts.BCILAB_PipelineConfigFile = 'MyFilteringPipeline.mat';  
+opts.BCILAB_PipelineConfigFile = ''; 'MyFilteringPipeline.mat';  
 % (option) SIFT pipeline config file
-opts.SIFT_PipelineConfigFile = 'MySiftFilteringPipeline.mat';  
+opts.SIFT_PipelineConfigFile = ''; 'MySiftFilteringPipeline.mat';  
 % (optional) name of file containing MobiLab head model
 opts.HeadModelDataFile= ''; %'NameOfHeadModelFile.mat';   % Look in <SIFT_RootFolder>\resources\headmodels\standard-Colin27-385ch.mat
 
@@ -110,9 +110,9 @@ end
 %% Set up the pipeline
 % -------------------------------------------------------------------------
 % load existing config file(s) (if it exists)
-try    fltPipCfg = getfield(exp_eval(io_load([opts.datapath opts.BCILAB_PipelineConfigFile])),'fltPipCfg'); 
+try    fltPipCfg = exp_eval(io_load([opts.datapath opts.BCILAB_PipelineConfigFile])); 
 catch, disp('-- no existing pipeline --'); fltPipCfg = {}; end
-try    siftPipCfg = getfield(exp_eval(io_load([opts.datapath opts.SIFT_PipelineConfigFile])),'siftPipCfg'); 
+try    siftPipCfg = exp_eval(io_load([opts.datapath opts.SIFT_PipelineConfigFile])); 
 catch, disp('-- no existing pipeline --'); siftPipCfg = {}; end
 
 % enforce usage of user-defined head model
