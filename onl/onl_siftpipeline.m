@@ -65,7 +65,7 @@ if g.selModelOrder.arg_selection
     g.selModelOrder.modelOrderSelection.modelingApproach = g.modeling;
 
     IC = est_selModelOrder('EEG',g.EEG,g.selModelOrder.modelOrderSelection,'arg_direct',true);
-    IC = IC{1};
+    if iscell(IC), IC = IC{1}; end
     
     icselector = g.selModelOrder.modelOrderSelection.icselector{1};
     switch g.selModelOrder.minimizer.arg_selection
