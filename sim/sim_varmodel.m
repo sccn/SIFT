@@ -61,7 +61,11 @@ g = arg_define([0 Inf],varargin,...
     arg({'verb','VerbosityLevel'},int32(2),{int32(0) int32(1) int32(2)},'Verbose','type','int32'));
 
 % do some input checking
-ModelOrder = g.sim.morder;
+if isfield(g.sim,'morder')
+    ModelOrder = g.sim.morder;
+elseif isfield(g.sim,'rndopts')
+    ModelOrder = g.sim.rndopts.morder;
+end
 if isempty(ModelOrder)
     error('SIFT:sim_varmodel:badParam','ModelOrder must be manually specified');
 end
@@ -77,12 +81,21 @@ createMasterWaitbar();
 
 % create prototype VAR structure
 % -------------------------------------------------------------------------
-wbt = 'Translating system equations....';
-createWaitbar(wbt);
-Aproto = sim_genVARModelFromEq(g.sim.expr,ModelOrder);
-updateWaitbar(wbt,1);
-if ~updateMasterWaitbar(),  return; end
-
+if isfield(g.sim,'expr')
+    wbt = 'Translating system equations....';
+    createWaitbar(wbt);
+    Aproto = sim_genVARModelFromEq(g.sim.expr,ModelOrder);
+    updateWaitbar(wbt,1);
+    if ~updateMasterWaitbar(),  return; end
+elseif isfield(g.sim,'rndopts')
+    wbt = 'Generating random model coefficients....';
+    createWaitbar(wbt);
+    Aproto = sim_genRndVARcoeffs(g.sim.rndopts);
+    updateWaitbar(wbt,1);
+    if ~updateMasterWaitbar(),  return; end
+elseif isempty(g.sim.expr)
+    error('sim_varmodel:badexpr','System equations expression was empty!');
+end
 % generate the VAR coefficients
 % -------------------------------------------------------------------------
 wbt = 'Building model....';
