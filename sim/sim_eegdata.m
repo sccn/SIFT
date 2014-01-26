@@ -39,25 +39,42 @@ HeadModelPath = [hlp_getSiftRoot filesep 'resources' filesep 'headmodels' filese
 
 arg_define(varargin, ...
     arg_subswitch({'srcdyn','SourceDynamics'},'VAR', ...
-        {'VAR',@sim_varmodel},'Modeling approach for generating source dynamics. ''VAR'' simulates a Vector AutoRegressive system','cat','Source Data Generation'), ...
+        {...
+            'VAR',@sim_varmodel, ...
+            'Precomputed',{arg_nogui({'srcdata','SourceData'},[],[],'Optional source data matrix or EEGLAB struct to project. Data matrix/field must be [num_src x num_points x num_trials]')}, ...
+        },'Modeling approach for generating source dynamics. ''VAR'' simulates a Vector AutoRegressive system','cat','Source Data Generation'), ...
     arg_sub({'fwdproj','ForwardModel'},{'hmObj',HeadModelPath},@sim_fwdProj,'Set up the forward model. This projects source activations (see ''SourceDynamics'' option) through a forward head model to generate EEG channel data','cat','Scalp Data Generation'), ...
     arg({'makedipfit','MakeDipfitStruct'},true,[],'Create dipfit structure. Source centroids and ROI surfaces will be stored here'), ...
     arg_subtoggle({'vismodel','VisualizeModel'},'off',@vis_csd,'Visualize 3D model.'), ...
     arg({'verb','VerbosityLevel'},int32(2),{int32(0) int32(1) int32(2)},'Verbose','type','int32') ...
     );
 
-% Error checking
-if length(srcdyn.sim.expr) ...
-    ~= max([length(fwdproj.sourceShape.roiAtlasLabels), ...
-           length(fwdproj.sourceShape.roiOrdered),      ...
-           size(fwdproj.sourceShape.sourceCoords,1)])
-     error('You must have an equal number of sources in the dynamical model as source ROIs in the forward model');
-end
 
+nroi = max([length(fwdproj.sourceShape.roiAtlasLabels), ...
+            length(fwdproj.sourceShape.roiOrdered),      ...
+            size(fwdproj.sourceShape.sourceCoords,1)]);
 % Simulate the source data
 switch srcdyn.arg_selection
     case 'VAR'
+        % Error checking
+        if length(srcdyn.sim.expr) ~= nroi
+             error('You must have an equal number of sources in the dynamical model as source ROIs in the forward model'); end
         [EEGsim EEGtrue] = sim_varmodel(srcdyn,'verb',verb);
+    case 'Precomputed'
+        if ismatrix(srcdyn.srcdata) && ~isempty(srcdyn.srcdata)
+            % build EEGLAB dataset
+            EEGsim      = eeg_emptyset;
+            EEGsim.data = srcdyn.srcdata;
+        elseif isstruct(srcdyn.srcdata) && isfield(srcdyn.srcdata,'data')
+            % assume EEGLAB input structure
+            EEGsim = srcdyn.srcdata;
+        else
+            error('sim_eegdata:BadDataType','Please supply valid precomputed source data. See the "SourceData" field of "SourceDynamics".');
+        end
+        EEGtrue = [];
+        % error checking
+        if size(EEGsim.data,1) ~= nroi
+             error('Number of rows of SourceData must equal the number of source ROIs in the forward model'); end
 end
 
 drawnow;
@@ -96,7 +113,7 @@ for k=1:EEGsim.nbchan
 end
 EEGsim.chanlocs = convertlocs(EEGsim.chanlocs,'cart2all');
 % update source names
-if isempty(srcdyn.makeEEGset.sourceNames)
+if any(strcmpi(srcdyn.arg_selection,{'var'})) && isempty(srcdyn.makeEEGset.sourceNames)
     if ~isempty(fwdproj.sourceShape.roiOrdered)
         EEGsim.CAT.curComponentNames = fwdproj.sourceShape.roiOrdered;
     elseif ~isempty(fwdproj.sourceShape.roiAtlasLabels)
