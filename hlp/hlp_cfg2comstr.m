@@ -24,7 +24,7 @@ end
 config = hlp_cleanUp(config);
 
 % convert cell array to evaluable string
-argstr = vararg2str(config);
+argstr = hlp_vararg2str(config);
 
 
 if configOnly
