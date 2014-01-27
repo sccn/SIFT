@@ -49,10 +49,12 @@ arg_define(varargin, ...
     arg({'verb','VerbosityLevel'},int32(2),{int32(0) int32(1) int32(2)},'Verbose','type','int32') ...
     );
 
-
+% get the number of specified ROIs
 nroi = max([length(fwdproj.sourceShape.roiAtlasLabels), ...
-            length(fwdproj.sourceShape.roiOrdered),      ...
-            size(fwdproj.sourceShape.sourceCoords,1)]);
+            length(fwdproj.sourceShape.roiOrdered)]);
+if isfield(fwdproj.sourceShape,'sourceCoords')
+    nroi = max(nroi,size(fwdproj.sourceShape.sourceCoords,1));
+end
 % Simulate the source data
 switch srcdyn.arg_selection
     case 'VAR'
