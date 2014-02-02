@@ -4,7 +4,7 @@ function [signal g] = onl_siftpipeline(varargin)
 % if ~exp_beginfun('filter'), return; end
 % declare_properties('name','SIFT');
 
-EEG = arg_extract(varargin,'EEG',struct([]));
+EEG = arg_extract(varargin,{'EEG','signal','Signal'},struct([]));
 
 g = arg_define(varargin, ...
         arg_norep({'EEG','Signal','signal'}), ...
