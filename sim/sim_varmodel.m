@@ -1,4 +1,4 @@
-function [data truth] = sim_varmodel(varargin)
+function [data truth A C] = sim_varmodel(varargin)
 % simulate a vector autoregressive model
 %
 % This returns an EEG dataset or [nchs x npnts x ntr] matrix of simulated 
