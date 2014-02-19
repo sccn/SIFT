@@ -6,7 +6,7 @@ function [data, Arsig, x, lambdamax]=gen_ar_sech(M, N, P, K, perc)
 sigma=.2; %scale of random AR-parameters
 % K = ceil(M^2/10);
 
-N0=1000; %length of ignored start 
+ndisc=1000; %length of ignored start 
 
 if nargin < 5
   perc = 1;
@@ -38,19 +38,19 @@ while lambdamax> 1
 %     disp(lambdamax)
     seed = round(sum(100*clock));
     for ij=1:M;
-        for jj = 1:(N+N0)
+        for jj = 1:(N+ndisc)
             [x(ij, jj), seed] = sech_sample(0, 1, seed); 
         end
     end
     y=x;
-    for i=P+1:N+N0;
+    for i=P+1:N+ndisc;
         yloc=reshape(fliplr(y(:,i-P:i-1)),[],1);
         y(:,i)=Arsig*yloc+x(:,i);
     end
-    data=y(:,N0+1:end);
+    data=y(:,ndisc+1:end);
 end
 
-x = x(:, N0+1:end);
+x = x(:, ndisc+1:end);
 
 Arsig = reshape(Arsig, M, M, P);
 
