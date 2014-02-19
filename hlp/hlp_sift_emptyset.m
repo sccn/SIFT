@@ -2,6 +2,25 @@ function CAT = hlp_sift_emptyset(varargin)
 % create a new (empty) SIFT datastructure with default fields initialized
 % varargin is an optional set of <name,value> pairs indicating fields and 
 % associated values to store into the set
+% 
+% The SIFT datastructure is organized as follows:
+%
+% CAT
+%   .signalType         Denotes the type of signal (channels or sources)
+%   .srcdata            Data matrix. [num_vars x time x trials]
+%   .nbchan             Number of variables (rows of srcdata)
+%   .pnts               Number of time points (columns of srcdata)
+%   .trials             Number of trials (pages of srcdata)
+%   .times              Vector of timestamps (sec) for samples of srcdata
+%   .curComps           Numeric indices of channels/sources in orig dataset
+%   .curComponentNames  Names of components or channels
+%   .MODEL              MODEL structure containing VAR model (see hlp_sift_emptymodel)
+%   .Conn               Conn structure containing connectivity (see hlp_sift_emptyconn)
+%   .configs            Configuration structures for previously applied
+%                       processing steps via pop_* functions (this is a sort of history, 
+%                       which can translated via hlp_cfg2comstr)
+%
+% See Also: hlp_sift_emptyconn(), hlp_sift_emptymodel()
 
 if nargin > 1 && mod(length(varargin),2)
     error('SIFT:hlp_sift_emptyset', ...

@@ -12,7 +12,8 @@ function MCMC_State = grp_hbmm_init(varargin)
 %     .SIGMA_B   : variances of connectivities
 %     .N_k       : number of components that belong to each cluster
 %     .N_k1k2    : pairwise counts of group level clusters
-
+%
+% Author: Tim Mullen and Wes Thompson, SCCN/INC/UCSD, 2010-2014
 
 arg_define([0 2], varargin, ...
     arg_norep({'B','Connectivity'},mandatory,[],'Connectivity matrices. B{i} is an (M_i x M_i x Q) matrix of (possibly time-varying) connectivity values or basis coefficients for the ith subject. M_i is the number of components for the ith subject.'), ...
