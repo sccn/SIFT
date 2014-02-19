@@ -109,8 +109,24 @@ function [AR PE] = mvar_glADMM(varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-persistent initAR;
+persistent initAR gpusel;
 
+% set some arg defaults
+% GPUDeviceNames = {};
+% if hlp_microcache('mvar_glAdmm',@hlp_isToolboxInstalled,'Parallel Computing Toolbox')
+%      [GPUDeviceNames, GPUDeviceIdx, GPUDeviceCC] = hlp_microcache('mvar_glADMM',@hlp_getGPUDeviceNames,1.3);
+%      % append compute capability to device name
+%      %GPUDeviceNames = cellfun(@(dn,cc) sprintf('%s_CC%0.3g',dn,cc),GPUDeviceNames,GPUDeviceCC);
+%      if isempty(GPUDeviceNames)
+%          GPUDeviceNames = {'none'};
+%      else
+%         GPUDeviceNames = [{'default'} GPUDeviceNames];
+%      end
+% else
+%     GPUDeviceNames = {'default'};
+% end
+GPUDeviceNames = {'default'};
+% parse inputs
 g = arg_define(varargin, ...
                 arg_norep({'data','Data'},mandatory,[],'Data Matrix. Dimensions are [nchs x npnts].'), ...
                 arg({'morder','ModelOrder','p'},10,[],'VAR Model order'), ...
@@ -121,11 +137,23 @@ g = arg_define(varargin, ...
                 arg({'normcols','NormCols'},'none',{'none','norm','zscore'},'Normalize columns of dictionary'), ...
                 arg({'groupDiags','GroupAutoConnections','GroupDiags'},false,[],'Group auto-connections. All auto-connections for all channels will be penalized jointly as a separate group. Note, this can slow down model estimation as the design matrix will not longer be diagonal block-toeplitz so we cannot (yet) exploit block-redundancy in the design matrix'), ...
                 arg_norep({'AR0','InitialState'},[],[],'DEPRECATED. Initial VAR coefficient matrix','shape','matrix','type','expression'), ...
+                arg_subtoggle({'gpu','GPU'},'off',...
+                {
+                    arg({'device','Device'},GPUDeviceNames{1},GPUDeviceNames,'Which GPU device to use') ...
+                    arg({'library','Library'},'CUDA_ADMM',{'CUDA_ADMM'},'Which library to use'), ...
+                },'Use GPU. This uses the CUDA_ADMM package by Oleg Konigs.'), ...    
                 arg_sub({'admm_args','ADMM_Options'},[],@admm_gl,'Options for ADMM algorithm') ...
                 );
-                
+
 % arg_toworkspace(g);
-  
+if g.gpu.arg_selection && strcmp(g.gpu.device,'none')
+    error('No GPU device available with sufficient compute capability');
+end
+        
+if g.gpu.arg_selection && strcmp(g.gpu.library,'CUDA_ADMM') && ~exist('glADMM_CUDA','file')
+    error('CUDA_ADMM package not installed. Please download and install from https://github.com/OlegKonings/GLwithmex');
+end
+
 [nchs npnts ntr] = size(g.data);
 p = g.morder;
 blkrows   = npnts-p;
@@ -192,21 +220,55 @@ if g.groupDiags
 else
     blks = p*ones(1,nchs^2);
 end
-
+    
 % -------------------------------------------------------------------------
 % Apply the ADMM method for group lasso estimation:
 % -------------------------------------------------------------------------
 % group penalize AR coefficients with different time-lags
 % between sources (nchs*(nchs-1) groups of size p). 
-[initAR.z initAR.u] = admm_gl('A',X,  ...
-                       'y',Y, ...
-                       'blks',blks, ...
-                       g.admm_args, ...
-                       'z_init',initAR.z, ...
-                       'u_init',initAR.u, ...
-                       'designMatrixBlockSize',fastif(g.groupDiags,[],[blkrows*ntr blkcols]), ...
-                       'arg_direct',true);
-
+if g.gpu.arg_selection
+    % use GPU implementation
+    
+    % if a new GPU device has been selected, activate it
+    if ~strcmp(g.gpu.device,'default') && ~strcmpi(gpusel,g.gpu.device)
+        gpuDevice(GPUDeviceIdx(strcmp(g.gpu.device,GPUDeviceNames)));
+        gpusel = g.gpu.device; % cache the device name
+    end
+    switch g.gpu.library
+        case 'CUDA_ADMM'
+%             glADMM_CUDA(AA,b,partition,u,z,rho,alpha,lambda,MAX_ITER,ABSTOL,RELTOL)
+            % call the CUDA library
+            % first make sure dimensions of X,Y,u,z are multiples of 16
+            [~, n] = size(X);
+            if (n > 1), colpad = 16*(floor(n/16)+logical(mod(n,16)))-n;
+            else        colpad = 0; end
+            [initAR.u,initAR.z]= glADMM_CUDA(...
+                                     multpad(single(full(X')),16),      ...
+                                     multpad(single(Y),16),             ...
+                                     int32([blks colpad]'),             ...
+                                     multpad(single(initAR.u),16),      ...
+                                     multpad(single(initAR.z),16),      ...
+                                     single(g.admm_args.rho),           ...
+                                     single(g.admm_args.alpha),         ...
+                                     single(g.admm_args.lambda),        ...
+                                     int32(g.admm_args.max_iter),       ...
+                                     single(g.admm_args.abstol),        ...
+                                     single(g.admm_args.reltol));
+            % trim excess zeros (if added during padding)
+            if numel(initAR.u)>p*nchs^2, initAR.u(p*nchs^2+1:end) = []; end
+            if numel(initAR.z)>p*nchs^2, initAR.z(p*nchs^2+1:end) = []; end
+    end
+else
+    % use CPU implementation
+    [initAR.z, initAR.u] = admm_gl('A',X,  ...
+                           'y',Y, ...
+                           'blks',blks, ...
+                           g.admm_args, ...
+                           'z_init',initAR.z, ...
+                           'u_init',initAR.u, ...
+                           'designMatrixBlockSize',fastif(g.groupDiags,[],[blkrows*ntr blkcols]), ...
+                           'arg_direct',true);
+end
 % assemble coefficient matrices
 AR = zeros(p,nchs,nchs);
 if g.groupDiags
@@ -229,3 +291,23 @@ end
 function v = vec(x)
 v = x(:);
 
+
+function X = multpad(X,base)
+% pad dims of X with zeros such that dimensions are a multiple of 'base'
+% only works for vectors and 2-D matrices
+
+[m, n] = size(X);
+if m==1 && n==1
+    warning('scalar input provided to multpad.\nCannot determine expansion dimensions');
+    return;
+end
+% determine the number of elements to pad rows and columns to enforce
+% multiple of base
+if (m > 1), rowpad = base*(floor(m/base)+logical(mod(m,base)))-m;
+else        rowpad = 0; end
+if (n > 1), colpad = base*(floor(n/base)+logical(mod(n,base)))-n;
+else        colpad = 0; end
+
+% pad the data
+if rowpad, X = cat(1,X,zeros(rowpad,size(X,2),class(X))); end
+if colpad, X = cat(2,X,zeros(size(X,1),colpad,class(X))); end
