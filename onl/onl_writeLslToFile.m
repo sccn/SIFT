@@ -1,4 +1,4 @@
-function onl_writeLslToFile(varargin)
+function buffername = onl_writeLslToFile(varargin)
 % Open a named LSL stream and write it to disk.
 % If no arguments are supplied, a GUI is generated.
 % This function requires the BCILAB toolbox (http://sccn.ucsd.edu/wiki/BCILAB)

@@ -69,7 +69,7 @@ for ai = 1:length(atlasList)
                  SurfaceDS.Vertices(:,3));
     % convert atlas back to brainstorm format
     for k=1:length(bstAtlas.Scouts)
-        bstAtlas.Scouts(k).Vertices = find(atlasidx==k);
+        bstAtlas.Scouts(k).Vertices = hlp_vec(find(atlasidx==k));
         if isempty(bstAtlas.Scouts(k).Vertices)
             bstAtlas.Scouts(k).Seed     = [];
             continue;
@@ -105,7 +105,7 @@ SurfaceDS.iAtlas  = length(atlasList);
 SurfaceDS.Comment = sprintf('cortex_%dV',size(SurfaceDS.Vertices,1));
 %SurfaceDS.Comment = regexprep(CortexSurface.Comment,'_[0-9]+V',sprintf('_%dV',size(SurfaceDS.Vertices,1)));
 
-if exist('OutputPath','var')
+if exist('OutputPath','var') && ~isempty(OutputPath)
     outfile = fullfile(OutputPath,['tess_' SurfaceDS.Comment]);
     fprintf('Writing surface file to: %s\n',outfile);
     save(outfile,'-struct','SurfaceDS');

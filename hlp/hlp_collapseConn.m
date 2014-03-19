@@ -73,24 +73,25 @@ function [Conn peaks] = hlp_collapseConn(varargin)
 % or some such...
 %
 
-Conn = arg_extract(varargin,'Conn',2);
+Conn = arg_extract(varargin,'Conn',[],[]);
+cnames = hlp_microcache('hlp_collapseConn',@hlp_getConnMethodNames,Conn);
 
 g = arg_define(varargin, ...
     arg_norep({'Conn','Connectivity'},mandatory,[],'Connectivity structure. Can also be a PConn structure.'), ...
-    arg({'connmethods','ConnectivityMethods'},hlp_getConnMethodNames(Conn),hlp_getConnMethodNames(Conn),'Connectivity method names. Cell array of connectivity method names.'), ...
+    arg({'connmethods','ConnectivityMethods'},cnames,cnames,'Connectivity method names. Cell array of connectivity method names.'), ...
     arg_sub({'coldim','DimensionToCollapse'},{}, ...
     { ...
         arg_subtoggle({'freq','Frequency','Freq'},'off', ...
             { ...
             arg({'range','Range'},[],[],'Value range [min max]. Can also an [N x 2] matrix where each row contains a [min max] range to select.','shape','matrix'), ...
-            arg({'method','CollapseMethod'},'net',{'net','mean','peak','peak2d','getrange','maxmag','max','min'},'Collapse method'), ...
+            arg({'method','CollapseMethod'},'net',{'sum','net','mean','median','peak','peak2d','getrange','maxmag','max','min'},'Collapse method'), ...
             arg({'dim','Dimension'},3,[1 Inf],'Measure dimension. This determines the dimension of Conn.(methodname) to collapse. If empty, we will try to automatically determine dimension from Conn.dims') ...
             arg({'order','Order'},1,{1 2},'Order to apply transformation'), ...
             }, 'Collapse across frequency dimension'), ...
          arg_subtoggle({'time','Time'},'off', ...
             { ...
             arg({'range','Range'},[],[],'Value range [min max]. Can also an [N x 2] matrix where each row contains a [min max] range to select.','shape','matrix') ...
-            arg({'method','CollapseMethod'},'net',{'net','mean','peak','peak2d','getrange','maxmag','max','min'},'Collapse method'), ...
+            arg({'method','CollapseMethod'},'net',{'sum','net','mean','median','peak','peak2d','getrange','maxmag','max','min'},'Collapse method'), ...
             arg({'dim','Dimension'},4,[1 Inf],'Measure dimension. This determines the dimension of Conn.(methodname) to collapse. If empty, we will try to automatically determine dimension from Conn.dims') ...
             arg({'order','Order'},2,{1 2},'Order to apply transformation'), ...
             }, 'Collapse across time dimension'), ...
@@ -98,65 +99,37 @@ g = arg_define(varargin, ...
     arg({'verb','Verbosity'},false,[],'Verbose output') ...
     );
     
-    
-%     
-% 
-% % parse inputs
-% g = finputcheck(varargin,...
-%    {'connmethods', ''          {}          {}; ...      % cell array of connectivity method names. If empty, we use all of them
-%     'connThresh'   ''          []          0; ...       % absolute thresholding to apply after significance thresholding. can be a scalar or a matrix of same size as EEG.CAT.C. Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
-%     'prcThresh'    'real'      [eps 100]   100;...      % top percentile of connections to keep
-%     'range'       'real'      []          [];...       % same units as Conn.freqs
-%     'range'       'real'      []          [];...       % same units as EEG.CAT.times
-%     'sigThresh'    ''          []          [];...       % can be a scalar or a matrix of same size as EEG.CAT.C. Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
-%     'badchans'     'integer'   []          [];...
-%     'method'       ''          ''          '';...       % cell array of dimensionality reduction methods to apply in a specified order.
-%                                                         % e.g. {'freq','net','time','peak'} will first integrate over freq, then find peak over time.
-%                                                         % If method is a string, then this is taken to be the compression global dimension reduction
-%                                                         % method applied to all dims in the order {'time','freq',...}
-%                                                         % Allowed compression methods are:
-%                                                         % 'net'         (integrate)
-%                                                         % 'mean'        (average)
-%                                                         % 'peak'        (1-D peak search along given dim)
-%                                                         % 'peak2d'      (2-D peak search) 
-%                                                         % 'getrange'    (extract a data range from given dimension)
-%                                                         % 'maxmag'      (1-D max magnitude (max of absval) along given dimension)
-%                                                         % 'max'         (1-D max along given dimension)
-%                                                         % 'min'         (1-D min along given dimension)
-% 
-%     'peakWidth'    'integer'   []          2;...
-%     'chanlocs'     ''          []          [];...
-%     'distRad'      'real'      []          [];...
-%     'strictRad'    'boolean'   []          1;...
-%     'metric',      'string'    []          'manhattan';...
-%     'diags',       'string'    {'off','on'} 'on'; ...
-%     'dim',     'real'      []          []; ...
-%     'dim',     'real'      []          []; ...
-%     'verb',        'boolean'   []          1; ...
-%     },'hlp_filterConns','error','quiet');
-
+g.peakWidth = 2;  %FIXME: change to option
 Conn = g.Conn;
 
+collapsetime = g.coldim.time.arg_selection;
+collapsefreq = g.coldim.freq.arg_selection;
+
+if ~collapsetime && ~collapsefreq
+    peaks = [];
+    return;
+end
+
 % Determine freq/time dimensions
-if ~isempty(g.coldim.time.dim)
+if collapsetime && ~isempty(g.coldim.time.dim)
     dim = g.coldim.time.dim;
 elseif isfield(Conn,'dims')
     dim=find(ismember_bc(Conn.dims,'time'));
 else
-    error('could not automatically determine the dimension for ''time''. Perhaps it is the 4th dimension?');
+    error('hlp_collapseConn could not automatically determine the dimension for ''time''. Perhaps it is the 4th dimension?');
 end
-if ~isempty(g.coldim.freq.dim)
+if collapsefreq && ~isempty(g.coldim.freq.dim)
     dim = g.coldim.freq.dim;
 elseif isfield(Conn,'dims')
     dim=find(ismember_bc(Conn.dims,'freq'));
 else
-    error('could not automatically determine the dimension for ''freqs''. Perhaps it is the 3rd dimension?');
+    error('hlp_collapseConn could not automatically determine the dimension for ''freqs''. Perhaps it is the 3rd dimension?');
 end
 % Determine default freq and time range
-if isempty(g.coldim.freq.range)
+if ~collapsefreq || isempty(g.coldim.freq.range)
     g.coldim.freq.range = [Conn.freqs(1) Conn.freqs(end)];
 end
-if isempty(g.coldim.time.range)
+if ~collapsetime || isempty(g.coldim.time.range)
     g.coldim.time.range = [Conn.erWinCenterTimes(1) Conn.erWinCenterTimes(end)];
 end
 if length(Conn.freqs)==1
@@ -164,17 +137,23 @@ if length(Conn.freqs)==1
 end
 if length(Conn.erWinCenterTimes)==1
     Conn.erWinCenterTimes = repmat(Conn.erWinCenterTimes,1,2);
-    Conn.winCenterTimes = repmat(Conn.winCenterTimes,1,2);
+    Conn.winCenterTimes   = repmat(Conn.winCenterTimes,1,2);
 end
-if isnan(g.coldim.freq.range)
+if ~collapsefreq || any(isnan(g.coldim.freq.range(:)))
     g.coldim.freq.range = [];
 end
-if isnan(g.coldim.time.range)
+if ~collapsetime || any(isnan(g.coldim.time.range(:)))
     g.coldim.time.range = [];
 end
-frangeidx = getindex(Conn.freqs,g.coldim.freq.range);
-trangeidx = getindex(Conn.erWinCenterTimes,g.coldim.time.range);
-
+% get the indices for the time/frequency range
+frangeidx = zeros(size(g.coldim.freq.range));
+for k=1:size(g.coldim.freq.range,1)
+    frangeidx(k,:) = getindex(Conn.freqs,g.coldim.freq.range(k,:));
+end
+trangeidx = zeros(size(g.coldim.time.range));
+for k=1:size(g.coldim.time.range,1)
+    trangeidx(k,:) = getindex(Conn.erWinCenterTimes,g.coldim.time.range(k,:));
+end
 
 % determine sequence of collapse operations
 colseq  = setdiff_bc(fieldnames(g.coldim),'arg_direct');
@@ -192,44 +171,63 @@ colseq = hlp_vec(colseq(seqorder));
 % dimorder = regexprep(dimorder,{'[fF]requency','[Ff]req'},'freq');
 % dimorder = regexprep(dimorder,{'[tT]ime'},'time');
 
+if isempty(g.connmethods)
+    g.connmethods = hlp_getConnMethodNames(Conn); end
 % Collapse each conn method individually
 for m=1:length(g.connmethods)
     connmethod = g.connmethods{m};
+   
+    C = Conn.(connmethod);
+    peaks.time = [];
+    peaks.freqs = [];
     
-%     if length(size(Conn.(connmethod)))>5
-%         error('Connectivity Matrix cannot be greater than 5-D!');
-%     end
-    
-    C = Conn.(connmethod);  
-        
-    for dim_name = colseq
+    for dn = 1:length(colseq)
+        dim_name = colseq{dn};
         dim_idx = g.coldim.(dim_name).dim;
         col_method = g.coldim.(dim_name).method;
         
         % collapse time dim
-        if (isequal(dim_name,'time')) && ~isempty(g.coldim.time.range)
+        if collapsetime && (isequal(dim_name,'time')) && ~isempty(trangeidx)
             if g.verb
                 fprintf('applying method=%s to dim=%s\n',dim_name,dim_idx);
             end
-            [C peaks.times] = collapseDim(C,'dim',dim_idx,...
-                'range',trangeidx,'method',col_method,...
-                'dx',Conn.erWinCenterTimes(2)-Conn.erWinCenterTimes(1),'peakWidth',g.peakWidth, ...
-                'minpeakheight',-Inf);
+            % iterate over sets of time range indices (bands)
+            [Ctmp, ptmp] = deal(cell(1,size(trangeidx,1)));
+            for k=1:size(trangeidx,1)
+                [Ctmp{k}, peaks.time{k}] = collapseDim(C,'dim',dim_idx,...
+                    'range',trangeidx(k,:),'method',col_method,...
+                    'dx',Conn.erWinCenterTimes(2)-Conn.erWinCenterTimes(1),'peakWidth',g.peakWidth, ...
+                    'minpeakheight',-Inf);
+            end
+            % replace original data matrix 
+            % (FIXME: can optimize with cell2mat(Ctmp) when collapsing over
+            % freq)
+            C = [];
+            for k=1:length(Ctmp)
+                C = cat(dim_idx,C,Ctmp{k});
+            end
         end
 
         % collapse freq dim
-        if ~isempty(g.coldim.freq.range) && (isequal(dim_name,'freq'))
+        if collapsefreq && ~isempty(frangeidx) && (isequal(dim_name,'freq'))
             if g.verb
                 fprintf('applying method=%s to dim=%s\n',dim_name,dim_idx);
             end
-            [C peaks.freqs] = collapseDim(C,'dim',dim,...
-                'range',frangeidx,'method',dim_idx,...
-                'dx',Conn.freqs(2)-Conn.freqs(1),'peakWidth',g.peakWidth, ...
-                'minpeakheight',-Inf);
+            [Ctmp, ptmp] = deal(cell(1,size(frangeidx,1)));
+            for k=1:size(frangeidx,1)
+                [Ctmp{k}, peaks.freqs{k}] = collapseDim(C,'dim',dim_idx,...
+                    'range',frangeidx(k,:),'method',col_method,...
+                    'dx',Conn.freqs(2)-Conn.freqs(1),'peakWidth',g.peakWidth, ...
+                    'minpeakheight',-Inf);
+            end
+            C = [];
+            for k=1:length(Ctmp)
+                C = cat(dim_idx,C,Ctmp{k});
+            end
         end
-
     end
             
+    % combine results
     
     sz=size(C);
     if all(sz(3:end)==1)
@@ -240,25 +238,41 @@ for m=1:length(g.connmethods)
     
 end
 
-if ~isempty(frangeidx) && size(C,3)==1
+if ~isempty(frangeidx)
+    Conn.collapsedFreqs = [];
+    if size(frangeidx,1) > 1
+        for k=1:size(frangeidx,1)
+            Conn.collapsedFreqs{k} = Conn.freqs(frangeidx(k,1):frangeidx(k,end));
+        end
+        Conn.freqs = cellfun(@(x) median(x),Conn.collapsedFreqs);
+    else
+        Conn.collapsedFreqs = Conn.freqs(frangeidx(1):frangeidx(end));
+        Conn.freqs = median(Conn.collapsedFreqs);
+    end
     % frequency dimension has been collapsed
-    % replace with median frequency within collapsed interval
-    Conn.collapsedFreqs = Conn.freqs(frangeidx(1):frangeidx(end));
-    Conn.freqs          = median(Conn.collapsedFreqs);
-else
-    Conn.freqs          = Conn.freqs(frangeidx(1):frangeidx(end));
+    % replace with median frequency within each collapsed interval
+    % (FIXME: THIS ASSUMES EQUAL SPACING BETWEEN FREQS)
+    % Conn.freqs = median(Conn.freqs(frangeidx),2)';
 end
 
-if ~isempty(trangeidx) &&size(C,4)==1
+if ~isempty(trangeidx)
+    Conn.collapsedTimes = [];
+    Conn.collapsedWinCenterTimes = [];
+    if size(trangeidx,1) > 1
+        for k=1:size(trangeidx,1)
+            Conn.collapsedTimes{k} = Conn.erWinCenterTimes(trangeidx(k,1):trangeidx(k,end));
+            Conn.collapsedWinCenterTimes{k} = Conn.winCenterTimes(trangeidx(k,1):trangeidx(k,end));
+        end
+        Conn.erWinCenterTimes   = cellfun(@(x) median(x),Conn.collapsedTimes);
+        Conn.winCenterTimes     = cellfun(@(x) median(x),Conn.collapsedWinCenterTimes);
+    else
+        Conn.collapsedTimes = Conn.erWinCenterTimes(trangeidx(1):trangeidx(end));
+        Conn.erWinCenterTimes   = median(Conn.collapsedTimes);
+        Conn.winCenterTimes     = median(Conn.collapsedWinCenterTimes);
+    end
     % time dimension has been collapsed
-    % replace with median time point within collapsed interval
-    Conn.collapsedTimes     = Conn.erWinCenterTimes(trangeidx(1):trangeidx(end));
-    Conn.erWinCenterTimes   = median(Conn.collapsedTimes);
-    Conn.winCenterTimes     = median(Conn.winCenterTimes(trangeidx(1):trangeidx(end)));
-else
-    Conn.erWinCenterTimes   = Conn.erWinCenterTimes(trangeidx(1):trangeidx(end));
-    Conn.winCenterTimes     = Conn.winCenterTimes(trangeidx(1):trangeidx(end));
+    % replace with median time point within each collapsed interval 
+    % (FIXME: THIS ASSUMES EQUAL SPACING BETWEEN TIMES)
+    % Conn.erWinCenterTimes   = median(Conn.erWinCenterTimes(trangeidx),2)';
+    % Conn.winCenterTimes     = median(Conn.winCenterTimes(trangeidx),2)';
 end
-
-
-
