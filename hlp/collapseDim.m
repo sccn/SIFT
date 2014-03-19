@@ -81,7 +81,7 @@ maxrange = size(C,dim);
 if dim>length(size(C))
     error('The matrix does not have this many dimensions!');
 end
-
+    
 % collapse over full range?
 if isempty(range)
     range = [1 maxrange];
@@ -109,6 +109,10 @@ end
 switch lower(method)
     case 'mean'
         C = nan_mean(getRange(C,dim,range),dim);
+    case 'median'
+        C = median(getRange(C,dim,range),dim);
+    case 'sum'
+        C = sum(getRange(C,dim,range),dim);
     case 'net'
         if ~dx, error('''dx'' must be specified for ''net'' method'); end
         C = trapz(getRange(C,dim,range),dim);
