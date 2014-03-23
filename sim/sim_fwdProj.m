@@ -118,7 +118,28 @@ if isempty(g.LFM)
         if nnz(chaninds)~=length(g.channels)
             error('Some channels could not be matched to the headmodel');
         end
-        g.LFM = g.LFM(chaninds,:);
+        g.LFM = g.LFM(chaninds,:,:);
+    end
+end
+
+% determine the number of orientation degrees of freedom
+if size(g.LFM,2) == nvert
+   orientdeg = 1;
+elseif size(g.LFM,2) == 3*nvert
+   orientdeg = 3;
+else
+    error('Your lead-field matrix has a # of columns that does not correspond to the # of source vertices.');
+end
+
+if orientdeg==3
+    % project leadfield matrix onto tangent space (normal vectors)
+    if isprop(g.hmObj,'surfNormal')
+        g.LFM = g.LFM*g.hmObj.surfNormal;
+%         surfNormals = blk_diag(g.hmObj.surfNormal,1)';
+    else
+        surfNormals = geometricTools.getSurfaceNormals(cortexSurface.vertices,cortexSurface.faces,false);
+        surfNormals(isnan(surfNormals)) = eps;
+        g.LFM = g.LFM*blk_diag(g.hmObj.surfNormal',1);
     end
 end
 
