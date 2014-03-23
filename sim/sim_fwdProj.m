@@ -132,15 +132,15 @@ else
 end
 
 if orientdeg==3
-    % project leadfield matrix onto tangent space (normal vectors)
+    % project leadfield matrix onto normal vectors
     if isprop(g.hmObj,'surfNormal')
-        g.LFM = g.LFM*g.hmObj.surfNormal;
-%         surfNormals = blk_diag(g.hmObj.surfNormal,1)';
+        surfNormals = blk_diag(g.hmObj.surfNormal,1)';
     else
         surfNormals = geometricTools.getSurfaceNormals(cortexSurface.vertices,cortexSurface.faces,false);
         surfNormals(isnan(surfNormals)) = eps;
-        g.LFM = g.LFM*blk_diag(g.hmObj.surfNormal',1);
     end
+    siz = size(g.LFM);
+    g.LFM = reshape(sum(reshape(bsxfun(@times,g.LFM,vec(surfNormals)'),[siz(1) siz(2)/3 3]),3),[siz(1) siz(2)/3]);
 end
 
 if g.verb
