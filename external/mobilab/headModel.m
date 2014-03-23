@@ -772,6 +772,11 @@ classdef headModel < handle & matlab.mixin.Copyable
                   n = size(sourceSpace.vertices,1);
                   rmIndices = [fix(n/2)-40:fix(n/2)+39 rmIndices(:)'];
                 end
+                if ~isempty(rmIndices)
+                    [nVertices,nFaces] = geometricTools.openSurface(sourceSpace.vertices,sourceSpace.faces,rmIndices);
+                    sourceSpace.vertices = nVertices;
+                    sourceSpace.faces = nFaces;
+                end
             end
             dim = size(K); %#ok
             L(rmIndices,:) = [];
