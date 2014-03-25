@@ -6,4 +6,7 @@ function varargout = sim_simulateSources(varargin)
 % 
 % Author: Tim Mullen, SCCN/INC/UCSD, 2013
 
-varargout = sim_fwdProj(varargin{:});
+[arg1 arg2 arg3 arg4 arg5 arg6 arg7] = sim_fwdProj(varargin{:});
+for k=1:nargout
+    eval(sprintf('varargout{%d} = arg%d;',k,k));
+end
