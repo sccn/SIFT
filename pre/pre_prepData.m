@@ -243,7 +243,7 @@ MyChannelNames   = [];
 %     defSigType = {'Channels'};
 % end
 
-defSigType = {'Channels','Components','Sources'};
+defSigType = {'Channels','Sources','Components'};
 
 verb = arg_extract(varargin,{'verb','VerbosityLevel'},[],0);
 
@@ -278,10 +278,8 @@ if g.verb==2
     hlp_getNextUniqueColor(hsv(10),'reset');
 end
 
-if ischar(EEG.data)
-    % make sure the data loaded
-    EEG = eeg_checkset(EEG,'loaddata'); 
-end
+% make sure the data loaded
+EEG = eeg_checkset(EEG,'loaddata');
 
 %% reconstruct ica activations if needed
 if strcmpi(g.sigtype.arg_selection,'components') && isempty(EEG.icaact)
