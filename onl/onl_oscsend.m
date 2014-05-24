@@ -1,4 +1,4 @@
-function onl_oscsend(varargin)
+function res = onl_oscsend(varargin)
 % Write data to a UDP port via Open Sound Control (OSC)
 %
 % Example: 
@@ -26,7 +26,7 @@ arg_define(varargin, ...
 % deleter = onCleanup(@()osc_free_address(conn)); % if the last reference to this is dropped, the connection is closed (on MATLAB 2008a+)
 % msg = structfun(@format_msg,data,'UniformOutput',false);
 
-if new_connection.arg_selection
+if new_connection.arg_selection && isempty(osc_conn)
     osc_conn = onl_oscsend_init(new_connection);
 end
 
@@ -37,13 +37,14 @@ for fi=1:length(fn)
 end
 
 % send the message / bundle
-if osc_send(osc_conn,msg) == 0
+res = osc_send(osc_conn,msg);
+if res == 0
     error('OSC transmission failed.'); 
 end
 
 
 % Helper function to format each message
-function msg = format_msg(msg,routename,opath)
+function msgo = format_msg(msg,routename,opath)
 
 % convert datatype
 [msg dtype] = convert_datatype(msg);
@@ -58,8 +59,8 @@ if length(dtype)~=N
     dtype = repmat(dtype,[1 N]);
 end
 % convert to OSC struct format
-msg = struct('path',[opath routename],'tt',dtype,'data',msg);
-
+msgo = struct('path',[opath routename],'typetags',dtype);
+msgo.data = msg;
 
 function [msg dtype] = convert_datatype(msg)
 
@@ -70,7 +71,7 @@ function [msg dtype] = convert_datatype(msg)
         case {'char','string'}
             dtype = 's';
         case {'double', 'single'}
-            msg = single(msg);
+            msg = double(msg);
             dtype = 'f';
         case 'logical'
             dtype = 'L';
