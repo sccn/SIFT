@@ -224,24 +224,26 @@ g = struct([]);
 EEG = arg_extract(varargin,{'EEG','ALLEEG'},1);
 MyComponentNames = [];
 MyChannelNames   = [];
+% 
+% if ~isempty(EEG)
+%     
+%     % determine the allowable signal types
+%     defSigType = {'Channels'};
+%     if ~any(cellfun(@isempty,{EEG.icaweights}))
+%         % if EEG contains icaweights, allow components
+%         defSigType = [defSigType {'Components'}];
+%     end
+%     if any(arrayfun(@(x) isfield(x,'srcpot'), EEG))
+%         % if EEG contains the field 'srcpot', allow sources
+%         defSigType = [defSigType {'Sources'}];
+%     end
+%     
+%     clear EEG;
+% else
+%     defSigType = {'Channels'};
+% end
 
-if ~isempty(EEG)
-    
-    % determine the allowable signal types
-    defSigType = {'Channels'};
-    if ~any(cellfun(@isempty,{EEG.icaweights}))
-        % if EEG contains icaweights, allow components
-        defSigType = [defSigType {'Components'}];
-    end
-    if any(arrayfun(@(x) isfield(x,'srcpot'), EEG))
-        % if EEG contains the field 'srcpot', allow sources
-        defSigType = [defSigType {'Sources'}];
-    end
-    
-    clear EEG;
-else
-    defSigType = {'Channels'};
-end
+defSigType = {'Channels','Sources','Components'};
 
 verb = arg_extract(varargin,{'verb','VerbosityLevel'},[],0);
 
