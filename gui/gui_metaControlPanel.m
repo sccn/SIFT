@@ -190,7 +190,7 @@ function handles = getPropertyGridContents(handles)
 
 % get the property specifications
 handles.opts.fltPipCfg  = arg_tovals(handles.FltPipPropertyGridHandle.GetPropertySpecification,true);
-handles.opts.siftPipCfg = arg_tovals(handles.SiftPipPropertyGridHandle.GetPropertySpecification,true); % NOTE: if there are problems, set the last 'arg_direct' argument to false
+handles.opts.siftPipCfg  = arg_tovals(handles.SiftPipPropertyGridHandle.GetPropertySpecification,true);
 handles.opts.miscOptCfg = arg_tovals(handles.MiscPropertyGridHandle.GetPropertySpecification,false);
 
 

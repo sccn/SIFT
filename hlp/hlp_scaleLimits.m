@@ -31,8 +31,8 @@ if (g.numberOfRunsSoFar < g.bufferTime || mod(g.numberOfRunsSoFar,g.updateInterv
         newMax = max(g.values(:));
     else
         % apply exponential-window moving average to calculate new min/max
-        newMin  = MEMFACTOR * min(g.values(:)) + (1-MEMFACTOR) * g.lastMin;
-        newMax  = MEMFACTOR * max(g.values(:)) + (1-MEMFACTOR) * g.lastMax;
+        newMin  = MEMFACTOR * min(g.values(:)) + (1-MEMFACTOR) .* g.lastMin;
+        newMax  = MEMFACTOR * max(g.values(:)) + (1-MEMFACTOR) .* g.lastMax;
     end
     
     if g.lastMax>0 && (min(g.values(:)) < g.lastMin*g.threshold(1) || max(g.values(:)) > g.lastMax*g.threshold(2))
