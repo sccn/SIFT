@@ -2,8 +2,30 @@ function SurfaceDS = resample_bst_mesh(CortexSurfacePath,NewNumVertices,OutputPa
 % Resample a BrainStorm3 cortical surface object using iso2mesh
 % This preserves (resamples) the atlases stored in the surface object
 %
-% OutputFile will be of the form [OutputPath/tess_cortex_xxV.mat] where xx
-% is the number of new vertices in the mesh
+% Inputs: 
+%   CortexSurfacePath:      [String] Path to Brainstorm cortex surface object. 
+%                           This is typically stored in:
+%                           <BrainstormDB>\<ProtocolName>\anat\<SubjectName>\<SurfaceLayerName>.mat
+%                           where <*> denote placeholders for the respective 
+%                           folder\file hierarchies for your Brainstorm database
+%                           
+%   NewNumVertices:         [Int] Desired number of vertices for resampled mesh. 
+%                           The exact number of vertices of the resampled mesh 
+%                           is determined by the iso2mesh resampling algorithm.
+%   OutputPath:             [String] Output path to save resampled surface object. 
+%                           If empty, object will be returned, but not saved to disk.
+%                           If OutputPath is a complete file path (with .mat extension), 
+%                           object will saved in Brainstorm format at this location.
+%                           If OutputPath is a directory, object will be saved in 
+%                           Brainstorm format at [<OutputPath>/tess_cortex_<N>V.mat] 
+%                           where <N> is the number of vertices in the resampled mesh.
+%   PromptAtlas:            [True | False] If False, resample all atlases in surface object.
+%                           If True, prompt user to select an atlas to resample.
+%   RepairMesh:             [True | False] If False, do not attempt to repair mesh deficiencies after resampling. 
+%                           If True, repair mesh deficiencies after resampling.
+%                           Deficiencies will be corrected using iso2mesh
+% Outputs:
+%   SurfaceDS:              Resampled surface object in Brainstorm format
 %
 % Author: Tim Mullen, SCCN/INC/UCSD, 10-6-2013
 
@@ -69,7 +91,7 @@ for ai = 1:length(atlasList)
                  SurfaceDS.Vertices(:,3));
     % convert atlas back to brainstorm format
     for k=1:length(bstAtlas.Scouts)
-        bstAtlas.Scouts(k).Vertices = find(atlasidx==k);
+        bstAtlas.Scouts(k).Vertices = hlp_vec(find(atlasidx==k));
         if isempty(bstAtlas.Scouts(k).Vertices)
             bstAtlas.Scouts(k).Seed     = [];
             continue;
@@ -105,8 +127,23 @@ SurfaceDS.iAtlas  = length(atlasList);
 SurfaceDS.Comment = sprintf('cortex_%dV',size(SurfaceDS.Vertices,1));
 %SurfaceDS.Comment = regexprep(CortexSurface.Comment,'_[0-9]+V',sprintf('_%dV',size(SurfaceDS.Vertices,1)));
 
-if exist('OutputPath','var')
+if ~exist('OutputPath','var') || isempty(OutputPath)
+    return;
+end
+
+if isdir(OutputPath)
+    % save object to folder
     outfile = fullfile(OutputPath,['tess_' SurfaceDS.Comment]);
     fprintf('Writing surface file to: %s\n',outfile);
     save(outfile,'-struct','SurfaceDS');
+else
+    % save object to file
+    if exist(OutputPath,'file')
+        s = questdlg(sprintf('Warning: file %s exists. Are you sure you want to overwrite?',OutputPath),'File overwrite warning','Yes','No','No');
+        if strcmp(s,'No'), return; end
+    end
+    fprintf('Writing surface file to: %s\n',OutputPath);
+    save(OutputPath,'-struct','SurfaceDS');
 end
+
+    
