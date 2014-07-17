@@ -71,12 +71,13 @@ function [msg dtype] = convert_datatype(msg)
         case {'char','string'}
             dtype = 's';
         case {'double', 'single'}
-            msg = double(msg);
+            msg = single(msg);
             dtype = 'f';
         case 'logical'
             dtype = 'L';
         case {'int8','int16','int32','int64'}
             msg = int32(msg);
+            dtype = 'i';
         otherwise 
             error('invalid osc data type ''%s''',cls);
     end
