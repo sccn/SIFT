@@ -5,6 +5,7 @@ classdef headModel < handle & matlab.mixin.Copyable
         surfaces = []; % 1) scalp, 2) skull, 3) brain (gray matter or average between gray and white matter)
         atlas
         leadFieldFile = [];
+        surfNormal = [];
     end
     properties(GetAccess = public, SetAccess = public)
         label;
@@ -42,6 +43,9 @@ classdef headModel < handle & matlab.mixin.Copyable
                 obj.label =num2cell(labels',[97,1])';
                 for it=1:N, obj.label{it} = deblank(obj.label{it});end
             end
+            
+            ind = find(ismember_bc(varargin(1:2:length(varargin)-1),'surfNormal'));
+            if ~isempty(ind), obj.surfNormal = varargin{ind*2};end
         end
         %%
         function h = plotHeadModel(obj,~) % do not remove the circumflex, I'm passging a second arguments when this method is called from MoBILAB's gui
@@ -772,6 +776,11 @@ classdef headModel < handle & matlab.mixin.Copyable
                   n = size(sourceSpace.vertices,1);
                   rmIndices = [fix(n/2)-40:fix(n/2)+39 rmIndices(:)'];
                 end
+                if ~isempty(rmIndices)
+                    [nVertices,nFaces] = geometricTools.openSurface(sourceSpace.vertices,sourceSpace.faces,rmIndices);
+                    sourceSpace.vertices = nVertices;
+                    sourceSpace.faces = nFaces;
+                end
             end
             dim = size(K); %#ok
             L(rmIndices,:) = [];
@@ -1010,7 +1019,9 @@ classdef headModel < handle & matlab.mixin.Copyable
             else
                 metadata.leadFieldFile = '';
             end
-            
+            if isprop(obj,'surfNormal')
+                metadata.surfNormal = obj.surfNormal;
+            end
             save(filename,'metadata','-mat');
         end
         
@@ -1062,8 +1073,13 @@ classdef headModel < handle & matlab.mixin.Copyable
                     save(metadata.leadFieldFile,'-mat','K');
                 end
             end
+            if isfield(metadata,'surfNormal')
+                surfNormal = metadata.surfNormal;
+            else
+                surfNormal = [];
+            end
             obj = headModel('surfaces',metadata.surfacesFilename,'atlas',metadata.atlas,'fiducials',metadata.fiducials,...
-                'channelSpace',metadata.channelSpace,'label',metadata.label,'leadFieldFile',[metadata.leadFieldFile]);
+                'channelSpace',metadata.channelSpace,'label',metadata.label,'leadFieldFile',[metadata.leadFieldFile],'surfNormal',surfNormal);
         end
         
         function obj = loadobj(metadata)
