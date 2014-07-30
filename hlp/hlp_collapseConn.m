@@ -1,36 +1,85 @@
 
 function [Conn peaks] = hlp_collapseConn(varargin)
-%
 % Apply a set of selection rules to a connectivity matrix
 %
-% Inputs:
+% Inputs
 %
-%   Conn        Connectivity structure with subfields Conn.(connmethod)
-%               containing [nchs x nchs x num_freqs x num_times]
-%               connectivity matrices
+% Name:                   Information                                                                                     
+% ------------------------------------------------------------------------------------------------------------------------
+% Conn:                   SIFT Connectivity object. Can also be a 'PConn' (bootstrap) structure.
+%                         Input Data Type: struct 
 %
-% Optional:
+% ConnectivityMethods:    Connectivity method names                                                                       
+%                         Cell array of connectivity method names.                                                        
+%                         Input Data Type: boolean                                                                        
+%                                                                                                                         
+% DimensionToCollapse:    Dimensions to collapse                                                                          
+%                         Input Data Type: string                                                                         
+% --------------------                                                                                                    
+%                                                                                                                         
+%     Frequency:          Collapse across frequency dimension                                                             
+%                         Input Data Type: boolean                                                                        
+%     ----------                                                                                                          
+%                                                                                                                         
+%         Range:          Value range [min max]                                                                           
+%                         Can also an [N x 2] matrix where each row contains a [min max] range to select.                 
+%                         Input Data Type: real number (double)                                                           
+%                                                                                                                         
+%         CollapseMethod: Collapse method                                                                                 
+%                         Possible values: {'sum','net','mean','median','peak','peak2d','getrange','maxmag','max','min'}  
+%                         Default value  : 'net'                                                                          
+%                         Input Data Type: string                                                                         
+%                                                                                                                         
+%         Dimension:      Measure dimension                                                                               
+%                         This determines the dimension of Conn.(methodname) to collapse. If empty, we will try to        
+%                         automatically determine dimension from Conn.dims                                                
+%                         Input Range  : [1  Inf]                                                                         
+%                         Default value: 3                                                                                
+%                         Input Data Type: real number (double)                                                           
+%                                                                                                                         
+%         Order:          Order to apply transformation                                                                   
+%                         Possible values: {'',''}                                                                      
+%                         Default value  : ''                                                                            
+%                         Input Data Type: real number (double)                                                           
+%                                                                                                                         
+%     Time:               Collapse across time dimension                                                                  
+%                         Input Data Type: boolean                                                                        
+%     -----                                                                                                               
+%                                                                                                                         
+%         Range:          Value range [min max]                                                                           
+%                         Can also an [N x 2] matrix where each row contains a [min max] range to select.                 
+%                         Input Data Type: real number (double)                                                           
+%                                                                                                                         
+%         CollapseMethod: Collapse method                                                                                 
+%                         Possible values: {'sum','net','mean','median','peak','peak2d','getrange','maxmag','max','min'}  
+%                         Default value  : 'net'                                                                          
+%                         Input Data Type: string                                                                         
+%                                                                                                                         
+%         Dimension:      Measure dimension                                                                               
+%                         This determines the dimension of Conn.(methodname) to collapse. If empty, we will try to        
+%                         automatically determine dimension from Conn.dims                                                
+%                         Input Range  : [1  Inf]                                                                         
+%                         Default value: 4                                                                                
+%                         Input Data Type: real number (double)                                                           
+%                                                                                                                         
+%         Order:          Order to apply transformation                                                                   
+%                         Possible values: {'',''}                                                                      
+%                         Default value  : ''                                                                            
+%                         Input Data Type: real number (double)                                                           
+%                                                                                                                         
+% Verbosity:              Verbose output                                                                                  
+%                         Input Data Type: boolean 
 %
-%       'connThresh'    [real]. Absolute thresholding to apply after
-%                               significance thresholding. Can be be a 
-%                               scalar or a matrix of same size as 
-%                               EEG.CAT.Conn.(connmethod). Can be logical C(C~=thresh) = 0 or real-valued C(C<thresh)=0
-%       'prcThresh'     -     [real] The upper percent [1-100] of filtered
-%                             connections to keep {def: 100}
-%       'method'              cell array of dimensionality reduction methods to apply in a specified order. e.g.,
-%                             {'freq','net','time','peak'} will first integrate over freq, then find peak over time.
-%                             If method is a string, then this is taken to be the compression global dimension reduction
-%                             method applied to all dims in the order {'time','freq',...}.
-%                             allowed methods:  'mean', 'net', 'peak', 'getrange'
-%        ...
+% Outputs
 %
-    
-    
-    
-% Outputs:
-%
-%   Conn        filtered connectivity structure
-%   peaks       frequency peaks (if method = 'peak')
+% Name:                   Information                                                                                     
+% ------------------------------------------------------------------------------------------------------------------------
+% Conn:                   Collapsed SIFT Connectivity object.
+% 
+% peaks:                  Structure containing locations of peaks (if applicable)
+%                         peaks.time and peaks.freqs are cell arrays
+%                         where the kth element is the locations of peaks
+%                         for the kth time or frequency bin
 %
 % See Also: est_mvarConnectivity()
 %
@@ -61,20 +110,11 @@ function [Conn peaks] = hlp_collapseConn(varargin)
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-% ----------------------------------------------------------
-% TODO:
-% need to provide ability to specify order in which dim-compression
-% methods are applied. e.g., {3,'net',4,'peak'} would first
-% integrate over the third dimension (frequency) and then find the peaks
-% over the 4th dim (time)
-% ONE OPTION:  allow 'method' = a cell array as above
-% ----------------------------------------------------------
-% Key point, need to have EEG.CAT.dims = {'chans','chans','freq','times'}
-% or some such...
-%
-
 Conn = arg_extract(varargin,'Conn',[],[]);
 cnames = hlp_microcache('hlp_collapseConn',@hlp_getConnMethodNames,Conn);
+if ~isstruct(Conn) || isempty(Conn)
+    Conn = struct([]);
+end
 
 g = arg_define(varargin, ...
     arg_norep({'Conn','Connectivity'},mandatory,[],'Connectivity structure. Can also be a PConn structure.'), ...
