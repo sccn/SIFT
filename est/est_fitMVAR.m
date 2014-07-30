@@ -213,7 +213,7 @@ if g.normalize.arg_selection
     if g.verb, fprintf('Normalizing each window across %s...',g.normalize.method{:}); end
     for t=1:numWins
         winpnts = g.winStartIdx(t):g.winStartIdx(t)+winLenPnts-1;
-        EEG.CAT.srcdata(:,winpnts,:) = pre_normData(EEG.CAT.srcdata(:,winpnts,:),'Method',g.normalize.method,'verb',0);
+        EEG.CAT.srcdata(:,winpnts,:) = pre_normData('data',EEG.CAT.srcdata(:,winpnts,:),'method',g.normalize.method,'verb',0,'arg_direct',true);
     end
     if g.verb, fprintf('done.\n'); end
 end

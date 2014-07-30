@@ -1,4 +1,3 @@
-
 function [EEG g] = pre_prepData(varargin)
 %
 % Preprocess EEG dataset(s) for connectivity analysis. See [1] for
@@ -225,40 +224,43 @@ g = struct([]);
 EEG = arg_extract(varargin,{'EEG','ALLEEG'},1);
 MyComponentNames = [];
 MyChannelNames   = [];
+% 
+% if ~isempty(EEG)
+%     
+%     % determine the allowable signal types
+%     defSigType = {'Channels'};
+%     if ~any(cellfun(@isempty,{EEG.icaweights}))
+%         % if EEG contains icaweights, allow components
+%         defSigType = [defSigType {'Components'}];
+%     end
+%     if any(arrayfun(@(x) isfield(x,'srcpot'), EEG))
+%         % if EEG contains the field 'srcpot', allow sources
+%         defSigType = [defSigType {'Sources'}];
+%     end
+%     
+%     clear EEG;
+% else
+%     defSigType = {'Channels'};
+% end
 
-if ~isempty(EEG)
-    
-    % determine the allowable signal types
-    defSigType = {'Channels'};
-    if ~any(cellfun(@isempty,{EEG.icaweights}))
-        % if EEG contains icaweights, allow components
-        defSigType = [defSigType {'Components'}];
-    end
-<<<<<<< mine
-    if any(cellfun(@(x) isfield(x,'srcpot') && ~isempty(x.srcpot), {EEG}))
+<<<<<<< local
+defSigType = {'Channels','Components','Sources'};
 =======
-    if any(arrayfun(@(x) isfield(x,'srcpot') && ~isempty(x.srcpot), EEG))
->>>>>>> theirs
-        % if EEG contains the field 'srcpot', allow sources
-        defSigType = [defSigType {'Sources'}];
-    end
-    
-    clear EEG;
-else
-    defSigType = {'Channels'};
-end
+defSigType = {'Channels','Sources','Components'};
+>>>>>>> other
 
 verb = arg_extract(varargin,{'verb','VerbosityLevel'},[],0);
 
-g = arg_define([0 Inf], varargin, ...
+g = arg_define(varargin, ...
     arg_norep({'EEG','ALLEEG'},mandatory,[],'An EEGLAB dataset'), ...
-    arg({'verb','VerbosityLevel'},2,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical'), ...
-    arg_subswitch({'sigtype','SignalType','chantype'},hlp_getSigTypeArglist(defSigType,true),hlp_getSigTypeArglist(defSigType),'Type of signal to analyze.','suppress',{'componentsToKeep'}), ...
+    arg({'verb','VerbosityLevel'},int32(2),{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical'), ...
+    arg_subswitch({'sigtype','SignalType','chantype'},hlp_getSigTypeArglist(defSigType,true),hlp_getSigTypeArglist(defSigType),'Type of signal to analyze. If ''Components'', data in EEG.icaact will be processed. If ''Channels'' EEG.data will be processed. If ''Sources'' EEG.srcpot will be processed.','suppress',{'componentsToKeep'}), ...
     arg({'varnames','VariableNames'},[],[],'Optional names for channels/components. This does not affect variable selection. If left empty, component indices or channel names (chanlocs) are used. The number of names provided must equal the number of components/channels selected','type','cellstr','shape','row'), ...
     arg_subtoggle({'diff','DifferenceData'},[],@pre_diffData,'Differencing options. A difference filter of order k applied to time series X is defined as [for i=1:k, for t=1:N, X(t) = X(t)-X(t-1)]','cat','Filtering','suppress',{'verb'}), ...
     arg_subtoggle({'detrend','Detrend'},[],@pre_detrend,'Detrend or center each epoch','cat','Filtering','suppress',{'verb','srate'}), ...
     arg_subtoggle({'normalize','NormalizeData'},{'method', {'time','ensemble'}, 'verb',verb},@pre_normData,'Data normalization. Normalize trials across time, ensemble, or both','cat','Normalization','suppress',{'verb'}), ...
     arg_subtoggle({'aamp','AmplitudeEnvelope'},[],@est_aamp,'Compute amplitude envelope. This will add additional ''pseudochannels'' which represent the amplitude envelopes of original channels over a specified frequency band. Envelopes are computed via a zero-phase filter (eegfilt) followed by a hilbert transform.','cat','Filtering','suppress',{'verb'}), ...
+    arg({'resetConfigs','ResetConfigs'},false,[],'Clear existing config structures. These structures are used to set defaults for GUIs. This option is appropriate if you are re-preprocessing (or have modified) a dataset in a way that will fundamentally alter the structure of the dataset'), ...
     arg_nogui({'badsegments','BadDataSegments'},[],[],'Intervals of bad data. N x 2 matrix of [lo hi] intervals (seconds) of data within ea. trial to set to nan. Currently only compatible with vierra_morf MVAR method','cat','Data Selection'), ...
     arg_nogui({'newtrials','TrialsToKeep','TrialSubsetToUse'},[],[],'Indices of trials to keep','cat','Data Selection'), ...
     arg_nogui({'equalizetrials','BalanceTrials'},false,[],'Equalize the number of trials between two conditions','cat','Data Selection') ...
@@ -280,8 +282,10 @@ if g.verb==2
     hlp_getNextUniqueColor(hsv(10),'reset');
 end
 
-% make sure the data loaded
-EEG = eeg_checkset(EEG,'loaddata');
+if ischar(EEG.data)
+    % make sure the data loaded
+    EEG = eeg_checkset(EEG,'loaddata'); 
+end
 
 %% reconstruct ica activations if needed
 if strcmpi(g.sigtype.arg_selection,'components') && isempty(EEG.icaact)
@@ -299,6 +303,13 @@ if length(EEG.times) ~= EEG.pnts
 end
 
 %% create a new CAT structure and copy relevant fields from EEG
+
+% extract any existing configs (so we can restore them later)
+if ~g.resetConfigs && isempty(hlp_checkeegset(EEG,'configs'))
+    configs = EEG.CAT.configs;
+else
+    configs = [];
+end
 switch lower(g.sigtype.arg_selection)
     
     case 'components'
@@ -358,7 +369,13 @@ switch lower(g.sigtype.arg_selection)
             'trials',  size(EEG.srcpot,3)          ...
             );
 end
-
+% restore any previous configs (if they exist)
+if ~isempty(configs)
+    fn= fieldnames(configs);
+    for k=1:length(fn)
+        EEG.CAT.configs.(fn{k}) = configs.(fn{k});
+    end
+end
 % do a little error-checking
 if ~isempty(g.varnames) && length(g.varnames) ~= EEG.CAT.nbchan
     error('pre_prepData:badVarNamesLength','The number of entries in the list of %s names (''VariableNames'') must equal the number of %s', ...
@@ -379,18 +396,18 @@ end
 
 % detrend or center data
 if g.detrend.arg_selection
-    EEG.CAT.srcdata = pre_detrend('data',EEG.CAT.srcdata,'srate',EEG.srate,g.detrend,'verb',g.verb);
+    EEG.CAT.srcdata = pre_detrend('data',EEG.CAT.srcdata,'srate',EEG.srate,g.detrend,'verb',g.verb,'arg_direct',true);
 end
 
 % differencing
 if g.diff.arg_selection
-    EEG.CAT.srcdata = pre_diffData('data',EEG.CAT.srcdata,g.diff,'verb',g.verb);
+    EEG.CAT.srcdata = pre_diffData('data',EEG.CAT.srcdata,g.diff,'verb',g.verb,'arg_direct',true);
 end
 
 % compute band-limited amplitude envelope
 % these are added as additional channels
 if g.aamp.arg_selection
-    EEG = est_aamp('EEG',EEG,g.aamp,'verb',g.verb);
+    EEG = est_aamp('EEG',EEG,g.aamp,'verb',g.verb,'arg_direct',true);
 end
 
 % remove bad segments of data
@@ -406,7 +423,7 @@ end
 
 % normalize data
 if g.normalize.arg_selection
-    EEG.icaact = pre_normData('data',EEG.CAT.srcdata,g.normalize,'verb',g.verb);
+    EEG.CAT.srcdata = pre_normData('data',EEG.CAT.srcdata,g.normalize,'verb',g.verb,'arg_direct',true);
 end
 
 % convert chanlocs to dipfit if desired
