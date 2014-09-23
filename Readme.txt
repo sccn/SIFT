@@ -1,5 +1,5 @@
 The Source Information Flow Toolbox
-Version: 1.3-beta
+Version: [$Version$]
 Author: Tim Mullen (tim@sccn.ucsd.edu)
 
 Acknowledgements:
