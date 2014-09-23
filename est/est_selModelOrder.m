@@ -86,11 +86,17 @@ function [IC g] = est_selModelOrder(varargin)
 
 if hlp_isToolboxInstalled('Parallel Computing Toolbox')
     pardef = 'on';
-    [tmp parprofs] = hlp_microcache('sift_domain',@defaultParallelConfig);
+    try
+        [tmp parprofs] = hlp_microcache('sift_domain',@defaultParallelConfig);
+    catch err
+        pardef = 'off';
+        parprofs = {'local'};
+    end
 else
     pardef = 'off';
     parprofs = {'local'};
 end
+
 
 g = arg_define([0 1],varargin, ...
     arg_norep({'EEG','ALLEEG'},mandatory,[],'EEGLAB dataset'), ...
