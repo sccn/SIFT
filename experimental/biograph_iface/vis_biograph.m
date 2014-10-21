@@ -1,337 +1,6 @@
 
 function [bg bgh causality] = vis_biograph(varargin)
-%
-% Create an interactive 3D BrainMovie from a connectivity matrix. See [1]
-% for more details on the Interactive BrainMovie3D.
-%
-% Inputs:
-% 
-%       ALLEEG:     Array of EEGLAB datasets
-%       Conn:       SIFT Connectivity Structure
-%
-% Optional:
-%
-%     Stats:                        Name of variable in base containing statistics                                                                    
-%                                   Input Data Type: string                                                                                           
-% 
-%     ConnectivityMethod:           Connectivity Measure to visualize                                                                                 
-%                                   Possible values: {'Determined_by_data'}                                                                           
-%                                   Default value  : 'Determined_by_data'                                                                             
-%                                   Input Data Type: string                                                                                           
-% 
-%     MovieTimeRange:               Time Range for Movie [Min Max] (sec)                                                                              
-%                                   Specified w.r.t to event time (e.g., [-1 2]). Leave blank for complete epoch.                                     
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%     FrequenciesToCollapse:        Frequencies over which to collapse (Hz)                                                                           
-%                                   E.g., [1:50] for 1-50Hz. Leave blank for all frequencies                                                          
-%                                   Input Data Type: any evaluable Matlab expression.                                                                 
-% 
-%     FreqCollapseMethod:           Method for collapsing frequency dimension                                                                         
-%                                   Possible values: {'mean','max','peak','integrate'}                                                                
-%                                   Default value  : 'mean'                                                                                           
-%                                   Input Data Type: string                                                                                           
-% 
-%     TimeResamplingFactor:         Time resampling factor                                                                                            
-%                                   If 0, don't resample. If < 1, downsample timecourse by this factor. If > 1, upsample by this                      
-%                                   factor. Uses resample() from Sigproc Toolbox                                                                      
-%                                   Input Range  : [0  20]                                                                                            
-%                                   Default value: 0                                                                                                  
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%     SubtractConditions:           Subtract conditions                                                                                               
-%                                   If true, then plot difference between conditions. If false, then render two brainmovies                           
-%                                   side-by-side.                                                                                                     
-%                                   Input Data Type: boolean                                                                                          
-% 
-%     NodeLabels:                   List of labels for each node. e.g., {'Node1','Node2',...}                                                         
-%                                   Leave blank to omit labels.                                                                                       
-%                                   Input Data Type: any evaluable Matlab expression.                                                                 
-% 
-%     NodesToExclude:               Exclude these sources from Brainmovie                                                                             
-%                                   Specify using the Name/ID of the source to exclude.                                                               
-%                                   Input Data Type: boolean                                                                                          
-% 
-%     EdgeColorMapping:             Specify mapping for edge color                                                                                    
-%                                   This determines how we index into the colormap. If 'None', edge color is not modulated. If                        
-%                                   'Connectivity', use connectivity strength. If 'PeakFreq', use index of peak frequency                             
-%                                   Possible values: {'None','Connectivity','PeakFreq','Directionality'}                                              
-%                                   Default value  : 'Connectivity'                                                                                   
-%                                   Input Data Type: string                                                                                           
-% 
-%     EdgeSizeMapping:              Specify mapping for edge size                                                                                     
-%                                   If 'None', edges are not rendered. If 'Connectivity', use connectivity strength. If                               
-%                                   'ConnMagnitude', use connectivity magnitude (absval). If 'PeakFreq', use index of peak frequency.                 
-%                                   If 'Directionality', map directionality to the lower and upper extremes of the colormap (e.g.,                    
-%                                   i->j: blue, j->i: red)                                                                                            
-%                                   Possible values: {'None','ConnMagnitude','Connectivity'}                                                          
-%                                   Default value  : 'ConnMagnitude'                                                                                  
-%                                   Input Data Type: string                                                                                           
-% 
-%     NodeColorMapping:             Specify mapping for node color                                                                                    
-%                                   This determines how we index into the colormap. Options are as follows. None: node color is not                   
-%                                   modulated. Outflow: sum connectivity strengths over outgoing edges. Inflow: sum connectivity                      
-%                                   strengths over incoming edges. CausalFlow: Outflow-Inflow. Asymmetry Ratio: node colors are defined               
-%                                   by the equation C = 0.5*(1 + outflow-inflow/(outflow+inflow)). This is 0 for exclusive inflow, 1                  
-%                                   for exclusive outflow, and 0.5 for balanced inflow/outflow                                                        
-%                                   Possible values: {'None','Outflow','Inflow','CausalFlow','Outdegree','Indegree','CausalDegree','AsymmetryRatio'}  
-%                                   Default value  : 'Outflow'                                                                                        
-%                                   Input Data Type: string                                                                                           
-% 
-%     NodeSizeMapping:              Specify mapping for node size. Options are as follows:                                                            
-%                                   None: node size is not modulated.                                                                                 
-%                                   Outflow: sum connectivity strengths over outgoing edges.                                                          
-%                                   Inflow: sum connectivity strengths over incoming edges.                                                           
-%                                   CausalFlow: Outflow-Inflow.                                                                                       
-%                                   Asymmetry Ratio: node size is defined by the equation C = 0.5*(1 +                                                
-%                                   outflow-inflow/(outflow+inflow)). This is 0 for exclusive inflow, 1 for exclusive outflow, and 0.5                
-%                                   for balanced inflow/outflow                                                                                       
-%                                   Possible values: {'None','Outflow','Inflow','CausalFlow','Outdegree','Indegree','CausalDegree','AsymmetryRatio'}  
-%                                   Default value  : 'Outflow'                                                                                        
-%                                   Input Data Type: string                                                                                           
-% 
-%     Baseline:                     Time range of baseline [Min Max] (sec)                                                                            
-%                                   Will subtract baseline from each point. Leave blank for no baseline.                                              
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%     NormalizeConn:                Normalize edge and node values to [0 1]                                                                           
-%                                   Values mapped to edge/node width and color are devided by max to put in [0 1] range. Recommended!                 
-%                                   Input Data Type: boolean                                                                                          
-% 
-%     UseStatistics:                Use Statistics                                                                                                    
-%                                   Input Data Type: boolean                                                                                          
-%     --------------                                                                                                                                  
-% 
-%         Thresholding:             Type of thresholding for stats                                                                                    
-%                                   If 'both' then stats should have upper and lower thresholds                                                       
-%                                   Possible values: {'single','both','lessthan'}                                                                     
-%                                   Default value  : 'single'                                                                                         
-%                                   Input Data Type: string                                                                                           
-% 
-%         AlphaSignificance:        Significance threshold. e.g., 0.05 for p<0.05                                                                     
-%                                   Input Range  : [0  1]                                                                                             
-%                                   Default value: 0.05                                                                                               
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%     PercentileThreshold:          Percentile threshold                                                                                              
-%                                   Fraction of "strongest" connections to display. E.g: PercentileThreshold=0.05 will display only the               
-%                                   top 5% of connections                                                                                             
-%                                   Input Range  : [0  1]                                                                                             
-%                                   Default value: n/a                                                                                                
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%     AbsoluteThreshold:            Exact threshold                                                                                                   
-%                                   If a single value, then render only connections with strength above this threshold. If [low hi]                   
-%                                   then render only connections with strength between [lo hi]. Overrides PercentileThreshold                         
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%     FooterPanelDisplaySpec:       Configure footer panel displayed at the bottom of the figure                                                      
-%                                   If 'off', don't render footer. If 'ICA_ERP_Envelope', then display the ERP envelope of                            
-%                                   backprojected components. If 'Chan_ERP_Envelope' then display the ERP envelope of selected channels               
-%                                   Possible values: {'off','ICA_ERPenvelope','Chan_ERPenvelope'}                                                     
-%                                   Default value  : 'off'                                                                                            
-%                                   Input Data Type: string                                                                                           
-%     -----------------------                                                                                                                         
-% 
-%         icaenvelopevars:          Select components to use in the display                                                                           
-%                                   Input Data Type: boolean                                                                                          
-% 
-%         backprojectedchans:       List of channels to use in the backprojection                                                                     
-%                                   Input Data Type: boolean                                                                                          
-% 
-%         chanenvelopevars:         Select channels to use in the display                                                                             
-%                                   Input Data Type: boolean                                                                                          
-% 
-%     BrainMovieOptions:            Additonal options for rendering the brainmovie                                                                    
-%                                   Input Data Type: string                                                                                           
-%     ------------------                                                                                                                              
-% 
-%         Visibility:               Figure visibility when rendering movie                                                                            
-%                                   If 'on,' render frames on screen (slower). If 'off,' keep them hidden (faster).                                   
-%                                   Possible values: {'on','off'}                                                                                     
-%                                   Default value  : 'on'                                                                                             
-%                                   Input Data Type: string                                                                                           
-% 
-%         LatenciesToRender:        Subset of latencies to render (sec)                                                                               
-%                                   Must be in TimeRange. Can be a vector The time point closest to the latency given are plotted. If                 
-%                                   empty, render all latencies in TimeRange.                                                                         
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%         FramesToRender:           Vector of frame indices to compute                                                                                
-%                                   E.g. [1:2] only computes the first two frames. If empty, render all frames                                        
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%         FigureHandle:             Handle to a figure to render brainmovie in                                                                        
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%         RotationPath3D:           Specify the rotation path for the BrainMovie                                                                      
-%                                   Possible values: {'none','automatic','manual'}                                                                    
-%                                   Default value  : 'none'                                                                                           
-%                                   Input Data Type: string                                                                                           
-%         ---------------                                                                                                                             
-% 
-%             AngleFactor:          Angle multiplicative factor                                                                                       
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%             PhaseFactor:          Phase multiplicative factor                                                                                       
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%         InitialView:              3D static starting view for the movie                                                                             
-%                                   See 'help view'. Default is [50 36].                                                                              
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%         ProjectGraphOnMRI:        Project the 3D graph onto the 2D MRI slices                                                                       
-%                                   Possible values: {'on','off'}                                                                                     
-%                                   Default value  : 'off'                                                                                            
-%                                   Input Data Type: string                                                                                           
-% 
-%         RenderCorticalSurface:    Superimpose semi-transparent smoothed cortex on brainmovie                                                        
-%                                   UseOpenGL must be set to "on"                                                                                     
-%                                   Input Data Type: boolean                                                                                          
-%         ----------------------                                                                                                                      
-% 
-%             VolumeMeshFile:       Filename or path to mesh volume file                                                                              
-%                                   Input Data Type: string                                                                                           
-% 
-%             Transparency:         Transparency of the cortical surface                                                                              
-%                                   Real number in [0 1], where 0=opaque, 1=transparent.                                                              
-%                                   Input Range  : [0  1]                                                                                             
-%                                   Default value: 0.7                                                                                                
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%             VolumeMeshFile:       Filename or path to mesh volume file                                                                              
-%                                   Input Data Type: string                                                                                           
-% 
-%             Transparency:         Transparency of the cortical surface                                                                              
-%                                   Real number in [0 1], where 0=opaque, 1=transparent.                                                              
-%                                   Input Range  : [0  1]                                                                                             
-%                                   Default value: 0.7                                                                                                
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%         UseOpenGL:                OpenGL usage                                                                                                      
-%                                   OpenGL may cause rendering problems with MacOSX                                                                   
-%                                   Possible values: {'on','off'}                                                                                     
-%                                   Default value  : 'on'                                                                                             
-%                                   Input Data Type: string                                                                                           
-% 
-%         EventFlashTimes:          Vector of time indices at which the background flashes                                                            
-%                                   Specify the color of the flash with a cell array of [1,2] cell arrays. Ex. { { 200 'y' } { 1500 '5'               
-%                                   }} will generate two flashes, yellow at 200 ms and red at 1500 ms                                                 
-%                                   Input Data Type: any evaluable Matlab expression.                                                                 
-% 
-%         Square:                   ?                                                                                                                 
-%                                   Possible values: {'on','off'}                                                                                     
-%                                   Default value  : 'on'                                                                                             
-%                                   Input Data Type: string                                                                                           
-% 
-%         DisplayLegendPanel:       Display legends in BrainMovie                                                                                     
-%                                   Possible values: {'on','off'}                                                                                     
-%                                   Default value  : 'on'                                                                                             
-%                                   Input Data Type: string                                                                                           
-% 
-%         ShowLatency:              Display latency of current frame                                                                                  
-%                                   This will render in lower left corner.                                                                            
-%                                   Input Data Type: boolean                                                                                          
-% 
-%         DisplayRTProbability:     Display reaction time probabilty (if RT available)                                                                
-%                                   This will render a small bar the height of which will vary based on the probability of response.                  
-%                                   Input Data Type: boolean                                                                                          
-% 
-%         BackgroundColor:          Background color                                                                                                  
-%                                   Can use any allowable Matlab color specification (see 'help ColorSpec').                                          
-%                                   Input Data Type: any evaluable Matlab expression.                                                                 
-% 
-%         GraphColorAndScaling:     Graph and Color Scaling                                                                                           
-%                                   Options for coloring and scaling components of the directed graph                                                 
-%                                   Input Data Type: string                                                                                           
-%         ---------------------                                                                                                                       
-% 
-%             NodeSizeLimits:       [Min Max] limits for node size (pixels)                                                                           
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%             NodeColorLimits:      [Min Max] limits for node color (colormap index)                                                                  
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%             EdgeSizeLimits:       [Min Max] limits for edge size (pixels)                                                                           
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%             EdgeColorLimits:      [Min Max] limits for edge color (colormap index)                                                                  
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%             NodeSizeDataRange:    [Min Max] range of node size data                                                                                 
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%             NodeColorDataRange:   [Min Max] range of node color data                                                                                
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%             EdgeSizeDataRange:    [Min Max] range for edge size data                                                                                
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%             EdgeColorDataRange:   [Min Max] limits for edge color data                                                                              
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%             CenterDataRange:      Make 0 in the center of the colormap/datarange                                                                    
-%                                   Input Data Type: boolean                                                                                          
-% 
-%             EdgeColorMap:         Expression defining the colormap for edges                                                                        
-%                                   E.g., jet(64). See 'help colormap'.                                                                               
-%                                   Input Data Type: any evaluable Matlab expression.                                                                 
-% 
-%             NodeColormap:         Expression defining the colormap for nodes                                                                        
-%                                   E.g., jet(64). See 'help colormap'.                                                                               
-%                                   Input Data Type: any evaluable Matlab expression.                                                                 
-% 
-%             DiskScalingFactor:    Numeric value that scales the size of disks                                                                       
-%                                   Input Range  : [0  Inf]                                                                                           
-%                                   Default value: 0.3                                                                                                
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%             MagnificationFactor:  Magnification factor for graphics                                                                                 
-%                                   Input Range  : [0  Inf]                                                                                           
-%                                   Default value: 1                                                                                                  
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%         OutputFormat:             Options for saving the movie/figures                                                                              
-%                                   Input Data Type: string                                                                                           
-%         -------------                                                                                                                               
-% 
-%             ImageOutputDirectory: Output directory to save images                                                                                   
-%                                   If 'prompt', then you will be prompted to select the folder from a dialog. If blank, don't save                   
-%                                   images                                                                                                            
-%                                   Input Data Type: string                                                                                           
-% 
-%             ImageOutputFormat:    Format for saving images                                                                                          
-%                                   Possible values: {'jpg','eps','ppm','tif','ai','bmp','emf','pbm','pcx','pdf','pgm','png','fig'}                   
-%                                   Default value  : 'jpg'                                                                                            
-%                                   Input Data Type: string                                                                                           
-% 
-%             MovieOutputFilename:  Movie filename                                                                                                    
-%                                   E.g, 'movie.avi'. If 'prompt', then you will be prompted to select the file from a dialog. If                     
-%                                   blank, don't save movie.                                                                                          
-%                                   Input Data Type: string                                                                                           
-% 
-%             MovieOpts:            Cell array of movie options for avifile function                                                                  
-%                                   See "help avifile".                                                                                               
-%                                   Input Data Type: any evaluable Matlab expression.                                                                 
-% 
-%             ImageSize:            Image size (pixels)                                                                                               
-%                                   Input should be [widthcond height]. If more than one condition is being plotted horizontally, then                
-%                                   widthcond is the width of each condition subplot                                                                  
-%                                   Input Data Type: real number (double)                                                                             
-% 
-%         mri:                      Dipplot MRI structure                                                                                             
-%                                   Can be the name of matlab variable (in the base workspace) containing MRI structure. May also be a                
-%                                   path to a Matlab file containing MRI structure. Default uses MNI brain.                                           
-%                                   Input Data Type: string                                                                                           
-% 
-%         DipoleCoordinateFormat:   Coordinate format for dipplot                                                                                     
-%                                   Possible values: {'spherical','mni'}                                                                              
-%                                   Default value  : 'spherical'                                                                                      
-%                                   Input Data Type: string                                                                                           
-% 
-%         DipplotOptions:           Additional dipplot options                                                                                        
-%                                   Cell array of <'name',value> pairs of additional options for dipplot (see 'doc dipplot')                          
-%                                   Input Data Type: any evaluable Matlab expression.  
+
 %        
 % Outputs:
 %
@@ -377,8 +46,8 @@ subconddef = false;
 haspower   = false;
 
 % extract some stuff from inputs for arg defaults
-Conn = arg_extract(varargin,'Conn',2);
-if ~isempty(Conn)
+Conn = arg_extract(varargin,{'Conn'},2);
+if ~ischar(Conn) && ~isempty(Conn)
     Conn = Conn(1);
     connnames   = hlp_getConnMethodNames(Conn);
     conndef     = connnames{1};
@@ -405,11 +74,20 @@ if ~isempty(Conn)
     haspower = isfield(Conn,'S');
     
     clear Conn;
+else
+    haspower = false;
+    connnames = {''};
+    conndef = '';
+    freqrange = [];
+    freqdef = [];
+    timerange = [];
+    timedef = [];
+    subconddef = false;
 end
 
 ALLEEG = arg_extract(varargin,{'EEG','ALLEEG'},1);
 [MyComponentNames MyChannelNames defcoordformat] = deal({});
-if ~isempty(ALLEEG)
+if ~ischar(ALLEEG) && ~isempty(ALLEEG)
     ALLEEG = ALLEEG(1);
     if isfield(ALLEEG.CAT,'curComponentNames') && ~isempty(ALLEEG.CAT.curComponentNames)
         MyComponentNames = ALLEEG.CAT.curComponentNames;
@@ -429,6 +107,10 @@ if ~isempty(ALLEEG)
     end
     
     clear ALLEEG;
+else
+    MyComponentNames = {};
+    MyChannelNames = {};
+    defcoordformat = 'mni';
 end
 
 usestatsdef = [];  % false
@@ -444,8 +126,8 @@ EdgeColorMappingOpts = {'None','Connectivity','PeakFreq','Directionality'};
 EdgeSizeMappingOpts  = {'None','ConnMagnitude','Connectivity'};
 
 g = arg_define([0 2],varargin, ...
-    arg_norep({'ALLEEG','EEG'},mandatory),...
-    arg_norep({'Conn'},mandatory),...
+    arg_norep({'ALLEEG','EEG'},mandatory,[],'EEG Dataset','type','expression'),...
+    arg_norep({'Conn'},mandatory,[],'SIFT Conn object','type','expression'),...
     arg_nogui({'stats','Stats'},'',[],'Name of variable in base containing statistics.','type','char','shape','row'), ...
     arg({'connmethod','ConnectivityMethod'},conndef,connnames,'Connectivity Measure to visualize','shape','row','cat','DataProcessing'), ...
     arg({'timeRangeToCollapse','TimeRangeToCollapse'},timedef,[],['Time Range(s) over which to collapse (sec).' ...
@@ -1044,7 +726,7 @@ for t=1:NumTimeWindows
     
     if all(C==0)
         fprintf('No non-zero connections at time [%s]. Graph will not be constructed\n', ...
-                regexprep(num2str(TimeRangeToCollapse(t,:)),'\s*','  '));
+                regexprep(num2str(g.timeRangeToCollapse(t,:)),'\s*','  '));
         bg{t}   = [];
         bgh{t}  = [];
         continue;
