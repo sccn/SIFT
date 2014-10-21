@@ -1,5 +1,5 @@
 
-function p1 = hlp_plotmesh(faces, vertex, normal, newfig,hax,FaceColor,colortheme)
+function p1 = hlp_plotmesh(faces, vertex, normal,newfig,hax,FaceColor,colortheme)
 % plotmesh() - plot mesh defined by faces and vertex
 %
 % Usage: 
@@ -47,7 +47,7 @@ function p1 = hlp_plotmesh(faces, vertex, normal, newfig,hax,FaceColor,colorthem
     end;
     if nargin < 4
         figure; 
-        axes;
+        hax =axes;
     end;
     if nargin < 5
         hax = gca;
