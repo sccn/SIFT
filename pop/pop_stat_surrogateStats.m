@@ -62,22 +62,22 @@ if ~isempty(res)
     error(['SIFT:' fcnName],res{1});
 end
 
-if isfield(ALLEEG(1).CAT.configs,fcnName)
-    % get default configuration (from prior use) and merge with varargin
-    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
-end
-
-% reset the defaults if we have multiple EEG datasets
-% this ensures that config selections stored in each datset (i.e. Hbase) 
-% don't conflict with the allowable selection when two datasets are present
-if length(ALLEEG)>1 && ~isempty(varargin)
-    idx = find(ismember_bc(varargin(1:2:end),'statTest'))*2;
-    if ~isempty(idx)
-        for k=1:length(idx)
-            varargin{idx(k)} = {}; 
-        end
-    end
-end
+% if isfield(ALLEEG(1).CAT.configs,fcnName)
+%     % get default configuration (from prior use) and merge with varargin
+%     varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
+% end
+% 
+% % reset the defaults if we have multiple EEG datasets
+% % this ensures that config selections stored in each datset (i.e. Hbase) 
+% % don't conflict with the allowable selection when two datasets are present
+% if length(ALLEEG)>1 && ~isempty(varargin)
+%     idx = find(ismember_bc(varargin(1:2:end),'statTest'))*2;
+%     if ~isempty(idx)
+%         for k=1:length(idx)
+%             varargin{idx(k)} = {}; 
+%         end
+%     end
+% end
 
 if strcmpi(typeproc,'nogui')
     % get the config from function
