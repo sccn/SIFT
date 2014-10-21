@@ -86,7 +86,12 @@ function [IC g] = est_selModelOrder(varargin)
 
 if hlp_isToolboxInstalled('Parallel Computing Toolbox')
     pardef = 'on';
+    try
     [tmp parprofs] = hlp_microcache('sift_domain',@defaultParallelConfig);
+    catch err
+        pardef = 'off';
+        parprofs = {'local'};
+    end
 else
     pardef = 'off';
     parprofs = {'local'};
