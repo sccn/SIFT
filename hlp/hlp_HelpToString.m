@@ -102,7 +102,11 @@ function output = parseHelpText(rep,indentlevel,maxwrapcols)
 
 
 % indent delimiter
-delim = '    ';
+delim = ''; '----'; %'    '
+parentstub = '---[+] ';
+childstub  = '....';
+childPrefix  = '...| ';
+parentPrefix = '[+] ';
 
 if nargin < 3
     maxwrapcols = 100;
@@ -127,14 +131,18 @@ for i=1:length(rep)
     % extract the help text for this entry
     % apply textwrapping if necessary
     helptext = {};
-    rep(i).help = strtrim(rep(i).help);
-    for j=1:length(rep(i).help)
-        helptext = [helptext; textwrap([],rep(i).help(j),maxwrapcols)];
+    if ~isempty(rep(i).help)
+        rep(i).help = strtrim(rep(i).help);
+        for j=1:length(rep(i).help)
+            helptext = [helptext; textwrap([],rep(i).help(j),maxwrapcols)];
+        end
+    else
+        helptext = [helptext; {''}];
     end
     
     % add the data range and default value to helptext
     range = rep(i).range;
-    def   = rep(i).value;
+    def   = rep(i).defaults{end};
     if isempty(def), def='n/a'; end
     
 %     if ~strcmpi(def,'__arg_mandatory__') %~isempty(range)
@@ -142,24 +150,28 @@ for i=1:length(rep)
     def = fastif(strcmpi(def,'__arg_mandatory__'),'MANDATORY INPUT',def);
     
     if isempty(range), range = 'Unrestricted'; end
-
-    if iscell(rep(i).range)
-        if ~isempty(rep(i).range), range = cell2str(rep(i).range); end %['''' strrep(cell2str(rep(i).range),',',''',''') ''''];
-        def = cell2str(def);
-        helptext = [helptext; ...
-                    sprintf('Possible values: %s', range); ...
-                    sprintf('Default value  : %s', def)];
-    elseif isnumeric(rep(i).range)
-        if ~isempty(rep(i).range), range = ['[' num2str(rep(i).range) ']']; end
-        helptext = [helptext; ...
-                    sprintf('Input Range  : %s', range); ...
-                    sprintf('Default value: %s', fastif(ischar(def),def,num2str(def)))];
-    else
-        if ~isempty(rep(i).range), range = char(rep(i).range); end
-        helptext = [helptext; ...
-                    sprintf('Possible values: %s', range); ...
-                    sprintf('Default value  : ''%s''', def)];
-    end
+    
+    helptext = [helptext; ...
+                sprintf('Possible values: %s', hlp_tostring(range)); ...
+                sprintf('Default value  : %s', hlp_tostring(def))];
+            
+%     if iscell(rep(i).range)
+%         if ~isempty(rep(i).range), range = cell2str(rep(i).range); end %['''' strrep(cell2str(rep(i).range),',',''',''') ''''];
+%         def = cell2str(def);
+%         helptext = [helptext; ...
+%                     sprintf('Possible values: %s', range); ...
+%                     sprintf('Default value  : %s', def)];
+%     elseif isnumeric(rep(i).range)
+%         if ~isempty(rep(i).range), range = ['[' num2str(rep(i).range) ']']; end
+%         helptext = [helptext; ...
+%                     sprintf('Input Range  : %s', range); ...
+%                     sprintf('Default value: %s', fastif(ischar(def),def,num2str(def)))];
+%     else
+%         if ~isempty(rep(i).range), range = char(rep(i).range); end
+%         helptext = [helptext; ...
+%                     sprintf('Possible values: %s', range); ...
+%                     sprintf('Default value  : ''%s''', def)];
+%     end
         
 %     else
 %         helptext = [helptext; ...
@@ -178,33 +190,46 @@ for i=1:length(rep)
     % create blank leading "row"
     output = [output; {'',''}];
     
+    % check if this has children and if so, prefix with [+] 
+    if ismember_bc(char(rep(i).head),{'arg_sub','arg_subswitch','arg_subtoggle'})
+        name = [parentPrefix name];
+    else
+        name = [childPrefix name];
+    end
+    
     % fill row with [Name:   Help Text]
     output = [output; {[name ':'],char(helptext)} ];
     
-%     % check if this has children and if so, create underline
-%     % TM: omitted
-%     if ismember_bc(char(rep(i).head),{'arg_sub','arg_subswitch','arg_subtoggle'})
-%         output = [output; {repmat('-',1,length(name)+1), ''}];
-%     end
-    
 
+    
     % now parse children and insert helptext as needed
-    if ~isempty(rep(i).alternatives)
-        for k=2:length(rep(i).alternatives)
-            for child=1:length(rep(i).alternatives{k})
-                ret    =  parseHelpText(rep(i).alternatives{k}(child),indentlevel,maxwrapcols);
-                if ~isempty(ret)
-                    for q=1:size(ret,1)
-                        % insert indented child argument block with pipe
-                        % character prepended
-                        output = [output; {[repmat(delim,[1 indentlevel+1]) fastif(isempty(ret{q,1}),'','| ') ret{q,1}] ret{q,2}}];
-                    end
+    start = fastif(strcmpi(char(rep(i).head),'arg_subtoggle'),2,1);
+    for k=start:length(rep(i).alternatives)
+        numChildren = length(rep(i).alternatives{k});
+        % concatenate rep(i).range{k}
+        if ~isempty(rep(i).range) && ischar(rep(i).range{k})
+            name   = rep(i).range{k};
+            prefix = fastif(numChildren>0,parentPrefix,childPrefix);
+            name   = [prefix name];
+            output = [output; {[repmat(delim,[1 indentlevel+1]) childstub name ':'] ''}];
+            numIndents = 2;
+        else
+            numIndents=  1;
+        end
+        for child=1:numChildren
+            ret    =  parseHelpText(rep(i).alternatives{k}(child),indentlevel+numIndents-1,maxwrapcols);
+            if ~isempty(ret)
+                for q=1:size(ret,1)
+                    % insert indented child argument block with pipe
+                    % character prepended
+%                     output = [output; {[repmat(delim,[1 indentlevel+numIndents]) fastif(isempty(ret{q,1}),'',stub) ret{q,1}] ret{q,2}}];
+                    output = [output; {[repmat(delim,[1 indentlevel+numIndents]) fastif(isempty(ret{q,1}),'',childstub) ret{q,1}] ret{q,2}}];
                 end
             end
         end
     end
 
-    if ~isempty(rep(i).children)
+    if isempty(rep(i).alternatives) && ~isempty(rep(i).children)
         % parse children help text
         for child=1:length(rep(i).children)
             ret    =  parseHelpText(rep(i).children(child),indentlevel,maxwrapcols);
@@ -212,7 +237,7 @@ for i=1:length(rep)
                 for q=1:size(ret,1)
                     % insert indented child argument block with pipe
                     % character prepended
-                    output = [output; {[repmat(delim,[1 indentlevel+1]) fastif(isempty(ret{q,1}),'','| ') ret{q,1}] ret{q,2}}];
+                    output = [output; {[repmat(delim,[1 indentlevel+1]) fastif(isempty(ret{q,1}),'',childstub) ret{q,1}] ret{q,2}}];
                 end
             end
         end
@@ -289,7 +314,7 @@ function plaintext = simplifyDataType(datatype)
         case 'cellstr'
             plaintext = 'cell array of strings (cellstr)';
         case 'object'
-            plaintext = 'any matlab object';
+            plaintext = 'any Matlab object';
         case 'expression'
             plaintext = 'any evaluable Matlab expression.';
         otherwise

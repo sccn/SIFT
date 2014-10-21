@@ -47,10 +47,12 @@ if nargin<5
 end
 
 % determine number of dipoles
-if isempty(roiVertices)
+if ~isempty(roiVertices)
+    numDipoles = length(roiVertices);
+elseif ~isempty(sourceSpace)
     numDipoles = size(sourceSpace.vertices,1);
 else
-    numDipoles = length(roiVertices);
+    numDipoles = size(sourceCoords,1);
 end
 
 
@@ -97,6 +99,8 @@ if ~isempty(roiVertices)
                      roiVertices, 'UniformOutput',false);
         momxyz = cell2mat(momxyz)';
     end
+else
+    [roiVertices surfmesh] = deal(cell(1,numDipoles));
 end
        
 % construct the dipole model

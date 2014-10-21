@@ -4,7 +4,7 @@ function J = hlp_getHalfCmap(mapFcn,cmapSize,whichHalf)
 % Inputs:
 %
 %   mapFcn:    the name of the function that returns the colormap (e.g. 'jet'
-%           or 'hsv')
+%               or 'hsv'). Can also be a [N x 3] colormap matrix
 %   cmapSize:   the cmapSize of the colormap (second argument to mapFcn function)
 %   whichHalf:   'upper' or 'lower'
 %
@@ -14,8 +14,11 @@ if nargin<2
     whichHalf = 'upper';
 end
 
-J = feval(mapFcn,cmapSize);
-
+if isa(mapFcn,'function_handle') || ischar(mapFcn)
+    J = feval(mapFcn,cmapSize);
+else
+    J = mapFcn;
+end
 switch whichHalf
     case 'upper'
         J = J(round(cmapSize/2):end,:);

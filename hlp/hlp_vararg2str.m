@@ -98,7 +98,9 @@ for index = 1:length(allargs)
             tmpres(comas) = ' ';
 			strout = [ strout ',{' tmpres '}' ];
 		elseif isstruct(tmpvar)
-			strout = [ strout ',' struct2str( tmpvar ) ];		
+			strout = [ strout ',' struct2str( tmpvar ) ];	
+        elseif isa(tmpvar,'function_handle')
+            strout = [ strout ',' hlp_tostring( tmpvar ) ];
 		else
 			error('Unrecognized input');
 		end;

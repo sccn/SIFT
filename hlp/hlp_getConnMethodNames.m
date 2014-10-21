@@ -41,6 +41,6 @@ if isempty(Conn)
 end
 
 names = fieldnames(Conn(1));
-names = setdiff_bc(names,{'winCenterTimes','erWinCenterTimes','freqs','mode','options','resampleTrialIdx','dims'});
+names = setdiff_bc(names,{'winCenterTimes','erWinCenterTimes','freqs','mode','options','resampleTrialIdx','dims','collapsedFreqs','collapsedTimes','collapsedWinCenterTimes'});
     
     

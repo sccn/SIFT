@@ -116,7 +116,7 @@ if ~isstruct(Conn) || isempty(Conn)
     Conn = struct([]);
 end
 
-g = arg_define(varargin, ...
+g = arg_define([0 Inf], varargin, ...
     arg_norep({'Conn','Connectivity'},mandatory,[],'Connectivity structure. Can also be a PConn structure.'), ...
     arg({'connmethods','ConnectivityMethods'},cnames,cnames,'Connectivity method names. Cell array of connectivity method names.'), ...
     arg_sub({'coldim','DimensionToCollapse'},{}, ...
@@ -213,6 +213,9 @@ colseq = hlp_vec(colseq(seqorder));
 
 if isempty(g.connmethods)
     g.connmethods = hlp_getConnMethodNames(Conn); end
+if ~iscell(g.connmethods)
+    g.connmethods = {g.connmethods}; end
+
 % Collapse each conn method individually
 for m=1:length(g.connmethods)
     connmethod = g.connmethods{m};

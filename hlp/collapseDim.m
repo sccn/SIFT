@@ -52,7 +52,7 @@ range = [];
 method = 'mean';
 peakWidth = 20;
 dim = 3;
-dx = 0;
+dx = 1;
 mph = -Inf;
 numPeaks = 1;
 keepedges = 1;
@@ -71,6 +71,8 @@ for i=1:2:length(varargin)-1
         case 'extent',      extent = varargin{i+1};
     end
 end
+
+if dx==0, dx = 1; end
 
 if size(C,dim)==1
     return;
