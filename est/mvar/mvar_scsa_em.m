@@ -13,8 +13,8 @@ function [AR PE out] = mvar_scsa_em(varargin)
 %
 % Author Credits:
 %
-% The code for SCSA was contributed by 
-% Stefan Haufe, Ph.D [2]
+% The core code for SCSA was contributed 
+% by Stefan Haufe, Ph.D [2]
 %
 % References and Code:
 %
@@ -62,7 +62,7 @@ persistent initAR;
 verb = arg_extract(varargin,{'verb','VerbosityLevel'},[],2);
 
 g = arg_define([0 1],varargin, ...
-                arg_norep({'data','Data'},mandatory,[],'Data Matrix. Dimensions are [nchs x npnts].'), ...
+                arg_norep({'data','Data'},mandatory,[],'Data Matrix. Dimensions are [nchs x npnts x ntr].'), ...
                 arg({'morder','ModelOrder','p'},10,[],'VAR Model order'), ...
                 arg_subtoggle({'warmStart','WarmStart'},[], ...
                 {...

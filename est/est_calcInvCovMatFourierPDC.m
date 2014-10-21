@@ -1,5 +1,4 @@
-% V = est_calcInvCovMatFourierPDC(Rinv,E,foi,fs,N,p, verb)
-%
+function V = est_calcInvCovMatFourierPDC(Rinv,E,foi,fs,N,p,verb,DEBUG)
 % Obtain the frequency domain transform of the inverse covariance matrix of 
 % an M-variate VAR[p] process
 % This is needed for calculating the analytic statistics for the PDC [1]
@@ -43,8 +42,6 @@
 % You should have received a copy of the GNU General Public License
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-function V = est_calcInvCovMatFourierPDC(Rinv,E,foi,fs,N,p,verb,DEBUG)
 
 if nargin<8
     DEBUG = false;

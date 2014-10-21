@@ -86,9 +86,6 @@ end
 
 g.winstep = g.downsampleFactor/EEG.srate;
 
-
-%     g = catstruct(g,gvar); clear g2;
-
 if nargout > 1, params = g; end
 
 g.winStartIdx  = max(2,g.downsampleFactor):g.downsampleFactor:size(EEG.CAT.srcdata,2);
