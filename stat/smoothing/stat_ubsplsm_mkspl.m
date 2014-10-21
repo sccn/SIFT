@@ -81,3 +81,6 @@ for k = 1:K
     end
 end
 
+if verb==2
+    multiWaitbar('Building Splines','Close');
+end

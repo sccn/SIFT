@@ -5,9 +5,127 @@ function [FIT MCMC_LastState] = stat_ubsplsm_mcmc(varargin)
 % If there are multiple subjects, then each subject's channel pairs are 
 % simply appended as additional cells of Y{:}. Thus for NC channels and NS
 % subjects, Y is at most of dimension [1 x NS*NC^2] (if diagonals are included)
-
-% FIT contains the MCMC estimates
-% MCMC_LastState contains the final state of the Gibbs sampler
+%
+%
+% --------------------------------------------------------------------------------------------------------------------------
+% Input                  Information                                                                                        
+% --------------------------------------------------------------------------------------------------------------------------
+% TSData:                Cell array of data to smooth                                                                       
+%                        Generally, Y is a cell array where Y{i} is the T x 1 vector of time-varying (or freq-varying)      
+%                        connectivity for the kth channel pair of the sk_th subject.                                          
+%                        e.g. Y = {s1(1,1) s1(1,2) s1(1,3) ... s1(N,1) s1(N,2) s1(N,3) ...                                  
+%                                  s2(1,1) s2(1,2) s2(1,3) ... }                                                            
+%                        Y can also be a [1 x S] cell array of (N x N x T) matrices for each of S subjects                  
+%                        Possible values: Unrestricted                                                                      
+%                        Default value  : 'MANDATORY INPUT'                                                                 
+%                        Input Data Type: any evaluable Matlab expression.                                                  
+%                                                                                                                           
+% MCMC_InitState:        Object containing initial state of Gibbs sampler                                                   
+%                        Input Range  : Unrestricted                                                                        
+%                        Default value: n/a                                                                                 
+%                        Input Data Type: struct                                                                            
+%                                                                                                                           
+% NumMcmcIters:          Number of MCMC iterations for spline fitting                                                       
+%                        Input Range  : [1  Inf]                                                                            
+%                        Default value: 1000                                                                                
+%                        Input Data Type: real number (double)                                                              
+%                                                                                                                           
+% BurnInFractionForMCMC: Fraction of initial MCMC samples to discard (burn in period)                                       
+%                        Input Range  : [0        0.99]                                                                     
+%                        Default value: 0.5                                                                                 
+%                        Input Data Type: real number (double)                                                              
+%                                                                                                                           
+% ThinningFactor:        Thinning factor for MCMC                                                                           
+%                        We keep every kth MCMC sample, where k=ThinningFactor. This is useful when we have limited         
+%                        available memory to store MCMC results since successive MCMC estimates are more likely to be       
+%                        correlated.                                                                                        
+%                        Input Range  : [1  Inf]                                                                            
+%                        Default value: 1                                                                                   
+%                        Input Data Type: real number (double)                                                              
+%                                                                                                                           
+% ReturnPosterior:       Return complete posterior distibution in MCMC_LastState                                            
+%                        Otherwise return only final state                                                                  
+%                        Input Range  : Unrestricted                                                                        
+%                        Default value: 1                                                                                   
+%                        Input Data Type: boolean                                                                           
+%                                                                                                                           
+% AppendLastState:       Append new state to initial MCMC state                                                             
+%                        Input Range  : Unrestricted                                                                        
+%                        Default value: 0                                                                                   
+%                        Input Data Type: boolean                                                                           
+%                                                                                                                           
+% basisCoeffVarPrior:    Variance of basis coefficient gaussian prior                                                       
+%                        Larger --> more wiggling allowed                                                                   
+%                        Input Range  : [2.220446049250313e-16                    Inf]                                      
+%                        Default value: 1000                                                                                
+%                        Input Data Type: real number (double)                                                              
+%                                                                                                                           
+% noiseVarPriorShape:    Shape (D.O.F) of noise variance prior                                                              
+%                        This is the "alpha" parameter of the inverse gamma prior distribution. Increasing                  
+%                        noiseVarPriorShape --> decreased variance of noise variance distribution.                          
+%                        Input Range  : [2.220446049250313e-16                    Inf]                                      
+%                        Default value: 0.01                                                                                
+%                        Input Data Type: real number (double)                                                              
+%                                                                                                                           
+% noiseVarPriorScale:    Scale parameter of noise variance prior                                                            
+%                        This is the "theta" (1/beta) parameter of inverse gamma prior distribution. Increasing             
+%                        noiseVarPriorScale --> right-shift of distribution --> (increase in expected noise variance). In   
+%                        general MEAN(noiseVariance) = noiseVarPriorScale/noiseVarPriorShape and MODE(noiseVariance) =      
+%                        noiseVarPriorScale/(noiseVarPriorShape-1) for noiseVarPriorShape>=1.                               
+%                        Input Range  : [2.220446049250313e-16                    Inf]                                      
+%                        Default value: 0.01                                                                                
+%                        Input Data Type: real number (double)                                                              
+%                                                                                                                           
+% TransformData:         Transform data                                                                                     
+%                        PreTransFunc is applied before smoothing and its inverse (PostTransFunc) is applied after          
+%                        smoothing.                                                                                         
+%                        Input Range  : Unrestricted                                                                        
+%                        Default value: 1                                                                                   
+%                        Input Data Type: boolean                                                                           
+%                                                                                                                                                                           
+%                                                                                                                           
+%     | PreTransFunc:    Pre-smoothing transform function for TSData                                                        
+%                        Input Range  : Unrestricted                                                                        
+%                        Default value: @(x) log(x+1)                                                                       
+%                        Input Data Type: any evaluable Matlab expression.                                                  
+%                                                                                                                           
+%     | PostTransFunc:   Post-smoothing transform function for TSData                                                       
+%                        This should be the inverse of PreTransFunc                                                         
+%                        Input Range  : Unrestricted                                                                        
+%                        Default value: @(x) exp(x)-1                                                                       
+%                        Input Data Type: any evaluable Matlab expression.                                                  
+%                                                                                                                           
+% VerbosityLevel:        Verbosity level. 0 = no output, 1 = text, 2 = graphical                                            
+%                        Possible values: 0,1,2                                                                             
+%                        Default value  : 2                                                                                 
+%                        Input Data Type: real number (double) 
+%
+% --------------------------------------------------------------------------------------------------------------------------
+% Outputs                                                                                                          
+% --------------------------------------------------------------------------------------------------------------------------
+%
+% FIT                     contains the smooth connectivity estimates
+%
+% MCMC_LastState          contains the final state of the Gibbs sampler
+%                         This is a struct with the fields:
+%                             .THETA        [K x Q x NITER]    Q FPCA component vectors, K spline knots
+%                             .ALPHA        [Q x R x NITER]    For each of the R connectivity edges in Y, this is the Q-dimensional
+%                                                              vector of weights for Q FPCA components. B = mean(ALPHA(q,r,:))
+%                                                              is  therefore the expected value of the qth FPCA regression
+%                                                              coefficient (Beta-weight) for the rth conn edge)
+%                             .ALPHA_BAR    [Q x NITER]        Mean of multivariate gaussian prior for ALPHA (over all edges)
+%                             .SIGMA_EPS    [1 x NITER]        Noise variance
+%                         where NITER is the number of MCMC iterations (after burn-in)
+%                         and additional fields:
+%                             .phi_t                      Spline basis functions ([K x T])
+%                             .Sigma_theta                THETA cov mat (mvnrnd)
+%                             .mu_theta                   THETA mean (mvnrnd)
+%                             .Sigma_alpha_i              ALPHA cov mat (mnvnrnd)
+%                             .mu_alpha_i                 ALPHA mean (mnvnrnd)
+%                             .Sigma_alpha_bar            ALPHA_BAR cov mat (mnvnrnd)
+%                             .mu_alpha_bar               ALPHA_BAR mean (mnvnrnd)
+%                             .NumSamples                 # MCMC samples stored
+% 
 %
 % Author: Tim Mullen and Wes Thompson, 2010-12, SCCN/INC, UCSD.
 % Email:  tim@sccn.ucsd.edu
@@ -28,12 +146,13 @@ function [FIT MCMC_LastState] = stat_ubsplsm_mcmc(varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-g = arg_define([0 1],varargin, ...
-    arg_norep({'Y','TSData'},mandatory,[],sprintf(['Cell array of data to smooth.\n' ...
+g = arg_define([0 Inf],varargin, ...
+    arg_norep({'Y','TSData'},mandatory,{},sprintf(['Cell array of data to smooth.\n' ...
               'Generally, Y is a cell array where Y{i} is the T x 1 vector of time-varying (or freq-varying) connectivity for the kth channel pair of the sth subject.\n' ...
               'e.g. Y = {s1(1,1) s1(1,2) s1(1,3) ... s1(N,1) s1(N,2) s1(N,3) ... \n' ...
-              '          s2(1,1) s2(1,2) s2(1,3) ... } \n'])), ...
-    arg_norep({'MCMC_InitState'},struct([]),[],'Object containing initial state of Gibbs sampler'));
+              '          s2(1,1) s2(1,2) s2(1,3) ... } \n' ...
+              'Y can also be a [1 x S] cell array of (N x N x T) matrices for each of S subjects']),'type','expression'), ...
+    arg_nogui({'MCMC_InitState'},struct([]),[],'Object containing initial state of Gibbs sampler'), ...
     arg({'nMCMCiters','NumMcmcIters','niters','niter'},1000, [1 Inf], 'Number of MCMC iterations for spline fitting'), ...
     arg({'burnInFraction','BurnInFractionForMCMC'},0.5,[0 0.99],'Fraction of initial MCMC samples to discard (burn in period).'), ...
     arg({'thinFactor','ThinningFactor'},1,[1 Inf],'Thinning factor for MCMC. We keep every kth MCMC sample, where k=ThinningFactor. This is useful when we have limited available memory to store MCMC results since successive MCMC estimates are more likely to be correlated.'), ...
@@ -42,8 +161,14 @@ g = arg_define([0 1],varargin, ...
     arg({'basisCoeffVarPrior'},1000,[eps Inf],'Variance of basis coefficient gaussian prior. Larger --> more wiggling allowed','cat','Hyperparameters'), ...
     arg({'noiseVarPriorShape'},0.01,[eps Inf],'Shape (D.O.F) of noise variance prior. This is the "alpha" parameter of the inverse gamma prior distribution. Increasing noiseVarPriorShape --> decreased variance of noise variance distribution.','cat','Hyperparameters'), ...
     arg({'noiseVarPriorScale'},0.01,[eps Inf],'Scale parameter of noise variance prior. This is the "theta" (1/beta) parameter of inverse gamma prior distribution. Increasing noiseVarPriorScale --> right-shift of distribution --> (increase in expected noise variance). In general MEAN(noiseVariance) = noiseVarPriorScale/noiseVarPriorShape and MODE(noiseVariance) = noiseVarPriorScale/(noiseVarPriorShape-1) for noiseVarPriorShape>=1.','cat','Hyperparameters'), ...
-    arg({'logtrans','LogTransform'},true,[],'Log-Transform data before smoothing. Inverse transform is applied after smoothing'), ...
-    arg({'verb','VerbosityLevel'},2,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical'), ...
+    arg_subtoggle({'transData','TransformData'},'on',...
+    {...
+        arg({'preTransFcn','PreTransFunc'},'@(x) log(x+1)',[],'Pre-smoothing transform function for TSData.','type','expression'), ...
+        arg({'postTransFcn','PostTransFunc'},'@(x) exp(x)-1',[],'Post-smoothing transform function for TSData. This should be the inverse of PreTransFunc','type','expression') ...
+    },'Transform data. PreTransFunc is applied before smoothing and its inverse (PostTransFunc) is applied after smoothing.'), ...
+    arg({'verb','VerbosityLevel'},2,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical'));
+
+%     arg_nogui({'logtrans','LogTransform'},true,[],'Log-Transform data before smoothing. Inverse transform is applied after smoothing'), ...
 
 arg_toworkspace(g);
 
@@ -55,22 +180,29 @@ end
 numBurnInSamples = floor(burnInFraction*nMCMCiters);
 niterToKeep      = round((nMCMCiters-numBurnInSamples)/thinFactor);
 if verb,
-    fprintf(['I will discard %d burn-in samples.\n' ...
-             'I will thin the distribution by a factor of %d samples\n', ...
-             'The distribution of the estimator will have %d samples\n'], ...
-            numBurnInSamples,thinFactor,niterToKeep);
+    fprintf(hlp_separator());
+    fprintf('FPCA Smoothing:\n');
+    fprintf('Discarding %d burn-in samples.\n',numBurnInSamples);
+    fprintf('Distribution will be thinned by a factor of %d samples.\n',thinFactor);
+    fprintf('The distribution of the estimator will have %d samples.\n',niterToKeep);
+end
+
+% if Y{i} is in [M x M x T] form, then "flatten" cell entries to [1 x T] form
+if ~isvector(Y{1})
+    Y = flatten_tensor(Y);
 end
 
 % make Y a column vector
 Y = Y(:);
-
+% vectorize each element of Y
+Y = cellfun(@hlp_vec,Y,'UniformOutput',false);
 
 %% Initialize Parameters
 % -------------------------------------------------------------------------
 R = size(MCMC_InitState.ALPHA,2);        % number of connectivities to smooth across all subjects
-T = size(MCMC_InitState.FIT,1);          % dimensionality of connectivity (e.g. number of time points)
 Q = size(MCMC_InitState.ALPHA,1);        % number of FPCA basis functions   
 K = size(MCMC_InitState.THETA,1);        % number of smoothing spline knots
+T = length(Y{1});                        % dimensionality of connectivity (e.g. number of time points)
 
 % initalize outputs
 FIT = zeros(T,R,niterToKeep);            % Smoothed measure estimates
@@ -102,9 +234,9 @@ if verb==2
     multiWaitbar('Gibbs sampling','Reset','Color',hlp_getNextUniqueColor);
 end
 
-if logtrans
-    % log-transform data
-    Y = cellfun(@transform,Y,'UniformOutput',false);
+if g.transData.arg_selection
+    % pre-transform data
+    Y = cellfun(g.transData.preTransFcn,Y,'UniformOutput',false);
 end
 
 % constants
@@ -127,6 +259,8 @@ for iter=1:nMCMCiters
     % invert inverse covariance matrix to produce cov mat
     Sigma_alpha_i     = inverse(Sigma_alpha_i);
     Sigma_alpha_i_dbl = double(Sigma_alpha_i);
+    % ensure covariance matrix is symmetric and positive definite
+    Sigma_alpha_i_dbl = covfixer(Sigma_alpha_i_dbl);
     
     % pre-compute product
     tmpprod = THETA'*phi_t/SIGMA_EPS;                      
@@ -217,9 +351,9 @@ for iter=1:nMCMCiters
     end
 end
 
-if logtrans
+if g.transData.arg_selection
     % invert transformation of results
-    FIT = untransform(FIT);
+    FIT = g.transData.postTransFcn(FIT);
 end
 
 if nargout>1
@@ -245,9 +379,7 @@ if nargout>1
                      'NumSamples'       , fastif(returnHistory,sidx,1), ... % # MCMC samples stored
                      'NumMCMCIters'     , nMCMCiters, ...
                      'initstate'        , false, ...
-                     'transform'        , fastif(logtrans,@transform,[]), ...
-                     'untransform'      , fastif(logtrans,@untransform,[]), ...
-                     'transformed'      , logtrans ...
+                     'dataTransform'        , g.transData ...
                      ));
      if appendLastState
         % append current state estimates to initial ones
@@ -265,13 +397,13 @@ if verb==2
 end
 
 
-% log transform data
-function [X] = transform(X)
-    X = log(X);
-
-% invert log transform
-function X = untransform(X)
-    X = exp(X);
+% % log transform data
+% function [X] = transform(X)
+%     X = log(X+1);
+% 
+% % invert log transform
+% function X = untransform(X)
+%     X = exp(X)-1;
 
 
 
