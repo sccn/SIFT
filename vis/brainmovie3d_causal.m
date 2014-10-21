@@ -932,7 +932,7 @@ if ismember_bc(lower(g.mode),{'init','init_and_render'})
                         events{2} = 'r';    end
                     
                     
-                    lh = vline(events{1},events{2},events{5},0,g.vars.hFooterPanel(tmpcond));
+                    lh = vline(events{1},events{2},events{5},1,g.vars.hFooterPanel(tmpcond));
                     set(lh,'linestyle',events{3},'linewidth',events{4}*g.resmult);
                 end
             end
