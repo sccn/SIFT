@@ -101,6 +101,21 @@ function varargout = hlp_microcache(dom, f, varargin)
 %                                   Christian Kothe, Swartz Center for Computational Neuroscience, UCSD
 %                                   2010-06-18
 
+% Copyright (C) Christian Kothe, SCCN, 2010, christian@sccn.ucsd.edu
+%
+% This program is free software; you can redistribute it and/or modify it under the terms of the GNU
+% General Public License as published by the Free Software Foundation; either version 2 of the
+% License, or (at your option) any later version.
+%
+% This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+% even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% General Public License for more details.
+%
+% You should have received a copy of the GNU General Public License along with this program; if not,
+% write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+% USA
+
+
 % mc ("microcache"): struct
 %   domain-id --> domainpool
 % domainpool: struct
@@ -120,11 +135,10 @@ function varargout = hlp_microcache(dom, f, varargin)
 %   lambda_equality: desired equality relation for lambda expressions
 persistent mc;
 
-
 % [varargout{1:nargout}] = f(varargin{:}); return; % UNCOMMENT TO BYPASS
 
-try
-    % is this a regular call?
+% is this a regular call?
+if nargin > 1
     if isa(f,'function_handle')
         
         % get the current lookup time
@@ -144,39 +158,41 @@ try
             % optionally do some special processing of lambda terms in the function arguments
             args = varargin;
             leq = mc.(dom).config.lambda_equality;
-            if leq
-                for k = find(cellfun('isclass',argin,'function_handle'))
+            if ischar(leq)
+                for k = find(cellfun('isclass',varargin,'function_handle'))
                     ck = char(args{k});
                     if ck(1) == '@'
-                        if strcmp(leq,'proper')
+                        if strcmp(leq,'string')
+                            % the fastest way to deal with them is to scrap any possible bound variables
+                            % and just consider the raw expression
+                            args{k} = ck;
+                        elseif strcmp(leq,'proper')
                             % the 'proper' way for most purposes is to consider both the expression and
                             % the directly bound variables but ignore variables in the same scope
                             tmp = functions(args{k});
                             args{k} = {ck,tmp.workspace{1}};
                         else
-                            % the fastest way to deal with them is to scrap any possible bound variables
-                            % and just consider the raw expression
-                            args{k} = ck;
+                            disp('hlp_microcache: unrecognized lambda_equality setting encountered; resetting to false.');
                         end
                     end
                 end
             end
-        catch
-            % the lambda lookup failed...
+        catch %#ok<CTCH>
+            % the lambda lookup failed, so we assume that it has not yet been assigned; assign it now.
             mc.(dom).config.lambda_equality = false;
         end
         key = [args,{key_f,nargout}];
         
         % get the size id (sid) of the key (MATLAB keeps track of that for every object)
         keyinfo = whos('key');
-        keysid = sprintf('s%.0f',keyinfo.bytes);
+        keysid = sprintf('s%u',keyinfo.bytes);
         
         try
             % retrieve the pool of size-equivalent objects
             sizepool = mc.(dom).(keysid);
             % search for the key in the pool (checking the most-frequently used keys first)
             for k=1:length(sizepool.inps)
-                if isequalwithequalnans(key,sizepool.inps{k}) % (isequalwithequalnans() is a fast builtin)
+                if isequalwithequalnans(key,sizepool.inps{k}) %#ok<FPARK> % (isequalwithequalnans() is a fast builtin)
                     % found the key, deliver outputs
                     varargout = sizepool.outs{k};
                     % update the db record...
@@ -196,7 +212,7 @@ try
                     return;
                 end
             end
-        catch
+        catch %#ok<CTCH>
             % domain+keysid not yet in the cache: create appropriate structures (this is rare)
             sizepool = struct('inps',{{}}, 'outs',{{}}, 'frqs',{[]}, 'luse',{[]}, 'lcnt',{0});
         end
@@ -264,19 +280,15 @@ try
             end
         end
     end
-catch e
-    if ~exist('f','var')
-        % global command (no f specified)
-        if strcmp(dom,'clear') && isstruct(mc)
-            % clear all domains...
-            for d = fieldnames(mc)'
-                hlp_microcache(d{1},'clear'); end
-        elseif strcmp(dom,'reset')
-            % reset all domains
-            mc = [];
-        end
-    else
-        % genuine error
-        rethrow(e);
+else
+    % global command (no f specified)
+    if strcmp(dom,'clear') && isstruct(mc)
+        % clear all domains...
+        for d = fieldnames(mc)'
+            hlp_microcache(d{1},'clear'); end
+    elseif strcmp(dom,'reset')
+        % reset all domains
+        mc = [];
     end
 end
+
