@@ -91,6 +91,7 @@ elseif isfield(g.sim,'rndopts')
     wbt = 'Generating random model coefficients....';
     createWaitbar(wbt);
     Aproto = sim_genRndVARcoeffs(g.sim.rndopts);
+    if isempty(Aproto), return; end
     updateWaitbar(wbt,1);
     if ~updateMasterWaitbar(),  return; end
 elseif isempty(g.sim.expr)

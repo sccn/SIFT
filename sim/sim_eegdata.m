@@ -2,7 +2,7 @@ function [EEGsim EEGtrue fwdModel] = sim_eegdata(varargin)
 % simulate (realistic) scalp EEG data using a source-level dynamical
 % system and a forward model
 %
-% This returns an EEG dataset or [nchs x npnts x ntr] matrix of simulated 
+% This returns an EEG dataset with [nchs x npnts x ntr] matrix of simulated 
 % source and scalp data. Source data is stored in EEG.srcpot. Scalp data is
 % stored in EEG.data
 %
@@ -156,3 +156,6 @@ if nargout > 2
     fwdModel.centroids_LFM_idx = centroids_LFM_idx;
 end
 
+% validate datasets
+EEGsim  = eeg_checkset(EEGsim);
+EEGtrue = eeg_checkset(EEGtrue);
