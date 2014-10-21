@@ -1,4 +1,4 @@
-function connmean = stat_getDistribMean(PConn)
+function connmean = stat_getDistribMean(PConn,skipnan)
 % Return the mean of the distribution of an estimator
 %
 % Inputs:
@@ -38,12 +38,14 @@ function connmean = stat_getDistribMean(PConn)
 
 connmethods = hlp_getConnMethodNames(PConn(1));
 % otherfields = setdiff_bc(fieldnames(PConn(1)),connmethods);
+if nargin<2, skipnan = false; end
+mest = fastif(skipnan,@nanmean,@mean);
 
 for cnd=1:length(PConn)
             
     for m=1:length(connmethods)
         % compute mean of distribution across last dimension
-        connmean(cnd).(connmethods{m}) = mean(PConn(cnd).(connmethods{m}),ndims(PConn(cnd).(connmethods{m})));   
+        connmean(cnd).(connmethods{m}) = feval(mest,PConn(cnd).(connmethods{m}),ndims(PConn(cnd).(connmethods{m})));   
     end
        
     extrafields = setdiff_bc(fieldnames(PConn(cnd)),connmethods);
