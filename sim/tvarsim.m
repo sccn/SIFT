@@ -130,7 +130,7 @@ if iscell(distribution)
     % f(x,param1,param2,...) for uniformly random x
     fun = distribution{1};
     randvec = fun(rand(ndisc+n,m,ntr),distribution{2:end});
-elseif ischar(distribtion)
+elseif ischar(distribution)
     if strcmpi(distribution,'hsec')
         % draw from hyperbolic secant distribution
         randvec = alpha + beta*log(tan(pi*rand(ndisc+n,m,ntr)/2));  % beta = 2/pi
