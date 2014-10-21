@@ -197,7 +197,7 @@ for m=1:length(g.connmethods)
                 
                 switch g.statTest.testMethod
                     case 'quantile'
-                        Stats.tail = 'right';   
+%                         Stats.tail = 'right';   
                         % get empirical p-values against the null hypothesis that
                         % observed data comes from the null distribution
                         Stats.(g.connmethods{m}).pval = stat_surrogate_pvals( ...
@@ -296,8 +296,10 @@ for m=1:length(g.connmethods)
                         % return the expected value of the difference
                         % between conditions. Result is stored in ConnNew
                         if ~exist('ConnNew','var') || isempty(ConnNew)
-                            ConnNew = rmfield(PConn(1), ...
-                                      ['resampleTrialIdx',hlp_getConnMethodNames(PConn)]);
+                            ConnNew = rmfield(PConn(1),hlp_getConnMethodNames(PConn(1)));
+                            if isfield(ConnNew,'resampleTrialIdx')
+                                ConnNew = rmfield(ConnNew,'resampleTrialIdx');
+                            end
                         end
                         ConnNew.(g.connmethods{m}) = mean(Pdiff,ndims(Pdiff));
                     end
@@ -355,8 +357,10 @@ for m=1:length(g.connmethods)
                         % return the expected value of the difference
                         % from baseline mean. Result is stored in ConnNew
                         if ~exist('ConnNew','var') || isempty(ConnNew)
-                            ConnNew = rmfield(PConn, ...
-                                      ['resampleTrialIdx',hlp_getConnMethodNames(PConn)]);
+                            ConnNew = rmfield(PConn,hlp_getConnMethodNames(PConn));
+                            if isfield(ConnNew,'resampleTrialIdx')
+                                ConnNew = rmfield(ConnNew,'resampleTrialIdx');
+                            end
                         end
                         ConnNew.(g.connmethods{m}) = mean(Pdiff,ndims(Pdiff));
                     end
@@ -423,13 +427,14 @@ for m=1:length(g.connmethods)
                 % return the expected value of the surrogate distribution. 
                 % Result is stored in ConnNew
                 if ~exist('ConnNew','var') || isempty(ConnNew)
-                    ConnNew = rmfield(PConn, ...
-                              ['resampleTrialIdx',hlp_getConnMethodNames(PConn)]);
+                    ConnNew = rmfield(PConn,hlp_getConnMethodNames(PConn));
+                    if isfield(ConnNew,'resampleTrialIdx')
+                        ConnNew = rmfield(ConnNew,'resampleTrialIdx');
+                    end
                 end
                 nd = ndims(PConn.(g.connmethods{m}));
                 ConnNew.(g.connmethods{m}) = mean(PConn.(g.connmethods{m}),nd);
             end
-            
     end
     
     % Correct for multiple comparisons
