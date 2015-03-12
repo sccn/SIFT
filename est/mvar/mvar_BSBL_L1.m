@@ -31,12 +31,6 @@ function [AR PE State] = mvar_BSBL_L1(varargin)
 % [1] Mullen T (2010) The Source Information Flow Toolbox (SIFT):
 %   Theoretical Handbook and User Manual.
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift/
-% [2] S. Boyd, N. Parikh, E. Chu, B. Peleato, and J. Eckstein, "Distributed 
-%       Optimization and Statistical Learning via the Alternating Direction 
-%       Method of Multipliers". Foundations and Trends in Machine Learning, 
-%       Michael Jordan, Editor in Chief, 3(1):1?122, 2011.
-%       http://www.stanford.edu/~boyd/papers/distr_opt_stat_learning_admm.html
-% [3] http://www.stanford.edu/~boyd/papers/admm/group_lasso/group_lasso_example.html
 %
 % Author: Tim Mullen 2012, SCCN/INC, UCSD. 
 % Email:  tim@sccn.ucsd.edu
