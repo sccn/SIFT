@@ -31,7 +31,7 @@ function [X Y] = hlp_mkVarPredMatrix(data,p)
 % A is of size [M*p x M]
 %
 % Many solvers can exploit known structure in the model (e.g. Block SBL, 
-														 % Group Lasso, etc). One such structure is the natural grouping of the p
+% Group Lasso, etc). One such structure is the natural grouping of the p
 % coefficients {Aij} that describe influences from channel j to channel i
 % across all lags. For convenience when exploiting structure, we want to 
 % reorder the columns of X (rows of A) such that coefficients within a group 

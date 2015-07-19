@@ -85,9 +85,13 @@ signal.data = signal.data(remaining,:,:);
 % convert times to samples
 % FIXME: this assumes that xmin = 0. need to adjust for that
 sampletimes = round((times-signal.xmin)*signal.srate)+1;
-srcpot = signal.srcpot_all(:,sampletimes,:);
-data   = signal.data(:,sampletimes,:);
-
+if issparse(signal.srcpot_all)
+    srcpot = signal.srcpot_all(:,sampletimes);
+    data   = signal.data(:,sampletimes);
+else
+    srcpot = signal.srcpot_all(:,sampletimes,:);
+    data   = signal.data(:,sampletimes,:);
+end
 % if signal.trials>1
 %     data       = data(:,:);
 %     srcpot     = srcpot(:,:);
