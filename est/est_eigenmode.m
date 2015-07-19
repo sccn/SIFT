@@ -1,5 +1,5 @@
 
-function EIGMODE = est_eigenmode(EEG,verb)
+function EIGMODE = est_eigenmode(varargin)
 %
 % Estimate eigenmodes of VAR process. EEG.CAT.MODEL must be present as 
 % output by est_fitMVAR with arfit option selected. Wrapper function for 
@@ -69,16 +69,11 @@ function EIGMODE = est_eigenmode(EEG,verb)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-if nargin<1
-    error('you must provide EEG structure containing MODEL');
-end
-if nargin<2
-    verb = true;
-end
-
-if ~strcmpi(EEG.CAT.MODEL.algorithm,'arfit')
-    error('you must use ARfit to fit VAR model');
-end       
+arg_define([0 2],varargin,...
+        arg_norep('EEG',[],[],'EEG data structure. Must contain .CAT.MODEL structure computed using SIFT'), ...
+        arg({'verb','Verbosity'},true,[],'Verbosity Level'), ...
+        arg({'computeStats','ComputeStats'},true,[],'Compute statistics. This can significatly increase runtime') ...
+        );
 
 if ~exist('armode','file')
     error('Unable to locate armode() function. Is ARfit downloaded and in the path?');
@@ -90,9 +85,12 @@ winStartIdx  = floor(EEG.CAT.MODEL.winStartTimes*EEG.srate)+1;
 numWins = length(winStartIdx);
 
 if verb, h=waitbar(0,'performing eigendecomposition ...'); end
+if ~computeStats || ~isfield(EEG.CAT.MODEL,'th') || isempty(EEG.CAT.MODEL.th)
+    EEG.CAT.MODEL.th = cell(1,numWins); 
+end
+m = EEG.CAT.nbchan;
 for t=1:numWins
-    
-    [EIGMODE.modes{t}, EIGMODE.modeconf{t}, EIGMODE.period{t}, EIGMODE.dampingTime{t}, EIGMODE.exctn{t}, EIGMODE.lambda{t}] = armode(EEG.CAT.MODEL.AR{t}, EEG.CAT.MODEL.PE{t}, EEG.CAT.MODEL.th{t});
+    [EIGMODE.modes{t}, EIGMODE.modeconf{t}, EIGMODE.period{t}, EIGMODE.dampingTime{t}, EIGMODE.exctn{t}, EIGMODE.lambda{t}] = armode2(EEG.CAT.MODEL.AR{t}, EEG.CAT.MODEL.PE{t}(:,1:m), EEG.CAT.MODEL.th{t});
     
     if verb, waitbar(t/numWins,h,sprintf('performing eigendecomposition (%d/%d)...',t,numWins)); end
 end
