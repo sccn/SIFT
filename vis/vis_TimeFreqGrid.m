@@ -669,8 +669,7 @@ if strcmpi(g.topoplot,'dipole')
     if isempty(g.dipplot.mri)
         g.dipplot.mri = ALLEEG(1).dipfit.mrifile;
         if isempty(g.dipplot.mri)
-            eeglabpath = fileparts(which('eeglab'));
-            g.dipplot.mri = fullfile(eeglabpath,'plugins','dipfit2.2','standard_BEM','standard_mri.mat');
+            g.dipplot.mri = which('@resources/standard_BEM_mri.mat');
 %             g.dipplot.mri = fullfile(eeglabpath,'plugins','dipfit2.2','standard_BESA','avg152t1.mat');
         end
         tmp = load(g.dipplot.mri);
