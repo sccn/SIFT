@@ -1,7 +1,7 @@
 function [newVals state] = hlp_adaptExpWinMovAvg(varargin)
-% adapt min and max limits using an exponential window moving average. The
-% moving average is calculated in place based on new data values and
-% previous min/max limits.
+% Calculate an exponential window moving average. The
+% moving average is calculated in place based on new data values previous
+% state
 
 g = arg_define(varargin, ...
         arg_norep({'values'},[],[],'data values. can be scalar, vector or matrix'), ...

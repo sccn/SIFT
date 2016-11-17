@@ -22,7 +22,7 @@ function varargout = gui_vis_filtered(varargin)
 
 % Edit the above text to modify the response to help gui_vis_filtered
 
-% Last Modified by GUIDE v2.5 11-Dec-2013 18:55:56
+% Last Modified by GUIDE v2.5 04-Mar-2014 14:52:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -84,3 +84,57 @@ function cmdVisStream_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 vis_filtered(handles.propgrid.GetPropertyValues);
+
+
+% --- Executes on button press in cmdLoadPipeline.
+function cmdLoadPipeline_Callback(hObject, eventdata, handles)
+% hObject    handle to cmdLoadPipeline (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% load and initialize a pipeline config
+[fname fpath] = uigetfile('*.mat','Load Config File');
+if ~fname
+    return;
+end
+cfg = load(fullfile(fpath,fname));
+if isfield(cfg,'opts')
+    cfg = cfg.opts;
+end
+
+pipname=inputdlg(sprintf('Enter a name for the pipeline\nIf empty, auto-generate'));
+%TODO: allow user to select the calibration dataset
+
+% create a unique name for this pipeline
+if isempty(pipname)
+    % list the streams and pipelines in the workspace
+    vars = evalin('base','whos');
+    for vname = {vars.name}
+        vname = vname{1};
+        var = evalin('base',vname);
+        if isfield(var,'tracking') && isfield(var.tracking,'online_expression')
+            pipelinenames{end+1} = vname; end
+    end
+    pipname = genvarname(['pip_' fname],pipelinenames);
+end
+
+% initialize the pipeline on the calibration data
+disp('Evaluating pipeline on calibration data...');
+cleaned_data = exp_eval_optimized(flt_pipeline('signal',evalin('base','calibData'),fltPipCfg));
+disp('Done!');
+assignin('base',pipname,cleaned_data);
+
+% and store the data in a workspace variable
+pipln = onl_newpipeline(evalin('base',opts.pipelinename),opts.streamname);
+assignin('base',visname,visinfo);
+
+% redraw the property grids
+handles = redrawPropertyGrids(hObject,handles);
+guidata(hObject,handles);
+
+
+% --- Executes on button press in cmdNewPipeline.
+function cmdNewPipeline_Callback(hObject, eventdata, handles)
+% hObject    handle to cmdNewPipeline (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
