@@ -95,6 +95,8 @@ switch lower(collapsefun)
         collapsed = data;
     case 'integrate'
         collapsed  = trapz(data)*fspacing;
+    case 'sum'
+        collapsed = sum(data);
     case 'mean' 
         collapsed  = mean(data);
     case 'max'
