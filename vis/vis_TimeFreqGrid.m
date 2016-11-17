@@ -565,7 +565,7 @@ g = arg_define([0 2],varargin, ...
     arg({'condOrder','ConditionOrder'},CondDiffOrderDefaults{1},CondDiffOrderDefaults,'Order in which to take difference.') ...
     }, 'Plot difference between selected conditions','cat','DisplayProperties'), ...
     arg_norep({'stats','Stats'},[],[],'A structure containing statistics.','type','expression'), ...
-    arg_nogui({'vismode','VisualizationMode'},'TimeXFrequency',{'TimeXFrequency','TimeXCausality','FrequencyXCausality'},'Visualization Modes. Create Time-Frequency imageplots, Causality x Frequency plots (collapsing across time), Causality x Time plots (collapsing across frequency)'), ...
+    arg({'vismode','VisualizationMode'},'',{'','TimeXFrequency','TimeXCausality','FrequencyXCausality'},'Visualization Modes. Create Time-Frequency imageplots, Causality x Frequency plots (collapsing across time), Causality x Time plots (collapsing across frequency)'), ...
     arg_nogui({'msubset'},'all',{'tril','triu','diag','nodiag','all'},'Subset of the full matrix to keep. Lower/upper triangle (''tril''/''triu''), diagonals (''diag''), everything except diagonal (''nodiag''), everything (''all'').'), ...
     arg_subswitch({'MatrixLayout'},'Full', ...
     {'Full', ...
@@ -663,10 +663,11 @@ gridmargin_bot_left  = [0.1 0.1];     % [0.05 0.05];     % margin (normalized un
 gridmargin_top_right =  1-gridmargin_bot_left;
 pmargin     = 0.005;                            % margin between subplots
 OFFSET      = 0; 0.05;
-colorlist   = {'k','g','b','c','m','y','r'};    % list of colors for sequential overlapping plots of different time windows
+colorlist   = distinguishable_colors(20,g.backgroundColor);    % list of colors for sequential overlapping plots of different time or freq windows
+colorlist   = mat2cell(colorlist,ones(1,size(colorlist,1)),3);
 StatsMatrix = [];
 TwoSidedThresholding = false;
-GridType = '';
+GridType = g.vismode;
 g.plotorder = g.plotorder(:)';
 
 % handle plotting multiple estimators on the grid
@@ -1387,6 +1388,16 @@ end
 % backup frequency values for logimagesc
 origFreqValues = g.freqValues;
 
+if isempty(GridType)
+    if (ntime > 1 && nfreqs > 1 && isempty(g.windows))
+        GridType = 'TimeXFrequency';
+    elseif nfreqs > 1
+        GridType = 'FrequencyXCausality';
+    elseif ntime > 1
+        GridType = 'TimeXCausality';
+    end
+end
+
 % ---------------------------------
 % | Plot Information Flow
 % | column ch_j --> row ch_i
@@ -1411,9 +1422,9 @@ for ch_i=1:nch
         end
         if ch_j==1 && strcmpi(g.topoplot,'none')
             th = ylabel(g.nodelabels(i),'color',g.textColor,  ...
-                    'horizontalalignment','center','fontsize',g.axesFontSize, ...
-                    'verticalalignment','middle','edgecolor','none', ...
-                    'rotation',0);
+                'horizontalalignment','center','fontsize',g.axesFontSize, ...
+                'verticalalignment','middle','edgecolor','none', ...
+                'rotation',0);
         elseif ch_j==1 && ~strcmpi(g.topoplot,'none')
             lbltag = sprintf('row_ylabel_%d_%d',i,j);
             if isempty(findall(gcf,'tag',lbltag))
@@ -1434,12 +1445,12 @@ for ch_i=1:nch
                 
             % if we get here, then we don't want to actually image this cell
             set(gca,'color',get(gcf,'color'));
- 
+            
             % if this is the bottom-right most subplot, and this cell is empty
             % then borrow x-y ticks from left,upper neighbors
             if ch_i==nch && ch_j == nch && isempty(get(gca,'children'));
                 % get left neighbor
-%                 hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],nch,nch));
+                %                 hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],nch,nch));
                 curplot = gca;
                 leftplot=hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],(ch_j-1)+numSubplotRows-nch,ch_i+numSubplotCols-nch));
                 xticks = get(leftplot,'Xtick');
@@ -1451,420 +1462,418 @@ for ch_i=1:nch
                 ylim = get(upperplot,'YLim');
                 set(curplot,'XTick',xticks,'YTick',yticks,'XTickLabel',xticklabels,'YTickLabel',yticklabels,'XLim',xlim,'YLim',ylim);
             end
-
+            
             continue;
         end
         
-
-        if ntime > 1 && nfreqs > 1 && isempty(g.windows)
-            % ---------------------------------
-            % | Format is Time x Frequency
-            % ---------------------------------
         
-            GridType = 'TimeXFreq';
-            
-            C=squeeze(ConnMatrix(i,j,:,:));
-            
-            if g.smooth
-                h=pcolor(erWinCenterTimes,g.freqValues,double(C));
-                shading interp
-            else
-                if strcmpi(g.freqscale,'log')
-                    nomargin = isempty(get(gca,'YTickLabel'));
-                    [g.freqValues C h] = logimagesc(erWinCenterTimes,origFreqValues,C,'plot','on');
-                    %                     h = gco;
-                    if nomargin, set(gca,'YTickLabel',[],'YTick',[]); end
+        switch GridType
+            case 'TimeXFrequency'
+                % ---------------------------------
+                % | Format is Time x Frequency
+                % ---------------------------------
+                
+                GridType = 'TimeXFrequency';
+                
+                C=squeeze(ConnMatrix(i,j,:,:));
+                
+                if g.smooth
+                    h=pcolor(erWinCenterTimes,g.freqValues,double(C));
+                    shading interp
                 else
-                    h=imagesc(erWinCenterTimes,g.freqValues,C);
-                end
-            end
-            
-            set(gca,'Clim',clim,'YDir','normal');
-            
-            % extract the stats matrix for this pair
-            if isequal(size(StatsMatrix),size(ConnMatrix))
-                Sji = squeeze(StatsMatrix(i,j,:,:));
-                Sij = squeeze(StatsMatrix(j,i,:,:));
-            elseif size(StatsMatrix,1)==2 && ndims(StatsMatrix)==5
-                Sji = permute(squeeze(squeeze(StatsMatrix(:,i,j,:,:))),[2 3 1]);
-                Sij = permute(squeeze(squeeze(StatsMatrix(:,j,i,:,:))),[2 3 1]);
-            else
-                Sji = StatsMatrix;
-                Sij = StatsMatrix;
-            end
-            
-            % Plot contour
-            if g.pcontour.arg_selection
-                if isscalar(Sji) && any(C(:)-C(1))
-                    % use contour for constant threshold
-                    hold on;
-                    contour(erWinCenterTimes,g.freqValues,C,[Sji Sji], ...
-                        'color',g.pcontour.contourcolor);
-                    hold off
-                elseif length(Sji)==2 && any(C(:)-C(1))
-                    hold on;
-                    contour(erWinCenterTimes,g.freqValues,C,Sji, ...
-                        'color',g.pcontour.contourcolor);
-                    hold off
-                end
-            end
-            
-            
-            
-            % Prepare the arguments for vis_TimeFreqCell()
-            % This function will be called when user clicks on subplot
-            if strcmpi(g.topoplot,'topoplot')
-                subargs.topovec     = squeeze(ALLEEG(1).icawinv(:,ALLEEG(1).CAT.curComps([j i])))';
-            elseif strcmpi(g.topoplot,'customtopo')
-                subargs.customTopoMatrix = g.customTopoMatrix([j i]);
-            else
-                subargs.topovec = [];
-                subargs.customTopoMatrix = {};
-            end
-            
-            if ~isempty(ALLEEG(1).dipfit) && isfield(ALLEEG(1).dipfit,'model')
-                subargs.dipfitstruct = ALLEEG(1).dipfit;
-                subargs.dipfitstruct.model = subargs.dipfitstruct.model(ALLEEG(1).CAT.curComps([j i]));
-            else
-                subargs.dipfitstruct = [];
-            end
-            subargs.elocs       = ALLEEG(1).chanlocs;
-            subargs.chaninfo    = ALLEEG(1).chaninfo;
-            subargs.alltimes    = erWinCenterTimes;
-            subargs.allfreqs    = origFreqValues;
-            
-            if ~isempty(Sji)
-                subargs.StatsMatrix(1,:,:,:,:) = Sji;
-                subargs.StatsMatrix(2,:,:,:,:) = Sij;
-            else
-                subargs.StatsMatrix = [];
-            end
-            
-            subargs.ConnMatrix(1,:,:)  = squeeze(OrigConnMatrix(i,j,:,:));
-            subargs.ConnMatrix(2,:,:)  = squeeze(OrigConnMatrix(j,i,:,:));
-            subargs.baseline    = g.baseline;
-            subargs.freqscale   = g.freqscale;
-            subargs.events      = g.events;
-            subargs.topoplot    = g.topoplot;
-            subargs.topoplot_opts = g.topoplot_opts;
-            subargs.titleString = g.titleString;
-            subargs.titleFontSize   = g.titleFontSize;
-            subargs.axesFontSize    = g.axesFontSize;
-            subargs.textColor       = g.textColor;
-            subargs.backgroundColor = g.backgroundColor;
-            subargs.clim            = clim;
-            subargs.thresholding    = g.thresholding;
-            subargs.bidir           = fastif(i==j,false,true);
-            subargs.connmethod      = CEstimator;
-            subargs.nodelabels      = g.nodelabels([j i]);
-            subargs.dipplot         = g.dipplot;
-            subargs.foilines        = g.foilines;
-            subargs.foilinecolor    = g.foilinecolor;
-            subargs.smooth          = g.smooth;
-            subargs.colorscheme     = g.colorscheme;
-            subargs.colormap        = g.colormap;
-            
-            set(gca,'userdata',subargs)
-            set([gca h],'buttondownfcn','vis_TimeFreqCell(get(gca,''UserData''));');
-            %             set([gca h],'tooltip',sprintf('%s --> %s. Click to expand',g.nodelabels{j},g.nodelabels{i}));
-            
-            set(gca,'Xlim',[erWinCenterTimes(1)+OFFSET erWinCenterTimes(end)-OFFSET]);
-            % [erWinCenterTimes(1)-winlen/(2*ALLEEG(1).srate) erWinCenterTimes(end)+winlen/(2*ALLEEG(1).srate)]
-            set(gca,'Ylim',g.freqValues([1 end]));
-            
-            set(gca,'XColor',g.textColor,'YColor',g.textColor);
-            set(gca,'fontsize',g.axesFontSize);
-            
-            
-            % draw event markers
-            if ~isempty(g.events)
-                for i=1:length(g.events)
-                    events = g.events{i};
-                    
-                    % set defaults
-                    if length(events) < 4
-                        events{4} = 2;      end
-                    if length(events) < 3
-                        events{3} = ':';    end
-                    if length(events) < 2
-                        events{2} = 'r';     end
-                    
-                    vl = vline(events{1});
-                    set(vl,'color',events{2},'linestyle',events{3},'linewidth',events{4});
-                end
-            end
-            
-            % draw horizontal lines at frequencies of interest
-            if ~isempty(g.foilines)
-                for ln=1:length(g.foilines)
-                    hl = hline(g.foilines(ln));
-                    if isempty(g.foilinecolor)
-                        color = colorlist{mod(ln-1,length(colorlist))+1};
-                    elseif size(g.foilinecolor,1) > 1
-                        color = g.foilinecolor(ln,:);
-                    elseif size(g.foilinecolor,1) == 1
-                        color = g.foilinecolor;
-                    end
-                    
-                    
-                    set(hl,'color',color,'linestyle','-','linewidth',1);
-                    set(hl,'tag','foilines');
-                end
-            end
-            
-            % create a red border around diagonal plots
-            if ch_i==ch_j
-                %                 hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_j+numSubplotRows-nch,ch_i+numSubplotCols-nch));
-                pos = get(gca,'position');
-                hborder = annotation('rectangle',pos,'edgecolor',[1 0 0],'linewidth',2);
-                set(hborder,'userdata',gca);
-                set(hborder,'buttondownfcn','vis_TimeFreqCell(get(get(gco,''UserData''),''UserData''));');
-            end
-            
-            
-        elseif nfreqs > 1
-            % ---------------------------------
-            % | Format is Causality x Frequency
-            % ---------------------------------
-            
-            GridType = 'CausalityXFreq';
-            
-            if isequal(size(StatsMatrix),size(ConnMatrix))
-                S = squeeze(StatsMatrix(i,j,:,:));
-            else
-                S = StatsMatrix;
-            end
-            
-            hold on
-            for tt=1:ntime
-                % plot a set of causality x frequency traces for each time window
-                
-                % plot confidence intervals
-                if willPlotStatCI(g,CEstimator)
-                    ci = g.stats.(CEstimator).ci;
-                    if ndims(ci)>=4 && size(ci,1)==2
-                        % asymmetric confidence intervals
-                        ciplot(squeeze(ci(1,i,j,:,tt)),squeeze(ci(2,i,j,:,tt)),g.freqValues,[0.7 0.7 0.7],0,'Ylim',clim,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
+                    if strcmpi(g.freqscale,'log')
+                        nomargin = isempty(get(gca,'YTickLabel'));
+                        [g.freqValues C h] = logimagesc(erWinCenterTimes,origFreqValues,C,'plot','on');
+                        %                     h = gco;
+                        if nomargin, set(gca,'YTickLabel',[],'YTick',[]); end
                     else
-                        % symmetric confidence intervals (about zero)
-                        ciplot(-squeeze(ci(i,j,:,tt)),squeeze(ci(i,j,:,tt)),g.freqValues,[0.7 0.7 0.7],1,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
+                        h=imagesc(erWinCenterTimes,g.freqValues,C);
                     end
                 end
                 
-                if strcmpi(g.thresholding.arg_selection,'statistics') ...
-                        && strcmpi(g.thresholding.sigthreshmethod,'thresh')
-                    % plot statistical thresholds
-                    if ~isempty(S)
-                        if isscalar(S)
-                            % constant threshold
-                            plot(g.freqValues,S(ones(1,length(g.freqValues))),'r:');
-                        elseif isvector(S)
-                            % variable threshold
-                            plot(g.freqValues,S,'r:');
+                set(gca,'Clim',clim,'YDir','normal');
+                
+                % extract the stats matrix for this pair
+                if isequal(size(StatsMatrix),size(ConnMatrix))
+                    Sji = squeeze(StatsMatrix(i,j,:,:));
+                    Sij = squeeze(StatsMatrix(j,i,:,:));
+                elseif size(StatsMatrix,1)==2 && ndims(StatsMatrix)==5
+                    Sji = permute(squeeze(squeeze(StatsMatrix(:,i,j,:,:))),[2 3 1]);
+                    Sij = permute(squeeze(squeeze(StatsMatrix(:,j,i,:,:))),[2 3 1]);
+                else
+                    Sji = StatsMatrix;
+                    Sij = StatsMatrix;
+                end
+                
+                % Plot contour
+                if g.pcontour.arg_selection
+                    if isscalar(Sji) && any(C(:)-C(1))
+                        % use contour for constant threshold
+                        hold on;
+                        contour(erWinCenterTimes,g.freqValues,C,[Sji Sji], ...
+                            'color',g.pcontour.contourcolor);
+                        hold off
+                    elseif length(Sji)==2 && any(C(:)-C(1))
+                        hold on;
+                        contour(erWinCenterTimes,g.freqValues,C,Sji, ...
+                            'color',g.pcontour.contourcolor);
+                        hold off
+                    end
+                end
+                
+                
+                
+                % Prepare the arguments for vis_TimeFreqCell()
+                % This function will be called when user clicks on subplot
+                if strcmpi(g.topoplot,'topoplot')
+                    subargs.topovec     = squeeze(ALLEEG(1).icawinv(:,ALLEEG(1).CAT.curComps([j i])))';
+                elseif strcmpi(g.topoplot,'customtopo')
+                    subargs.customTopoMatrix = g.customTopoMatrix([j i]);
+                else
+                    subargs.topovec = [];
+                    subargs.customTopoMatrix = {};
+                end
+                
+                if ~isempty(ALLEEG(1).dipfit) && isfield(ALLEEG(1).dipfit,'model')
+                    subargs.dipfitstruct = ALLEEG(1).dipfit;
+                    subargs.dipfitstruct.model = subargs.dipfitstruct.model(ALLEEG(1).CAT.curComps([j i]));
+                else
+                    subargs.dipfitstruct = [];
+                end
+                subargs.elocs       = ALLEEG(1).chanlocs;
+                subargs.chaninfo    = ALLEEG(1).chaninfo;
+                subargs.alltimes    = erWinCenterTimes;
+                subargs.allfreqs    = origFreqValues;
+                
+                if ~isempty(Sji)
+                    subargs.StatsMatrix(1,:,:,:,:) = Sji;
+                    subargs.StatsMatrix(2,:,:,:,:) = Sij;
+                else
+                    subargs.StatsMatrix = [];
+                end
+                
+                subargs.ConnMatrix(1,:,:)  = squeeze(OrigConnMatrix(i,j,:,:));
+                subargs.ConnMatrix(2,:,:)  = squeeze(OrigConnMatrix(j,i,:,:));
+                subargs.baseline    = g.baseline;
+                subargs.freqscale   = g.freqscale;
+                subargs.events      = g.events;
+                subargs.topoplot    = g.topoplot;
+                subargs.topoplot_opts = g.topoplot_opts;
+                subargs.titleString = g.titleString;
+                subargs.titleFontSize   = g.titleFontSize;
+                subargs.axesFontSize    = g.axesFontSize;
+                subargs.textColor       = g.textColor;
+                subargs.backgroundColor = g.backgroundColor;
+                subargs.clim            = clim;
+                subargs.thresholding    = g.thresholding;
+                subargs.bidir           = fastif(i==j,false,true);
+                subargs.connmethod      = CEstimator;
+                subargs.nodelabels      = g.nodelabels([j i]);
+                subargs.dipplot         = g.dipplot;
+                subargs.foilines        = g.foilines;
+                subargs.foilinecolor    = g.foilinecolor;
+                subargs.smooth          = g.smooth;
+                subargs.colorscheme     = g.colorscheme;
+                subargs.colormap        = g.colormap;
+                
+                set(gca,'userdata',subargs)
+                set([gca h],'buttondownfcn','vis_TimeFreqCell(get(gca,''UserData''));');
+                %             set([gca h],'tooltip',sprintf('%s --> %s. Click to expand',g.nodelabels{j},g.nodelabels{i}));
+                
+                set(gca,'Xlim',[erWinCenterTimes(1)+OFFSET erWinCenterTimes(end)-OFFSET]);
+                % [erWinCenterTimes(1)-winlen/(2*ALLEEG(1).srate) erWinCenterTimes(end)+winlen/(2*ALLEEG(1).srate)]
+                set(gca,'Ylim',g.freqValues([1 end]));
+                
+                set(gca,'XColor',g.textColor,'YColor',g.textColor);
+                set(gca,'fontsize',g.axesFontSize);
+                
+                
+                % draw event markers
+                if ~isempty(g.events)
+                    for i=1:length(g.events)
+                        events = g.events{i};
+                        
+                        % set defaults
+                        if length(events) < 4
+                            events{4} = 2;      end
+                        if length(events) < 3
+                            events{3} = ':';    end
+                        if length(events) < 2
+                            events{2} = 'r';     end
+                        
+                        vl = vline(events{1});
+                        set(vl,'color',events{2},'linestyle',events{3},'linewidth',events{4});
+                    end
+                end
+                
+                % draw horizontal lines at frequencies of interest
+                if ~isempty(g.foilines)
+                    for ln=1:length(g.foilines)
+                        hl = hline(g.foilines(ln));
+                        if isempty(g.foilinecolor)
+                            color = colorlist{mod(ln-1,length(colorlist))+1};
+                        elseif size(g.foilinecolor,1) > 1
+                            color = g.foilinecolor(ln,:);
+                        elseif size(g.foilinecolor,1) == 1
+                            color = g.foilinecolor;
+                        end
+                        
+                        
+                        set(hl,'color',color,'linestyle','-','linewidth',1);
+                        set(hl,'tag','foilines');
+                    end
+                end
+                
+                % create a red border around diagonal plots
+                if ch_i==ch_j
+                    %                 hlp_subplot1(sub2ind([numSubplotRows,numSubplotCols],ch_j+numSubplotRows-nch,ch_i+numSubplotCols-nch));
+                    pos = get(gca,'position');
+                    hborder = annotation('rectangle',pos,'edgecolor',[1 0 0],'linewidth',2);
+                    set(hborder,'userdata',gca);
+                    set(hborder,'buttondownfcn','vis_TimeFreqCell(get(get(gco,''UserData''),''UserData''));');
+                end
+                
+                
+            case  'FrequencyXCausality'
+                % ---------------------------------
+                % | Format is Frequency x Causality
+                % ---------------------------------
+                
+                
+                if isequal(size(StatsMatrix),size(ConnMatrix))
+                    S = squeeze(StatsMatrix(i,j,:,:));
+                else
+                    S = StatsMatrix;
+                end
+                
+                hold on
+                for tt=1:ntime
+                    % plot a set of causality x frequency traces for each time window
+                    
+                    % plot confidence intervals
+                    if willPlotStatCI(g,CEstimator)
+                        ci = g.stats.(CEstimator).ci;
+                        if ndims(ci)>=4 && size(ci,1)==2
+                            % asymmetric confidence intervals
+                            ciplot(squeeze(ci(1,i,j,:,tt)),squeeze(ci(2,i,j,:,tt)),g.freqValues,[0.7 0.7 0.7],0,'Ylim',clim,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
+                        else
+                            % symmetric confidence intervals (about zero)
+                            ciplot(-squeeze(ci(i,j,:,tt)),squeeze(ci(i,j,:,tt)),g.freqValues,[0.7 0.7 0.7],1,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
                         end
                     end
-                end
-                
-                if strcmpi(g.thresholding.arg_selection,'statistics') ...
-                        && strcmpi(g.thresholding.sigthreshmethod,'pval') && islogical(S)
-                    % shade significant regions
                     
-                    set(gca,'Ylim',clim);
-                    
-                    % identify intervals of significance
-                    sigidx = hlp_bittok(S,1);
-                    
-                    for k=1:size(sigidx,1)
-                        % create patch to shade interval
-                        [hpatch{k} htext{k}]=hlp_vrect(g.freqValues(sigidx(k,:)),'label',{},'textPosition',[0.5 0.9],'yscale',0.1,'dock','bottom','patchProperties',{'FaceAlpha',0.2,'FaceColor',g.patchcolor},'textProperties',{'Color','b','EdgeColor','k','BackgroundColor','r','FontSize',14});
-                        box on;
-                    end
-                end
-                
-                % plot causality trace
-                if ntime==1
-                    if strcmpi(g.freqscale,'log')
-                        h = semilogx(g.freqValues,squeeze(OrigConnMatrix(i,j,:,:)),'color',g.linecolor);
-                    else
-                        h=plot(g.freqValues,squeeze(OrigConnMatrix(i,j,:,:)),'color',g.linecolor);
-                    end
-                else
-                    if strcmpi(g.freqscale,'log')
-                        h = semilogx(g.freqValues,squeeze(OrigConnMatrix(i,j,:,tt)),'color',colorlist{mod(tt-1,length(colorlist))+1});
-                    else
-                        h=plot(g.freqValues,squeeze(OrigConnMatrix(i,j,:,tt)),'color',colorlist{mod(tt-1,length(colorlist))+1});
-                    end
-                end
-                
-                
-            end
-            
-            if g.plotCondDiff.arg_selection || ~isempty(g.baseline)
-                % make line at zero
-                zh = hline(0);
-                set(zh,'color',g.linecolor,'linestyle','-.')
-            end
-                
-            
-            set(gca,'Ylim',clim);
-            set(gca,'Xlim',[g.freqValues(1) g.freqValues(end)]);
-            set(gca,'tag','lineplot');
-
-            % draw vertical lines at frequencies of interest
-            if ~isempty(g.foilines)
-                for ln=1:length(g.foilines)
-                    hl = vline(g.foilines(ln));
-                    if isempty(g.foilinecolor)
-                        color = colorlist{mod(ln-1,length(colorlist))+1};
-                    elseif size(g.foilinecolor,1) > 1
-                        color = g.foilinecolor(ln,:);
-                    elseif size(g.foilinecolor,1) == 1
-                        color = g.foilinecolor;
-                    end
-                    
-                    
-                    set(hl,'color',color,'linestyle','-','linewidth',1);
-                    set(hl,'tag','foilines');
-                end
-            end
-            
-            hold off
-            
-        elseif ntime > 1
-            % ---------------------------------
-            % | Format is Causality x Time
-            % ---------------------------------
-            
-            GridType = 'CausalityXTime';
-            
-            hold on
-            
-            if isequal(size(StatsMatrix),size(ConnMatrix))
-                S = squeeze(StatsMatrix(i,j,:,:));
-            else
-                S = StatsMatrix;
-            end
-            
-            for ff=1:nfreqs
-                
-                % plot confidence intervals
-                if ~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics') ...
-                    && isfield(g.stats.(CEstimator),'ci') && g.thresholding.plotci
-                    ci = g.stats.(CEstimator).ci;
-                    if ndims(ci)>=4 && size(ci,1)==2
-                        % asymmetric confidence intervals
-                        ciplot(squeeze(ci(1,i,j,ff,:)),squeeze(ci(2,i,j,ff,:)),erWinCenterTimes,[0.7 0.7 0.7],0,'Ylim',clim,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
-                    else
-                        % symmetric confidence intervals (about zero)
-                        ciplot(-squeeze(ci(i,j,ff,:)),squeeze(ci(i,j,ff,:)),erWinCenterTimes,[0.7 0.7 0.7],1,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
-                    end
-                end
-                
-                if strcmpi(g.thresholding.arg_selection,'statistics') ...
-                        && strcmpi(g.thresholding.sigthreshmethod,'thresh')
-                    % plot statistical thresholds
-                    if ~isempty(S)
-                        if isscalar(S)
-                            % constant threshold
-                            plot(erWinCenterTimes,S(ones(1,length(erWinCenterTimes))),'r:');
-                        elseif isvector(S)
-                            % variable threshold
-                            plot(erWinCenterTimes,S,'r:');
+                    if strcmpi(g.thresholding.arg_selection,'statistics') ...
+                            && strcmpi(g.thresholding.sigthreshmethod,'thresh')
+                        % plot statistical thresholds
+                        if ~isempty(S)
+                            if isscalar(S)
+                                % constant threshold
+                                plot(g.freqValues,S(ones(1,length(g.freqValues))),'r:');
+                            elseif isvector(S)
+                                % variable threshold
+                                plot(g.freqValues,S,'r:');
+                            end
                         end
                     end
-                end
-                
-                if strcmpi(g.thresholding.arg_selection,'statistics') ...
-                        && strcmpi(g.thresholding.sigthreshmethod,'pval') && islogical(S)
-                    % shade significant regions
                     
-                    set(gca,'Ylim',clim);
-                    
-                    % identify intervals of significance
-                    sigidx = hlp_bittok(S,1);
-                    
-                    for k=1:size(sigidx,1)
-                        % create patch to shade interval
-                        [hpatch{k} htext{k}]=hlp_vrect(erWinCenterTimes(sigidx(k,:)),'label',{},'textPosition',[0.5 0.9],'yscale',0.1,'dock','bottom','patchProperties',{'FaceAlpha',0.2,'FaceColor',g.patchcolor},'textProperties',{'Color','b','EdgeColor','k','BackgroundColor','r','FontSize',14});
-                        box on;
+                    if strcmpi(g.thresholding.arg_selection,'statistics') ...
+                            && strcmpi(g.thresholding.sigthreshmethod,'pval') && islogical(S)
+                        % shade significant regions
+                        
+                        set(gca,'Ylim',clim);
+                        
+                        % identify intervals of significance
+                        sigidx = hlp_bittok(S,1);
+                        
+                        for k=1:size(sigidx,1)
+                            % create patch to shade interval
+                            [hpatch{k} htext{k}]=hlp_vrect(g.freqValues(sigidx(k,:)),'label',{},'textPosition',[0.5 0.9],'yscale',0.1,'dock','bottom','patchProperties',{'FaceAlpha',0.2,'FaceColor',g.patchcolor},'textProperties',{'Color','b','EdgeColor','k','BackgroundColor','r','FontSize',14});
+                            box on;
+                        end
                     end
-                end
-                
-                
-                % plot causality trace
-                if nfreqs==1
-                    if strcmpi(g.freqscale,'log')
-                        h = semilogx(erWinCenterTimes,squeeze(OrigConnMatrix(i,j,:,:)),'color',g.linecolor);
+                    
+                    % plot causality trace
+                    if ntime==1
+                        if strcmpi(g.freqscale,'log')
+                            h = semilogx(g.freqValues,squeeze(OrigConnMatrix(i,j,:,:)),'color',g.linecolor);
+                        else
+                            h=plot(g.freqValues,squeeze(OrigConnMatrix(i,j,:,:)),'color',g.linecolor);
+                        end
                     else
-                        h=plot(erWinCenterTimes,squeeze(OrigConnMatrix(i,j,:,:)),'color',g.linecolor);
+                        if strcmpi(g.freqscale,'log')
+                            h = semilogx(g.freqValues,squeeze(OrigConnMatrix(i,j,:,tt)),'color',colorlist{mod(tt-1,length(colorlist))+1});
+                        else
+                            h=plot(g.freqValues,squeeze(OrigConnMatrix(i,j,:,tt)),'color',colorlist{mod(tt-1,length(colorlist))+1});
+                        end
                     end
+                    
+                    
+                end
+                
+                if g.plotCondDiff.arg_selection || ~isempty(g.baseline)
+                    % make line at zero
+                    zh = hline(0);
+                    set(zh,'color',g.linecolor,'linestyle','-.')
+                end
+                
+                
+                set(gca,'Ylim',clim);
+                set(gca,'Xlim',[g.freqValues(1) g.freqValues(end)]);
+                set(gca,'tag','lineplot');
+                
+                % draw vertical lines at frequencies of interest
+                if ~isempty(g.foilines)
+                    for ln=1:length(g.foilines)
+                        hl = vline(g.foilines(ln));
+                        if isempty(g.foilinecolor)
+                            color = colorlist{mod(ln-1,length(colorlist))+1};
+                        elseif size(g.foilinecolor,1) > 1
+                            color = g.foilinecolor(ln,:);
+                        elseif size(g.foilinecolor,1) == 1
+                            color = g.foilinecolor;
+                        end
+                        
+                        
+                        set(hl,'color',color,'linestyle','-','linewidth',1);
+                        set(hl,'tag','foilines');
+                    end
+                end
+                
+                hold off
+                
+            case 'TimeXCausality'
+                % ---------------------------------
+                % | Format is Causality x Time
+                % ---------------------------------
+                
+                hold on
+                
+                if isequal(size(StatsMatrix),size(ConnMatrix))
+                    S = squeeze(StatsMatrix(i,j,:,:));
                 else
-                    if strcmpi(g.freqscale,'log')
-                        h = semilogx(erWinCenterTimes,squeeze(OrigConnMatrix(i,j,ff,:)),'color',colorlist{mod(ff-1,length(colorlist))+1});
+                    S = StatsMatrix;
+                end
+                
+                for ff=1:nfreqs
+                    
+                    % plot confidence intervals
+                    if ~isempty(g.stats) && strcmpi(g.thresholding.arg_selection,'statistics') ...
+                            && isfield(g.stats.(CEstimator),'ci') && g.thresholding.plotci
+                        ci = g.stats.(CEstimator).ci;
+                        if ndims(ci)>=4 && size(ci,1)==2
+                            % asymmetric confidence intervals
+                            ciplot(squeeze(ci(1,i,j,ff,:)),squeeze(ci(2,i,j,ff,:)),erWinCenterTimes,[0.7 0.7 0.7],0,'Ylim',clim,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
+                        else
+                            % symmetric confidence intervals (about zero)
+                            ciplot(-squeeze(ci(i,j,ff,:)),squeeze(ci(i,j,ff,:)),erWinCenterTimes,[0.7 0.7 0.7],1,'FaceAlpha',0.5,'EdgeColor',[0.2 0.2 0.2]);
+                        end
+                    end
+                    
+                    if strcmpi(g.thresholding.arg_selection,'statistics') ...
+                            && strcmpi(g.thresholding.sigthreshmethod,'thresh')
+                        % plot statistical thresholds
+                        if ~isempty(S)
+                            if isscalar(S)
+                                % constant threshold
+                                plot(erWinCenterTimes,S(ones(1,length(erWinCenterTimes))),'r:');
+                            elseif isvector(S)
+                                % variable threshold
+                                plot(erWinCenterTimes,S,'r:');
+                            end
+                        end
+                    end
+                    
+                    if strcmpi(g.thresholding.arg_selection,'statistics') ...
+                            && strcmpi(g.thresholding.sigthreshmethod,'pval') && islogical(S)
+                        % shade significant regions
+                        
+                        set(gca,'Ylim',clim);
+                        
+                        % identify intervals of significance
+                        sigidx = hlp_bittok(S,1);
+                        
+                        for k=1:size(sigidx,1)
+                            % create patch to shade interval
+                            [hpatch{k} htext{k}]=hlp_vrect(erWinCenterTimes(sigidx(k,:)),'label',{},'textPosition',[0.5 0.9],'yscale',0.1,'dock','bottom','patchProperties',{'FaceAlpha',0.2,'FaceColor',g.patchcolor},'textProperties',{'Color','b','EdgeColor','k','BackgroundColor','r','FontSize',14});
+                            box on;
+                        end
+                    end
+                    
+                    
+                    % plot causality trace
+                    if nfreqs==1
+                        if strcmpi(g.freqscale,'log')
+                            h = semilogx(erWinCenterTimes,squeeze(OrigConnMatrix(i,j,:,:)),'color',g.linecolor);
+                        else
+                            h=plot(erWinCenterTimes,squeeze(OrigConnMatrix(i,j,:,:)),'color',g.linecolor);
+                        end
                     else
-                        h=plot(erWinCenterTimes,squeeze(OrigConnMatrix(i,j,ff,:)),'color',colorlist{mod(ff-1,length(colorlist))+1});
+                        if strcmpi(g.freqscale,'log')
+                            h = semilogx(erWinCenterTimes,squeeze(OrigConnMatrix(i,j,ff,:)),'color',colorlist{mod(ff-1,length(colorlist))+1});
+                        else
+                            h=plot(erWinCenterTimes,squeeze(OrigConnMatrix(i,j,ff,:)),'color',colorlist{mod(ff-1,length(colorlist))+1});
+                        end
+                    end
+                    
+                    
+                end
+                
+                if g.plotCondDiff.arg_selection || ~isempty(g.baseline)
+                    % make line at zero
+                    zh = hline(0);
+                    set(zh,'color',g.linecolor,'linestyle','-.')
+                end
+                
+                % draw horizontal lines at levels of interest
+                if ~isempty(g.foilines)
+                    for ln=1:length(g.foilines)
+                        hl = hline(g.foilines(ln));
+                        if isempty(g.foilinecolor)
+                            color = colorlist{mod(ln-1,length(colorlist))+1};
+                        elseif size(g.foilinecolor,1) > 1
+                            color = g.foilinecolor(ln,:);
+                        elseif size(g.foilinecolor,1) == 1
+                            color = g.foilinecolor;
+                        end
+                        
+                        set(hl,'color',color,'linestyle','-','linewidth',1);
+                        set(hl,'tag','foilines');
+                    end
+                end
+                
+                set(gca,'Ylim',clim);
+                set(gca,'Xlim',[erWinCenterTimes(1) erWinCenterTimes(end)]);
+                set(gca,'tag','lineplot');
+                
+                % draw baseline shaded region
+                if ~isempty(g.baseline)
+                    hlp_vrect(g.baseline,'yscale',1,'patchProperties',{'FaceAlpha',0.5,'FaceColor',[0.7 0.7 1],'EdgeColor','none'});
+                end
+                
+                % draw event markers
+                if ~isempty(g.events)
+                    for i=1:length(g.events)
+                        events = g.events{i};
+                        
+                        % set defaults
+                        if length(events) < 4
+                            events{4} = 2;      end
+                        if length(events) < 3
+                            events{3} = ':';    end
+                        if length(events) < 2
+                            events{2} = 'r';     end
+                        
+                        vl = vline(events{1});
+                        set(vl,'color',events{2},'linestyle',events{3},'linewidth',events{4});
                     end
                 end
                 
                 
-            end
-            
-            if g.plotCondDiff.arg_selection || ~isempty(g.baseline)
-                % make line at zero
-                zh = hline(0);
-                set(zh,'color',g.linecolor,'linestyle','-.')
-            end
-            
-            % draw horizontal lines at levels of interest
-            if ~isempty(g.foilines)
-                for ln=1:length(g.foilines)
-                    hl = hline(g.foilines(ln));
-                    if isempty(g.foilinecolor)
-                        color = colorlist{mod(ln-1,length(colorlist))+1};
-                    elseif size(g.foilinecolor,1) > 1
-                        color = g.foilinecolor(ln,:);
-                    elseif size(g.foilinecolor,1) == 1
-                        color = g.foilinecolor;
-                    end
-                    
-                    set(hl,'color',color,'linestyle','-','linewidth',1);
-                    set(hl,'tag','foilines');
-                end
-            end
-            
-            set(gca,'Ylim',clim); 
-            set(gca,'Xlim',[erWinCenterTimes(1) erWinCenterTimes(end)]);
-            set(gca,'tag','lineplot');
-            
-            % draw baseline shaded region
-            if ~isempty(g.baseline)
-                hlp_vrect(g.baseline,'yscale',1,'patchProperties',{'FaceAlpha',0.5,'FaceColor',[0.7 0.7 1],'EdgeColor','none'});
-            end
-            
-            % draw event markers
-            if ~isempty(g.events)
-                for i=1:length(g.events)
-                    events = g.events{i};
-                    
-                    % set defaults
-                    if length(events) < 4
-                        events{4} = 2;      end
-                    if length(events) < 3
-                        events{3} = ':';    end
-                    if length(events) < 2
-                        events{2} = 'r';     end
-                    
-                    vl = vline(events{1});
-                    set(vl,'color',events{2},'linestyle',events{3},'linewidth',events{4});
-                end
-            end
-            
-            
-            hold off
-            
+                hold off
+                
         end
         
-        % set x and y tick marks for current plot 
+        % set x and y tick marks for current plot
         % (if a label is to be plotted)
         if ~isempty(get(gca,'XTickLabel'))
             if ~isempty(g.xloc)
@@ -1939,13 +1948,13 @@ set(leghandle,'Interpreter','none','fontsize',g.axesFontSize);
 
 % place axis labels on top/bottom/right/left of Grid
 switch GridType
-    case 'TimeXFreq'
+    case 'TimeXFrequency'
         RightLabelString = 'Frequency (Hz)';
         BotLabelString   = 'Time (sec)';
-    case 'CausalityXFreq'
+    case 'FrequencyXCausality'
         RightLabelString = 'Coupling';
         BotLabelString   = 'Frequency (Hz)';
-    case 'CausalityXTime'
+    case 'TimeXCausality'
         RightLabelString = 'Coupling';
         BotLabelString   = 'Time (sec)';
 end

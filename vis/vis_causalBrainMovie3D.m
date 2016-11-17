@@ -866,8 +866,8 @@ usestatsdef = [];  % false
 MyComponentNames = MyComponentNames(:)';
 MyChannelNames = MyChannelNames(:)';
 
-NodeColorMappingOpts = [{'None','Outflow','Mag_Outflow','Inflow','CausalFlow','Outdegree','Indegree','CausalDegree','AsymmetryRatio'} fastif(haspower,'Power',[])];
-NodeSizeMappingOpts = [{'None','Outflow','Mag_Outflow','Inflow','CausalFlow','Outdegree','Indegree','CausalDegree','AsymmetryRatio'} fastif(haspower,'Power',[])];
+NodeColorMappingOpts = [{'None','Flow','Mag_Flow','Outflow','Mag_Outflow','Inflow','CausalFlow','Degree','Outdegree','Indegree','CausalDegree','AsymmetryRatio'} fastif(haspower,'Power',[])];
+NodeSizeMappingOpts = [{'None','Flow','Mag_Flow','Outflow','Mag_Outflow','Inflow','CausalFlow','Degree','Outdegree','Indegree','CausalDegree','AsymmetryRatio'} fastif(haspower,'Power',[])];
 EdgeColorMappingOpts = {'None','Connectivity','PeakFreq','Directionality'};
 EdgeSizeMappingOpts = {'None','ConnMagnitude','Connectivity'};
 
@@ -947,6 +947,7 @@ g = arg_define([0 2],varargin, ...
         },'Configure footer panel displayed at the bottom of the figure. If ''off'', don''t render footer. If ''ICA_ERP_Envelope'', then display the ERP envelope of backprojected components. If ''Chan_ERP_Envelope'' then display the ERP envelope of selected channels. If ''GraphMetric'' then display a graph theoretic metric (net metric value (integral) across all nodes if multiple nodes selected)','cat','DisplayProperties'), ...
     arg_sub({'BMopts','BrainMovieOptions'},[], ...
         { ...
+            arg({'condtitle','ConditionTitle'},'',[],'Condition title','cat','DisplayProperties','type','expression'), ...
             arg({'size','ImageSize'},[600 600],[],'Image size (pixels). Input should be [widthcond height]. If more than one condition is being plotted horizontally, then widthcond is the width of each condition subplot','cat','DisplayProperties') ...
             arg({'visible','Visibility'},'on',{'on','off'},'Figure visibility when rendering movie. If ''on,'' render frames on screen (slower). If ''off,'' keep them hidden (faster).','cat','DisplayProperties'), ...
             arg_nogui({'latency','LatenciesToRender'},[],[],'Subset of latencies to render (sec). Must be in TimeRange. Can be a vector The time point closest to the latency given are plotted. If empty, render all latencies in TimeRange.','cat','DataProcessing'), ...
@@ -1005,7 +1006,7 @@ g = arg_define([0 2],varargin, ...
                         { 
                         arg({'volumefile','VolumeMeshFile'},[],[],'Mesh structure. This is a struct with fields ''vertices'' and ''faces'' defining the surface mesh. This can also be (1) a filename or path to custom mesh volume file or (2) the name of a variable in the base workspace containing the mesh or (3) an expression to evaluate in the workspace which returns the mesh structure.','type','expression','shape','row'), ...
                         arg({'meshtrans','Transparency','transparency'},0.8,[0 1],'Transparency of the surface. Real number in [0 1], where 0=opaque, 1=transparent.'), ...
-                        arg({'meshcolor','Color'},[1,.75,.65],[],'Layer color. Can be a single vector, or a [num_vertices x 3] matrix of colors','shape','matrix','cat','Layers'), ...
+                        arg({'meshcolor','Color'},[1,.75,.65],[],'Layer color. Can be a single vector, or a [num_vertices x 3] matrix of colors','shape','matrix','cat','Layers','type','expression'), ...
                         },'Superimpose custom semi-transparent mesh on brainmovie. UseOpenGL must be set to "on"','cat','Layers'), ...            
             },'Enable Visualization Layers','cat','DisplayProperties'), ...
             arg({'facelighting','FaceLighting'},'phong',{'flat','gouraud','phong','none'},{'Lighting algorithm.', '''flat'' produces uniform lighting across each of the faces of the object. Fastest to render, but poorest quality','''gouraud'' calculates the vertex normals and interpolates linearly across the faces. Good quality and faster to render than phong. The default choice for most applications.','''phong'' interpolates the vertex normals across each face and calculates the reflectance at each pixel. Phong lighting generally produces better results than Gouraud lighting, but it takes longer to render.'}), ...
@@ -1015,6 +1016,7 @@ g = arg_define([0 2],varargin, ...
             arg_nogui({'square','Square'},'on',{'on','off'},'?','cat','Miscellaneous'), ...
             arg({'caption','DisplayLegendPanel'},true,[],'Display legends in BrainMovie','cat','DisplayProperties'), ...
             arg({'displayLegendLimitText','DisplayLegendLimitText'},true,[],'Display data limits in the legend.'), ...
+            arg({'legendText','LegendText'},'',[],'Overwrite default legend text. This should be a cell array of {EdgeColorLegend,EdgeSizeLegend,NodeColorLegend,NodeSizeLegend}','type','expression'), ...
             arg({'showLatency','ShowLatency'},true,[],'Display latency of current frame. This will render in lower left corner.','cat','DisplayProperties'), ...
             arg({'dispRT','DisplayRTProbability'},false,[],'Display reaction time probabilty (if RT available). This will render a small bar the height of which will vary based on the probability of response.','cat','DisplayProperties'), ...
             arg({'backcolor','BackgroundColor'},[0 0 0],[],'Background color.  Can use any allowable Matlab color specification (see ''help ColorSpec'').','shape','row','type','expression','cat','DisplayProperties'), ...
@@ -1805,9 +1807,13 @@ if g.subtractconds && size(EdgeSizeCell,3)==2
     NodeSizeCell    = tmpnodesize;
     NodeColorCell   = tmpnodecolor;
     
-    g.BMopts.condtitle = sprintf('%s - %s', g.ALLEEG(1).condition,g.ALLEEG(2).condition); 
+    if isempty(g.BMopts.condtitle)
+        g.BMopts.condtitle = sprintf('%s - %s', g.ALLEEG(1).condition,g.ALLEEG(2).condition); 
+    end
 else
-    g.BMopts.condtitle    = {g.ALLEEG.condition};
+    if isempty(g.BMopts.condtitle)
+        g.BMopts.condtitle    = {g.ALLEEG.condition};
+    end
 end
 
 
@@ -1823,6 +1829,7 @@ else
 end
         
 BMopts.title = BMopts.condtitle;
+
 % extract the coordinates of dipoles
 % for cnd=1:length(g.Conn)
 %     coords{cnd} = {g.ALLEEG(cnd).dipfit.model.posxyz};
@@ -1927,10 +1934,17 @@ end
 % if any(any(any(cell2mat(EdgeColorCell)<0)))
 %     BMopts.edgeColorPolarity = 'posneg'; end
 
-BMopts.NodeColorMapping = g.nodeColorMapping;
-BMopts.EdgeColorMapping = g.edgeColorMapping;
-BMopts.NodeSizeMapping  = g.nodeSizeMapping;
-BMopts.EdgeSizeMapping  = g.edgeSizeMapping;
+if isempty(BMopts.legendText)
+    BMopts.NodeColorMapping = g.nodeColorMapping;
+    BMopts.EdgeColorMapping = g.edgeColorMapping;
+    BMopts.NodeSizeMapping  = g.nodeSizeMapping;
+    BMopts.EdgeSizeMapping  = g.edgeSizeMapping;
+else
+    BMopts.EdgeColorMapping = BMopts.legendText{1};
+    BMopts.EdgeSizeMapping  = BMopts.legendText{2};
+    BMopts.NodeColorMapping = BMopts.legendText{3};
+    BMopts.NodeSizeMapping  = BMopts.legendText{4};
+end
 BMopts.ConnMethod       = g.connmethod;
 BMopts.collapsedFreqs   = g.freqsToCollapse;
 

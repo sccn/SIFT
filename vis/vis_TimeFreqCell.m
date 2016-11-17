@@ -431,6 +431,11 @@ for dir=1:numdirs
     YTickLabel = get(gca,'YTickLabel');
     set(gca,'ydir','norm');
     
+    himg = gca;
+    pos  = get(himg,'Position');
+    imgcellwd= (pos(3)/size(ConnOrig,2))*range(g.alltimes); % width of imagesc 'cell' in time units
+    imgcellht= (pos(4)/size(ConnOrig,1))*range(g.allfreqs); % height of imagesc cell  in time units
+    
     if ~isempty(g.clim)
         caxis([g.clim(1) g.clim(2)]);
     end
@@ -537,12 +542,12 @@ for dir=1:numdirs
         
         axmin = min([ConnMarginal(:)' Stat(:)']);
         axmax = max([ConnMarginal(:)' Stat(:)']);
-        axis([min(g.alltimes) max(g.alltimes) (sign(axmin)-0.2)*abs(axmin)-eps (sign(axmax)+0.2)*abs(axmax)+eps]);
+        axis([min(g.alltimes)-imgcellwd max(g.alltimes)+imgcellwd (sign(axmin)-0.2)*abs(axmin)-eps (sign(axmax)+0.2)*abs(axmax)+eps]);
     else
         if ~all(isnan(ConnMarginal(:)))
             axmin = min(ConnMarginal);
             axmax = max(ConnMarginal);
-            axis([min(g.alltimes)-eps max(g.alltimes)+eps (sign(axmin)-0.2)*abs(axmin)-eps (sign(axmax)+0.2)*abs(axmax)+eps]);
+            axis([min(g.alltimes)-imgcellwd-eps max(g.alltimes)+imgcellwd+eps (sign(axmin)-0.2)*abs(axmin)-eps (sign(axmax)+0.2)*abs(axmax)+eps]);
         end
     end;
     
@@ -601,14 +606,14 @@ for dir=1:numdirs
         if ~isnan(max(ConnMarginal))
             axmin = min([ConnMarginal(:)' Stat(:)']);
             axmax = max([ConnMarginal(:)' Stat(:)']);
-            axis([g.allfreqs(1) g.allfreqs(end) ...
+            axis([g.allfreqs(1)-imgcellht g.allfreqs(end)+imgcellht ...
                 (sign(axmin)-0.2)*abs(axmin)-eps   (sign(axmax)+0.2)*abs(axmax)+eps]);
         end;
     else
         if ~isnan(max(ConnMarginal))
             axmin = min(ConnMarginal);
             axmax = max(ConnMarginal);
-            axis([g.allfreqs(1) g.allfreqs(end) ...
+            axis([g.allfreqs(1)-imgcellht g.allfreqs(end)+imgcellht ...
                 (sign(axmin)-0.2)*abs(axmin)-eps   (sign(axmax)+0.2)*abs(axmax)+eps]);
         end;
     end

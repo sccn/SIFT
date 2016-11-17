@@ -281,7 +281,7 @@ for m=1:length(g.connmethods)
     
 end
 
-if ~isempty(frangeidx)
+if ~isempty(frangeidx) && ~strcmpi(g.coldim.freq.method,'getrange')
     Conn.collapsedFreqs = [];
     if size(frangeidx,1) > 1
         for k=1:size(frangeidx,1)
@@ -298,7 +298,7 @@ if ~isempty(frangeidx)
     % Conn.freqs = median(Conn.freqs(frangeidx),2)';
 end
 
-if ~isempty(trangeidx)
+if ~isempty(trangeidx) && ~strcmpi(g.coldim.time.method,'getrange')
     Conn.collapsedTimes = [];
     Conn.collapsedWinCenterTimes = [];
     if size(trangeidx,1) > 1

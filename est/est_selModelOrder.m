@@ -227,10 +227,10 @@ if ~g.downdate
             % initialize random number generator with a known state
             % so that we get the same random sequence of windows for
             % each model order
-            RandStream.setDefaultStream ...
+            RandStream.setGlobalStream ...
                 (RandStream('mt19937ar','seed',sum(100*clock)));
 
-            defaultStream = RandStream.getDefaultStream;
+            defaultStream = RandStream.getGlobalStream;
             savedState = defaultStream.State;
         end
 
@@ -322,8 +322,8 @@ for t=1:numWins
     
     for p=pmin:pmax,
         % Get logarithm of determinant for each model order
-        logdp(p-pmin+1) = log(det(MODEL.PE{t}(:,p*nbchan+(1:nbchan))));
-        %logdp(p-pmin+1) = log(det(MODEL.PE{t}(:,p*nbchan+(1:nbchan))*(npnts-p)));
+%         logdp(p-pmin+1) = log(det(MODEL.PE{t}(:,p*nbchan+(1:nbchan))));
+        logdp(p-pmin+1) = log(det(MODEL.PE{t}(:,p*nbchan+(1:nbchan))*(npnts-p)));
     end
     
     % Schwarz's Bayesian Criterion / Bayesian Information Criterion

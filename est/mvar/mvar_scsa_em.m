@@ -1,5 +1,4 @@
 function [AR PE out] = mvar_scsa_em(varargin)
-
 % Algorithm: SCSA EM
 %
 % Description:
@@ -145,7 +144,7 @@ end
 
 % Initialize CSA state (warm-start)
 % --------------------------------------------------------------------------------------------------
-if g.warmStart.arg_selection
+if g.warmStart.arg_selection && ~isempty(g.warmStart.initState)
     initAR = g.warmStart.initState;
     runCSA = false;
 else
@@ -191,20 +190,20 @@ if nargout>2
 
     % store outputs
     if g.pca.arg_selection
-        out.pca = struct('pcaweights',  pcaweights, ...
-                         'pcawinv'   ,  pcawinv,    ...
-                         'varexplained',varexplained,...
-                         'pcadim',   pcadim,        ...
-                         'iscentered',  g.pca.iscentered);
+        out.SCSA.pca = struct('pcaweights',  pcaweights,  ...
+                              'pcawinv'   ,  pcawinv,     ...
+                              'varexplained',varexplained,...
+                              'pcadim',      pcadim,      ...
+                              'iscentered',  g.pca.iscentered);
     else
-        out.pca = struct([]);
+        out.SCSA.pca = struct([]);
     end
-    out.scsa    = struct('scsaweights',scsaweights, ...
-                         'scsawinv'   ,scsawinv,    ...
-                         'finalcost'  ,cost);
-    out.icaact      = srcact;
-    out.icaweights  = icaweights;
-    out.icawinv     = icawinv;
+    out.SCSA.scsa    = struct('scsaweights',scsaweights, ...
+                              'scsawinv'   ,scsawinv,    ...
+                              'finalcost'  ,cost);
+    out.SCSA.ica.icaact      = srcact;
+    out.SCSA.ica.icaweights  = icaweights;
+    out.SCSA.ica.icawinv     = icawinv;
 end
 
 

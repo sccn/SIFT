@@ -13,7 +13,6 @@ function [ALLEEG cfg handles] = pop_vis_TimeFreqGrid(ALLEEG,typeproc,varargin)
 %       ALLEEG:     Array of 1 or 2 EEGLAB datasets. If 2 sets, this function
 %                   plots difference (and Conn must also be 1x2 array of
 %                   structs)
-%       Conn:       SIFT Connectivity Structure
 %
 % Optional:
 %
@@ -75,6 +74,11 @@ fcnHandle   = str2func(fcnName);
 res = hlp_checkeegset(ALLEEG,{'conn'});
 if ~isempty(res)
     error(['SIFT:' fcnName],res{1});
+end
+
+% check number of datasets
+if length(ALLEEG) > 2
+    error(['SIFT:' fcnName], 'ALLEEG can contain at most two datasets.');
 end
 
 % check if we have statistics
