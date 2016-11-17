@@ -50,8 +50,8 @@ arg_define([0 Inf],varargin, ...
     arg_norep({'cmatrix','CausalMatrix'}, mandatory,[],'Causality array. Shape is [num_vars_to x num_vars_from x <num_times> x <num_freqs>]. Last two dims are optional','shape','matrix'), ...
     arg({'srcNodes','SourceNodes'},  [],[],'Indices of source nodes. Default is all nodes'), ...
     arg({'targNodes','TargetNodes'}, [],[],'Indices of target nodes. Default is all nodes'), ...
-    arg({'graphMetric','GraphMetric'},'none',{'none','outflow','mag_outflow','inflow', ...
-                                              'causalflow','outdegree','indegree',     ...
+    arg({'graphMetric','GraphMetric'},'none',{'none','outflow','mag_outflow','inflow','flow' ...
+                                              'causalflow','outdegree','indegree','degree'   ...
                                               'causaldegree','asymmetryratio'}, ...
                                               'Graph measure to compute'), ...
     arg({'ignoreSelfConn','IgnoreSelfConn'},true,[],'Ignore self connectivity in graph measure'));
@@ -87,6 +87,14 @@ switch lower(graphMetric)
         outflow =   squeeze(sum(cmatrix(targNodes,srcNodes,:,:),1));
         inflow  =   squeeze(sum(cmatrix(srcNodes,targNodes,:,:),2));
         NodeValue = outflow - inflow;
+    case 'flow'
+        outflow =   squeeze(sum(cmatrix(targNodes,srcNodes,:,:),1));
+        inflow  =   squeeze(sum(cmatrix(srcNodes,targNodes,:,:),2));
+        NodeValue = outflow + inflow;
+    case 'mag_flow'
+        outflow =   squeeze(sum(cmatrix(targNodes,srcNodes,:,:),1));
+        inflow  =   squeeze(sum(cmatrix(srcNodes,targNodes,:,:),2));
+        NodeValue = abs(outflow + inflow);
     case 'outdegree'
         % Compute number of outgoing edges from srcNodes in each freq
         NodeValue = squeeze(sum(logical(cmatrix(targNodes,srcNodes,:,:)),1));
@@ -98,6 +106,11 @@ switch lower(graphMetric)
         outflow =   squeeze(sum(logical(cmatrix(targNodes,srcNodes,:,:)),1));
         inflow  =   squeeze(sum(logical(cmatrix(srcNodes,targNodes,:,:)),2));
         NodeValue = outflow - inflow;
+    case 'degree'
+        % outdegree + indegree 
+        outflow =   squeeze(sum(logical(cmatrix(targNodes,srcNodes,:,:)),1));
+        inflow  =   squeeze(sum(logical(cmatrix(srcNodes,targNodes,:,:)),2));
+        NodeValue = outflow + inflow;
     case 'asymmetryratio'
         % 1 if all edges are outgoing, -1 if all edges are incoming.
         % 0 if balanced

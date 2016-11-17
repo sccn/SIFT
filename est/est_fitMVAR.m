@@ -1484,4 +1484,6 @@ switch lower(g.algorithm.arg_selection)
         Model.lambda = g.algorithm.admm_args.lambda;
         Model.rho    = g.algorithm.admm_args.rho;
         Model.alpha  = g.algorithm.admm_args.alpha;
+    case 'scsa em'
+        Model.SCSA = SCSA;
 end

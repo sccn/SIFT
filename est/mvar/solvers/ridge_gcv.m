@@ -134,7 +134,7 @@ switch lambdaMode.arg_selection
 end
 
 % solve system for parameters x
-x = iPV*diag(s./(s2+lambda_opt))*UtY;
+x = iPV*bsxfun(@times,(s./(s2+lambda_opt)),UtY);
 
 if nargout > 2
     Y_hat = A*x;
