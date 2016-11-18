@@ -1,20 +1,24 @@
-
-function EIGMODE = est_eigenmode(varargin)
+function [ALLEEG cfg] = pop_est_eigenmode(ALLEEG,typeproc,varargin)
 %
-% Estimate eigenmodes of VAR process. EEG.CAT.MODEL must be present as 
-% output by est_fitMVAR with arfit option selected. Wrapper function for 
-% armode() from the ARfit package by T. Schneider and A. Neumaier [1]
+% Estimate eigenmodes (Principal Oscillation Patterns) of a VAR 
+% process using the method described by T. Schneider and 
+% A. Neumaier [1]. EEG.CAT.MODEL must be present (see est_fitMVAR). 
+% Statistics available if arfit method used for model fitting. 
 %
-% This requires the function armode() from ARFIT package (Schneider, 2000)
 %
 % Inputs:
 %
-%       EEG:        EEG data structure with EEG.CAT.MODEL present
-%       verb:       verbosity (true/false)
+%       ALLEEG:        EEG data structure with EEG.CAT.MODEL present
+%                      estimated using ARFIT
+%       typeproc:      Reserved for future use. Use 0
+%
+% Optional:         
+%
+%       <'Name',value> pairs as defined in est_eigenmode()       
 %
 % Outputs:
 %
-%   EIGMODE
+%   ALLEEG.EIGMODE
 %       .modes:         Columns contain the estimated eigenmodes of the VAR model.  
 %       .modeconf:      Margins of error for the components of the estimated 
 %                       eigenmodes, such that (S +/- Serr) are approximate 95% 
@@ -37,9 +41,9 @@ function EIGMODE = est_eigenmode(varargin)
 %                       the sum of the excitations of all eigenmodes equals one.
 %       .lambda:        The columns contain the eigenvalues of the
 %                       eigenmodes
+%   cfg:            Argument specification structure.
 %
-%
-% See Also: est_fitMVAR(), armode()
+% See Also:  est_eigenmode(), est_fitMVAR()
 %
 % References:
 %
@@ -49,7 +53,7 @@ function EIGMODE = est_eigenmode(varargin)
 % http://www.gps.caltech.edu/~tapio/arfit/
 % 
 % Author: Tim Mullen 2010, SCCN/INC, UCSD. 
-% Wrapper function for armode() from the ARfit package by T. Schneider and 
+% This function uses a mod of armode() from the ARfit package by T. Schneider and 
 % A. Neumaier [1]
 % Email:  tim@sccn.ucsd.edu
 
@@ -69,23 +73,54 @@ function EIGMODE = est_eigenmode(varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-arg_define([0 2],varargin,...
-        arg_norep('EEG',[],[],'EEG data structure. Must contain .CAT.MODEL structure computed using SIFT'), ...
-        arg({'computeStats','ComputeStats'},true,[],'Compute statistics. This can significatly increase runtime'), ...
-        arg({'verb','VerbosityLevel'},2,{int32(0) int32(1) int32(2)},'Verbosity level. 0 = no output, 1 = text, 2 = graphical') ...
-        );
 
-if ~exist('armode','file')
-    error('Unable to locate armode() function. Is ARfit downloaded and in the path?');
+if nargin<2
+    typeproc = 0;
 end
 
-% starting point of each window (points)
-winStartIdx  = floor(EEG.CAT.MODEL.winStartTimes*EEG.srate)+1;    
+fcnName     = strrep(mfilename,'pop_','');
+fcnHandle   = str2func(fcnName);
 
-numWins = length(winStartIdx);
+% check the dataset
+res = hlp_checkeegset(ALLEEG,{'model'});
+if ~isempty(res)
+    error(['SIFT:' fcnName],res{1});
+end
 
-if verb==2
+if isfield(ALLEEG(1).CAT.configs,fcnName)
+    % get default configuration (from prior use) and merge with varargin
+    varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
+end
+
+if strcmpi(typeproc,'nogui')
+    % get the config from function
+    cfg = arg_tovals(arg_report('rich',fcnHandle,[{'EEG',ALLEEG(1)},varargin]),false);
+else
+    % render the GUI
+    [PGh figh] = feval(['gui_' fcnName],ALLEEG(1),varargin{:});
+    
+    if isempty(PGh)
+        % user chose to cancel
+        cfg = [];
+        return;
+    end
+    
+    % get the specification of the PropertyGrid
+    ps = PGh.GetPropertySpecification;
+    cfg = arg_tovals(ps,false);
+end
+
+drawnow;
+
+if strcmpi(typeproc,'cfg_only')
+    return;
+end
+
+
+% initialize progress bar
+if cfg.verb==2 && length(ALLEEG)>1
     waitbarTitle = 'Estimating eigenmodes';
+    
     multiWaitbar(waitbarTitle,'Reset');
     multiWaitbar(waitbarTitle,'ResetCancel',true);
     multiWaitbar(waitbarTitle,...
@@ -93,32 +128,28 @@ if verb==2
                  'CanCancel','on',        ...
                  'CancelFcn',@(a,b)disp('[Cancel requested. Please wait...]'));
 end
-             
-if ~computeStats || ~isfield(EEG.CAT.MODEL,'th') || isempty(EEG.CAT.MODEL.th)
-    EEG.CAT.MODEL.th = cell(1,numWins); 
-end
-m = EEG.CAT.nbchan;
-for t=1:numWins
-    [EIGMODE.modes{t}, EIGMODE.modeconf{t}, EIGMODE.period{t}, EIGMODE.dampingTime{t}, EIGMODE.exctn{t}, EIGMODE.lambda{t}] = armode2(EEG.CAT.MODEL.AR{t}, EEG.CAT.MODEL.PE{t}(:,1:m), EEG.CAT.MODEL.th{t});
-        
-    if verb==2
+
+% execute the low-level function
+for cnd=1:length(ALLEEG)
+    [ALLEEG(cnd).CAT.EIGMODE] = feval(fcnHandle,'EEG',ALLEEG(cnd),cfg);
+    
+    if ~isempty(cfg)
+        % store the configuration structure
+        ALLEEG(cnd).CAT.configs.(fcnName) = cfg;
+    end
+    
+    if cfg.verb==2 && length(ALLEEG)>1
+        % update waitbar
         drawnow;
-        % graphical waitbar
-        cancel = multiWaitbar(waitbarTitle,t/numWins);
-        if cancel
-            if strcmpi('yes',questdlg2( ...
-                            'Are you sure you want to cancel?', ...
-                            'Eigendecomposition','Yes','No','No'));
-                EIGMODE = [];
-                multiWaitbar(waitbarTitle,'Close');
-                return;
-            else
-                multiWaitbar(waitbarTitle,'ResetCancel',true);
-            end
+        cancel = multiWaitbar(waitbarTitle,cnd/length(ALLEEG));
+        if cancel && hlp_confirmWaitbarCancel(waitbarTitle)
+            break;
         end
     end
+    
 end
 
-if verb==2
-    multiWaitbar(waitbarTitle,'Close'); 
+% cleanup progress bar
+if cfg.verb==2 && length(ALLEEG)>1
+    multiWaitbar(waitbarTitle,'Close');
 end
