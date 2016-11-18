@@ -2,13 +2,10 @@ The Source Information Flow Toolbox
 Version: [$Version$]
 Author: Tim Mullen (tim@sccn.ucsd.edu)
 
-Acknowledgements:
+* Acknowledgements:
 Arnaud Delorme was instrumental in the development of the SIFT framework and integration into EEGLAB as well as contributing initial BrainMovie3D code.
-
 Christian Kothe contributed the arg() framework for function I/O and auto-GUI generation
-
 Wes Thompson consulted on statistics and methods for bayesian smoothing and multi-subject analysis
-
 Alejandro Ojeda contributed routines for fast ridge regression
 
 SIFT makes use of routines from (or is inspired by) the following open-source packages:
@@ -19,12 +16,10 @@ DAL/SCSA: 	(Tomioka / Haufe et al) http://www.ibis.t.u-tokyo.ac.jp/ryotat/dal/
 BCILAB:		(Kothe et al) 		http://sccn.ucsd.edu/wiki/BCILAB
 
 
-Official Website: http://sccn.ucsd.edu/wiki/SIFT
+* Official Website: http://sccn.ucsd.edu/wiki/SIFT
 
-If you find this toolbox useful for your research, PLEASE include the following citations with any publications and/or presentations which make use of SIFT:
-    
-(1) Mullen, T, Delorme, A. Kothe, C, Makeig, S (2010) "An Electrophysiological Information Flow Toolbox for EEGLAB" Society for Neuroscience 2010, San Diego, CA
-    
+* Citation: If you find this toolbox useful for your research, PLEASE include the following citations with any publications and/or presentations which make use of SIFT:
+(1) Mullen, T. R. (2014). The dynamic brain: Modeling neural dynamics and interactions from human electrophysiological recordings (Order No. 3639187). Available from Dissertations & Theses @ University of California; ProQuest Dissertations & Theses A&I. (1619637939)
 (2) Delorme, A., Mullen, T., Kothe C., Akalin Acar, Z., Bigdely Shamlo, N., Vankov, A., Makeig, S. (2011) "EEGLAB, SIFT, NFT, BCILAB, and ERICA: New tools for advanced EEG/MEG processing." Computational Intelligence and Neuroscience vol. 2011, Article ID 130714, 12 pages.
 
 
