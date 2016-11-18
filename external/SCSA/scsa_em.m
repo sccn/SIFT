@@ -79,11 +79,13 @@ if pars.verb==1
 elseif pars.verb==2
     multiWaitbar(waitbarTitle, ...
         'Color', [0 0 1], ...
-        'CanCancel','off', ...
+        'CanCancel','on', ...
         'CancelFcn',@(a,b) disp('[Cancel requested. Please wait...]'));
 end
 
+qflag = false;
 for istart = 1:nstart
+    if qflag, break; end
     if pars.verb==1
         fprintf('-------------------------------\n');
         fprintf('ITERATION %d\n',istart);
@@ -103,6 +105,7 @@ for istart = 1:nstart
     
     if lambda > 0
         for iem = 1:emiter
+            if qflag, break; end
             if pars.verb==1
                 fprintf('EM Iteration: %0.4f\n',iem/emiter);
             end
@@ -130,17 +133,17 @@ for istart = 1:nstart
                 drawnow;
                 % graphical waitbar
                 cancel = multiWaitbar(waitbarTitle,iop/nops);
-%                 if cancel
-%                     if strcmpi('yes',questdlg2( ...
-%                             'Are you sure you want to cancel?', ...
-%                             'Model Fitting','Yes','No','No'));
-%                         [B H f S] = deal([]);
-%                         multiWaitbar(waitbarTitle,'Close');
-%                         return;
-%                     else
-%                         multiWaitbar(waitbarTitle,'ResetCancel',true);
-%                     end
-%                 end
+                if cancel
+                    if strcmpi('yes',questdlg2( ...
+                            'Are you sure you want to cancel?', ...
+                            'Model Fitting','Yes','No','No'));
+                        multiWaitbar(waitbarTitle,'Close');
+                        qflag = true;
+                        continue;
+                    else
+                        multiWaitbar(waitbarTitle,'ResetCancel',true);
+                    end
+                end
                 iop = iop + 1;
             end
         end

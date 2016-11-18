@@ -9,6 +9,7 @@ function [AR PE out] = mvar_scsa_em(varargin)
 % performed using an Expectation-
 % Maximization (EM) algorithm.
 %
+% ** NOTE ** This implementation is Beta
 %
 % Author Credits:
 %
