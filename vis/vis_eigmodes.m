@@ -93,7 +93,7 @@ function res = vis_eigmodes(varargin)
     
     if ~isempty(EEG.CAT.EIGMODE.modeconf{1})
         res.eigmodesConf = cell2mat(EEG.CAT.EIGMODE.modeconf);
-        res.eigmodesConf = reshape(res.eigmodesConf,[nmodes nwins]);
+        res.eigmodesConf = reshape(res.eigmodesConf,[nch nmodes nwins]);
     else
         res.eigmodesConf = zeros(nmodes, nwins);
     end
