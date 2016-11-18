@@ -1,25 +1,25 @@
 function [ALLEEG cfg] = pop_est_fitMVAR(ALLEEG,typeproc,varargin)
 %
-% Preprocess EEG dataset(s) for connectivity analysis. See [1] for
-% mathematical details on preprocessing steps.
+% Fit an Adaptive Autoregressive Model to EEG data. See [1] for
+% mathematical details on model fitting.
 %
 %
 % Input:
 %
-%   ALLEEG:         Array of EEGLAB datasets to preprocess.
+%   ALLEEG:         Array of EEGLAB datasets to model.
 %   typeproc:       Reserved for future use. Use 0
 %
 % Optional:         
 %
-%   <'Name',value> pairs as defined in pre_prepData()
+%   <'Name',value> pairs as defined in est_fitMVAR()
 %   
 % Output:
 %
-%   ALLEEG:         Prepocessed EEG structure(s)
+%   ALLEEG:         EEG structure(s) containing model in ALLEEG.CAT.MODEL
 %   cfg:            Argument specification structure.
 %
 %
-% See Also: pre_prepData()
+% See Also: est_fitMVAR()
 %
 % References:
 %
@@ -27,7 +27,7 @@ function [ALLEEG cfg] = pop_est_fitMVAR(ALLEEG,typeproc,varargin)
 %   Theoretical Handbook and User Manual. Section 6.5.1 
 %   Available at: http://www.sccn.ucsd.edu/wiki/Sift
 % 
-% Author: Tim Mullen 2009, SCCN/INC, UCSD. 
+% Author: Tim Mullen 2010, SCCN/INC, UCSD. 
 % Email:  tim@sccn.ucsd.edu
 
 % This function is part of the Source Information Flow Toolbox (SIFT)
