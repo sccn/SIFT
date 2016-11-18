@@ -99,16 +99,18 @@ switch lambdaMode.arg_selection
         % search over a grid of lambda values for the value that minimizes
         % the Generalized Cross Validation (GCV) criteria
         % lambdaOpt = argmin(lambda) { GCV(lambda) }
-        
+   
         % automatically determine lambda range based on singular values
         tol     = max([nr nc])*eps(max(s));
-        lgrid   = logspace(log10(tol),log10(max(s)),lambdaMode.gridSize);
+        lgrid   = logspace(log10(tol),log10(max(s2)),lambdaMode.gridSize);
         gcv     = zeros(lambdaMode.gridSize,1);
         for it=1:lambdaMode.gridSize
             % compute GCV criteria
             d       = lgrid(it)./(s2+lgrid(it));
-            f       = diag(d)*UtY;
-            gcv(it) = dot(f,f,1)/sum(d)^2;
+            err = bsxfun(@times,d,UtY);  %   y-y_hat
+            se  = dot(err,err,1);        % ||y-y_hat||^2
+            mse = mean(se);              % sum ||y_k-y_hat_k||^2, k=1,..., number of time points
+            gcv(it) = mse/sum(d)^2;
         end
         loc = getMinima(gcv);
         if isempty(loc),
@@ -135,6 +137,10 @@ end
 
 % solve system for parameters x
 x = iPV*bsxfun(@times,(s./(s2+lambda_opt)),UtY);
+
+
+% % % T = V*diag(s./(s2+lambda2))*Ut;
+% % % J = T*Y;                            % J = (K'*K+lambda*L'*L)\K'*Y
 
 if nargout > 2
     Y_hat = A*x;
@@ -169,7 +175,8 @@ hold off; grid on;
 
 function indmin = getMinima(x)
 % get minimum of a function
-fminor = diff(x)>=0;
+fminor = diff(x)>=1e-12;
 fminor = ~fminor(1:end-1, :) & fminor(2:end, :);
 fminor = [0; fminor; 0];
 indmin = find(fminor);
+
