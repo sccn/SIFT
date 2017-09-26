@@ -313,9 +313,9 @@ cols(breaks(5),:) = min( baseColor*1.4, 0.95 ) + 0.05;
 cols(breaks(6),:) = min( baseColor*1.6, 0.9 ) + 0.1;
 
 y = 1:height;
-cols(:,1) = max( 0, min( 1, interp1( breaks, cols(breaks,1), y, 'cubic' ) ) );
-cols(:,2) = max( 0, min( 1, interp1( breaks, cols(breaks,2), y, 'cubic' ) ) );
-cols(:,3) = max( 0, min( 1, interp1( breaks, cols(breaks,3), y, 'cubic' ) ) );
+cols(:,1) = max( 0, min( 1, interp1( breaks, cols(breaks,1), y, 'pchip' ) ) );
+cols(:,2) = max( 0, min( 1, interp1( breaks, cols(breaks,2), y, 'pchip' ) ) );
+cols(:,3) = max( 0, min( 1, interp1( breaks, cols(breaks,3), y, 'pchip' ) ) );
 cdata = uint8( 255 * cat( 3, cols(:,1), cols(:,2), cols(:,3) ) );
 end % iMakeColors
 

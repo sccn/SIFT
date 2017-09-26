@@ -774,9 +774,11 @@ if ismember_bc(lower(g.mode),{'init','init_and_render'})
         
         % plot 3d head
         % ------------
+        w=warning('off','MATLAB:hg:WillBeRemovedReplaceWith');
         g.vars.hBrain(tmpcond) = axes('position', [0+maxcoordx/nbconditions*(tmpcond-1), ordinate, ...
             maxcoordx/nbconditions*0.9, max_ordinate].*s+q ,...
             'parent',g.figurehandle,'DrawMode',g.drawmode);
+        warning(w);
         gr = [ 0.3 0.3 0.3 ];
         g.dipplotopt = [{ 'coordformat' g.coordformat 'gui', 'off', 'cornermri', 'on', ...
             'color', { gr gr gr gr gr gr gr gr gr } } g.dipplotopt];

@@ -89,10 +89,14 @@ function colors = distinguishable_colors(n_colors,bg,func)
   if (nargin > 2)
     lab = func(rgb);
     bglab = func(bg);
-  else
+  elseif exist('makecform','file')
     C = makecform('srgb2lab');
     lab = applycform(rgb,C);
     bglab = applycform(bg,C);
+  else
+    func = @(x) colorspace('RGB->Lab',x);
+    lab = func(rgb);
+    bglab = func(bg);
   end
 
   % If the user specified multiple background colors, compute distances

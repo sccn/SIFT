@@ -224,20 +224,23 @@ classdef geometricTools
         %%
         function [normals,faces] = getSurfaceNormals(vertices,faces,normalsIn)
             if nargin < 3, normalsIn = true;end
-            h = figure('visible','off');h2 = patch('vertices',vertices,'faces',fliplr(faces));
+            h = figure('visible','off');h2 = patch('vertices',vertices,'faces',fliplr(faces),'FaceLighting','gouraud'); 
+            light('Parent',get(h2,'Parent')); drawnow;
             normals = get(h2,'vertexnormals');close(h);
             normals = normals./(sqrt(sum(normals.^2,2))*[1 1 1]);
             area1 = geometricTools.getSurfaceArea(vertices,faces);
             area2 = geometricTools.getSurfaceArea(vertices+normals,faces);
             if area2 < area1% && normalsIn
                 faces = fliplr(faces);
-                h = figure('visible','off');h2 = patch('vertices',vertices,'faces',fliplr(faces));
+                h = figure('visible','off');h2 = patch('vertices',vertices,'faces',fliplr(faces),'FaceLighting','gouraud');
+                light('Parent',get(h2,'Parent')); drawnow;
                 normals = get(h2,'vertexnormals');close(h);
                 normals = normals./(sqrt(sum(normals.^2,2))*[1 1 1]);
             end
             if normalsIn
                 faces = fliplr(faces);
-                h = figure('visible','off');h2 = patch('vertices',vertices,'faces',fliplr(faces));
+                h = figure('visible','off');h2 = patch('vertices',vertices,'faces',fliplr(faces),'FaceLighting','gouraud');
+                light('Parent',get(h2,'Parent')); drawnow;
                 normals = get(h2,'vertexnormals');close(h);
                 normals = normals./(sqrt(sum(normals.^2,2))*[1 1 1]);
             end
