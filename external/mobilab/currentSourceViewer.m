@@ -12,15 +12,14 @@ classdef currentSourceViewer < handle
         scalpInterpMat
         hTimeLabel
         normals
+        oldColorLimits
     end
     methods
         function obj = currentSourceViewer(streamObj,J,V,figureTitle,channelLabels,objIn,surfData,colorLimits,currentTime)
             
-            persistent oldColorLimits
+            %c = onCleanup(@() clear('currentSourceViewer'));
             
-            c = onCleanup(@() clear('currentSourceViewer'));
-            
-            if exist('objIn','var') && isprop(objIn,'hFigure')
+            if exist('objIn','var') && ~isempty(objIn) && isprop(objIn,'hFigure')
                 obj = objIn;
             else
                 objIn = [];
@@ -73,9 +72,9 @@ classdef currentSourceViewer < handle
                 if isempty(colorLimits)
                     mx = max(Jm(:));
                     set(obj.hAxes,'Clim',[-mx mx]);
-                elseif ~isequal(colorLimits,oldColorLimits)
+                elseif ~isequal(colorLimits,get(obj,'oldColorLimits'))
                     set(obj.hAxes,'Clim',colorLimits);
-                    oldColorLimits = colorLimits;
+                    set(obj,'oldColorLimits',colorLimits);
                 end
             
                 return;

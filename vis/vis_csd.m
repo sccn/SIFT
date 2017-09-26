@@ -126,6 +126,11 @@ if ~(isnumeric(cortexlims) && length(cortexlims)==2)
     elseif isscalar(cortexlims)
         mx = prctile(srcpot(:),cortexlims)+eps;
         cortexlims = [-mx mx]; 
+%         if min(srcpot(:))>=0
+%             cortexlims = [0 mx];
+%         else
+%             cortexlims = [-mx mx]; 
+%         end
     end
 end
 
