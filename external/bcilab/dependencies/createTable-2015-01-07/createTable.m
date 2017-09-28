@@ -169,8 +169,8 @@ function [mtable, buttons] = createTable(varargin)
       % Create a sortable uitable within the container
       try
           % use the old uitable (Matlab R2008+)
-          mtable = uitable('v0', hFig, 'position',tablePosition, 'Data',paramsStruct.data, 'ColumnNames',paramsStruct.headers);
           warning off MATLAB:uitable:DeprecatedFunction  % TODO: remove deprecation warning
+          mtable = uitable('v0', hFig, 'position',tablePosition, 'Data',paramsStruct.data, 'ColumnNames',paramsStruct.headers);
       catch
           mtable = uitable(hFig, 'position',tablePosition, 'Data',paramsStruct.data, 'ColumnNames',paramsStruct.headers);
       end
