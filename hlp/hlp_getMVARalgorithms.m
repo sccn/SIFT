@@ -71,6 +71,7 @@ else
     fpath    = [siftroot filesep 'est' filesep 'mvar' filesep];
     mvarFcns = wildcardsearch(fpath,'*mvar_*.m',true,true);
     mvarFcns = regexprep(mvarFcns,['.*mvar' filesep],'');
+    mvarFcns = regexprep(mvarFcns,'[.]_','');
     mvarFcns = regexprep(mvarFcns,'\.m','');
     
     % cycle through the list of algorithms
