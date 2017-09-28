@@ -16,7 +16,7 @@ function y = sum_square( x, dim )
 %       concave. Thus, when used in CVX expressions, X must be affine. DIM
 %       must be constant.
 
-error( nargchk( 1, 2, nargin ) );
+narginchk( 1, 2);
 y = x .* x;
 if nargin == 2,
     y = sum( y, dim );

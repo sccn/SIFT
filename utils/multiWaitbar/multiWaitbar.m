@@ -75,7 +75,7 @@ function cancel = multiWaitbar( label, varargin )
 persistent figh;
 
 % Check basic inputs
-error( nargchk( 1, inf, nargin ) );
+narginchk( 1, inf );
 if ~ischar( label )
     error( 'multiWaitbar:BadArg', 'LABEL must be the name of the progress entry (i.e. a string)' );
 end

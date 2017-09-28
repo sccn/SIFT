@@ -56,7 +56,7 @@ function result = wildcardsearch(rootdir, searchstr, casesensitive, strict)
 %==========================================================================
 
 % Check input
-error(nargchk(2, 4, nargin));
+narginchk(2, 4);
 
 % Create the regular expression
 beginstr='('; endstr=')';

@@ -3,7 +3,7 @@ function result = objectEDT(constructor, varargin)
 
 % Copyright 2010 Levente Hunyadi
 
-error(nargchk(1, 256, nargin));
+narginchk(1, 256);
 validateattributes(constructor, {'char'}, {'nonempty','row'});
 
 v = sscanf(version, '%u.%u');  % major and minor version number
