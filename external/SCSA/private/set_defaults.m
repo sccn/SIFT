@@ -110,7 +110,7 @@ function t = ispropertystruct(opts)
 % Copyright Fraunhofer FIRST.IDA (2004)
 % $Id: ispropertystruct.m,v 1.1 2004/08/16 11:52:17 neuro_toolbox Exp $
 
-error(nargchk(1, 1, nargin));
+narginchk(1, 1);
 % Currently, we do not check the version number. Existence of the field
 % is enough to identify the opts structure as a property list
 t = isfield(opts, 'isPropertyStruct');

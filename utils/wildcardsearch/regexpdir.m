@@ -32,7 +32,7 @@ function dirlist = regexpdir(rootdir, expstr, recursive)
 %==========================================================================
 
 % Check input arguments
-error(nargchk(2, 3, nargin));
+narginchk(2, 3);
 if ~exist('recursive','var'); recursive = true; end
 
 % Check if the root directory contains a trailing file seperator or supply

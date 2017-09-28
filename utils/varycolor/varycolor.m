@@ -23,8 +23,8 @@ function ColorSet=varycolor(NumberOfPlots)
 
 %Created by Daniel Helmick 8/12/2008
 
-error(nargchk(1,1,nargin))%correct number of input arguements??
-error(nargoutchk(0, 1, nargout))%correct number of output arguements??
+narginchk(1,1)%correct number of input arguements??
+nargoutchk(0, 1)%correct number of output arguements??
 
 %Take care of the anomolies
 if NumberOfPlots<1

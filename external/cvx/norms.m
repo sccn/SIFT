@@ -29,7 +29,7 @@ function cvx_optval = norms( x, p, dim )
 % Check second argument
 %
 
-error( nargchk( 1, 3, nargin ) );
+narginchk( 1, 3);
 if nargin < 2 || isempty( p ),
     p = 2;
 elseif ~isnumeric( p ) || numel( p ) ~= 1 || ~isreal( p ),
