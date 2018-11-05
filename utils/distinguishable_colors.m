@@ -89,7 +89,7 @@ function colors = distinguishable_colors(n_colors,bg,func)
   if (nargin > 2)
     lab = func(rgb);
     bglab = func(bg);
-  elseif exist('makecform','file')
+  elseif exist('makecform','file') && license('test', 'image_toolbox')
     C = makecform('srgb2lab');
     lab = applycform(rgb,C);
     bglab = applycform(bg,C);
