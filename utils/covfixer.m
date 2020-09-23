@@ -38,7 +38,10 @@ end
 while isspd(nsigma) == 0
 	% covariance matrix is not positive definite
 	% fix it
-	loops  = loops+1;
+	loops = loops+1;
+    if loops > 10000
+        error('Matrix didn''t converge');
+    end
 	d = diag(nsigma);
 	if any(d <= min_limit)
 		% negative or zero (<eps) on the diagonal
