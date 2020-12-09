@@ -142,10 +142,12 @@ if g.verb
     % inform user of total amount of memory (megabytes) required
     bytesReq = 4*length(g.connmethods)*numWins*length(g.freqs)*nchs^2;
     
-    fprintf('-------------------------------------------------------------------------\n');
-    fprintf(['Connectivity estimation will require %5.5g MB of memory (per condition).\n' ...
-             'Make sure you have enough memory available.\n'],bytesReq/(1024^2));
-    fprintf('-------------------------------------------------------------------------\n');
+    if bytesReq > 1e7
+        fprintf('-------------------------------------------------------------------------\n');
+        fprintf(['Connectivity estimation will require %5.5g MB of memory (per condition).\n' ...
+                 'Make sure you have enough memory available.\n'],bytesReq/(1024^2));
+        fprintf('-------------------------------------------------------------------------\n');
+    end
 
     % check if we are likely to exceed memory capacity and notify user
     bytesAvail = hlp_getAvailableMemory('bytes');
