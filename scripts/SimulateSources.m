@@ -1,3 +1,5 @@
+% For this script to run, you must select a simulation with 5 sources
+% such as Schelter 2005, equation 5 in the SIFT simulation GUI
 
 HeadModelPath = [hlp_getSiftRoot filesep 'resources' filesep 'headmodels' filesep 'standard-Colin27-385ch.mat'];
 hmObj = hlp_validateHeadModelObject(HeadModelPath);
