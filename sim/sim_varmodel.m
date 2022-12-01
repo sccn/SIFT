@@ -419,10 +419,10 @@ deleteAllWaitbars();
         fname = [fileparts(mfilename('fullpath')) filesep 'examples' filesep 'sim_ex_' machineSimName '.m']; 
         % check if simulation already exists
         if exist(fname,'file')
-            res = questdlg2(sprintf('Replace existing simulation %s?',machineSimName),'File Overwrite Warning','Yes','No','No');
-            if strcmpi(res,'no')
-                return;
-            end
+%             res = questdlg2(sprintf('Replace existing simulation %s?',machineSimName),'File Overwrite Warning','Yes','No','No');
+%             if strcmpi(res,'no')
+%                 return;
+%             end
         end
         fid   = fopen(fname,'w+');
         if fid==-1
