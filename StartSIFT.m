@@ -2,6 +2,10 @@ function ok = StartSIFT(interactive,nosplash)
 % This function initializes the Source Information Flow Toolbox (SIFT)
 % Author: Tim Mullen, 2011, SCCN/INC/UCSD
 
+if exist('cleanline')
+    fprintf(2, 'CleanLine detected, remove cleanLine plugin to run SIFT\n');
+end
+
 ok = false;
 
 if nargin<1
