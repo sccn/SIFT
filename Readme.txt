@@ -15,6 +15,9 @@ Chronux:	(Mitra et al) 		http://www.chronux.org/
 DAL/SCSA: 	(Tomioka / Haufe et al) http://www.ibis.t.u-tokyo.ac.jp/ryotat/dal/
 BCILAB:		(Kothe et al) 		http://sccn.ucsd.edu/wiki/BCILAB
 
+* Version history
+
+1.53 - fix various minor compatibility issues
 
 * Official Website: http://sccn.ucsd.edu/wiki/SIFT
 
