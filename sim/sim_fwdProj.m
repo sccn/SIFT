@@ -4,10 +4,13 @@ function [scalpData srcData LFM chaninds centroids_LFM_idx roiVertices sourceCoo
 % Author: Tim Mullen, SCCN/INC/UCSD, 2013
 % Thanks to Alejandro Ojeda for advice on Mobilab function usage and code snippets
 
+memcheck = true;
 headmodel_default = 'resources:/headmodels/standard-Colin27-385ch.mat';
 if ~onl_isonline
     hmObj = arg_extract(varargin,{'hmObj','HeadModelObject'},[],headmodel_default);
-    hmObj = hlp_validateHeadModelObject(hmObj);
+    if~isstruct(hmObj)
+        hmObj = hlp_validateHeadModelObject(hmObj);
+    end
     if isempty(hmObj)
         ROINames = {};
         defChlbl = {};
@@ -15,7 +18,11 @@ if ~onl_isonline
         % get the unique ROI names
         [tmp, idx] = unique_bc(hmObj.atlas.label);
         ROINames = hmObj.atlas.label(sort(idx))';
-        defChlbl = hmObj.getChannelLabels();
+        try
+            defChlbl = hmObj.getChannelLabels();
+        catch
+            defChlbl = hmObj.label;
+        end
     end
 else
     ROINames = {};
@@ -237,7 +244,7 @@ switch lower(g.sourceShape.arg_selection)
     case 'gausspatch'
         % make sure we have enough memory to allocate matrices
         [res, bytesReq]  = hlp_haveSufficientMemory((nchs+nvert)*npnts*ntr,class(g.sourceAmps));
-        if ~res
+        if ~res && memcheck
             error('This operation will require %0.5g GiB of memory. You do not have sufficient memory.',bytesReq/1024^3);
         end
         scalpData = zeros(nchs,npnts*ntr,class(g.sourceAmps));
@@ -265,7 +272,7 @@ switch lower(g.sourceShape.arg_selection)
         end
     case 'dipole' 
         [res, bytesReq] = hlp_haveSufficientMemory((nchs+numSources)*npnts*ntr,class(g.sourceAmps));
-        if ~res
+        if ~res && memcheck
             error('This operation will require %0.5g GiB of memory. You do not have sufficient memory.',bytesReq/1024^3);
         end
         srcData = spalloc(nvert,npnts*ntr,numSources*npnts*ntr);
@@ -275,7 +282,7 @@ switch lower(g.sourceShape.arg_selection)
         roivert = hlp_vec(cell2mat(roiVertices));
         nroivert= length(roivert);
         [res, bytesReq] = hlp_haveSufficientMemory((nchs+nroivert)*npnts*ntr,class(g.sourceAmps));
-        if ~res
+        if ~res && memcheck
             error('This operation will require %0.5g GiB of memory. You do not have sufficient memory.',bytesReq/1024^3);
         end
         if nroivert==length(unique(roivert))
@@ -309,12 +316,14 @@ end
 % reshape data back to 3D
 if ntr>1
     [res, bytesReq] = hlp_haveSufficientMemory((nchs+nvert)*npnts*ntr,class(srcData));
-    if ~res
+    if ~res && memcheck
         error('This operation will require %0.5g GiB of memory. You do not have sufficient memory.',bytesReq/1024^3);
     end
     scalpData = reshape(scalpData,[nchs,npnts,ntr]);
     srcData   = reshape(full(srcData),[nvert,npnts,ntr]);
-    J         = reshape(J,[nvert,npnts,ntr]);
+    if exist('J', 'var')
+        J     = reshape(J,[nvert,npnts,ntr]);
+    end
 end
 
 % prepare outputs
