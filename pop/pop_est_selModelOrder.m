@@ -139,6 +139,10 @@ for cnd=1:length(ALLEEG)
     end
 end
 
+if strcmpi(typeproc,'nogui')
+	return;
+end
+	
 % determine if we will proceed to model fitting using these options
 res=questdlg2(sprintf(['Do you want to proceed to model fitting?\n' ...
                        'A Model-fitting GUI will be generated for you based on the options you selected above']), ...
