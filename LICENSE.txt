@@ -29,7 +29,7 @@ BCILAB:		(Kothe et al) 		http://sccn.ucsd.edu/wiki/BCILAB
 ANY USE OF SIFT IMPLIES THAT YOU HAVE READ AND AGREE WITH THE TERMS AND CONDITIONS OF THE SIFT LICENSE AS STATED BELOW:
 
 
-		        GNU GENERAL PUBLIC LICENSE
+	                GNU GENERAL PUBLIC LICENSE
 		           Version 2, June 1991
 
  Copyright (C) 1989, 1991 Free Software Foundation, Inc.
@@ -260,7 +260,9 @@ POSSIBILITY OF SUCH DAMAGES.
 
 		     END OF TERMS AND CONDITIONS
 
+
 			   ADDITIONAL NOTE
 
-SIFT is designed and distributed for research purposes only.  SIFT should
-not be used for medical purposes. The authors accept no responsibility for its use in this manner.
+SIFT is designed and distributed for research purposes only.
+SIFT should not be used for medical purposes.
+The authors accept no responsibility for its use in this manner.

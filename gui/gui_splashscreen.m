@@ -66,7 +66,7 @@ axis off
 siftRoot = hlp_getSiftRoot;
 splashText = importdata(fullfile(siftRoot,'Readme.txt'),'\n');
 vers = importdata(fullfile(hlp_getSiftRoot,'resources','version.txt'));
-splashText = strrep(splashText,'[$Version$]',vers);
+splashText = strrep(splashText,'[$Version$]',num2str(vers));
 set(handles.txtSplashText,'String',splashText);
 
 % Update handles structure
