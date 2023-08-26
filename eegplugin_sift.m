@@ -190,10 +190,7 @@ function vers = eegplugin_sift(fig, trystrs, catchstrs)
         set(grpmenu,'callback',{@create_mpt_menus,grpmenu_mpa});
         
     % Help
-    helpmenu    = uimenu( menu, 'label', 'Help','userdata', userdata, 'enable','on');
-        aboutmenu   = uimenu( helpmenu, 'label', 'About SIFT' ,'callback',AboutSIFT_callback,'userdata', userdata);
-        manualmenu  = uimenu( helpmenu, 'label', 'SIFT Manual' ,'callback',SIFTManual_callback,'userdata', userdata , 'enable','on');
-        wikimenu    = uimenu( helpmenu, 'label', 'SIFT Wiki' ,'callback',SIFTWiki_callback,'userdata', userdata ,'enable','on');
+    helpmenu    = uimenu( menu, 'label', 'Help','userdata', userdata, 'callback',SIFTWiki_callback, 'enable','on');
 
  
     % refresh the checkmark state of EEGLAB menus
