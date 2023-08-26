@@ -65,7 +65,7 @@ fcnHandle   = str2func(fcnName);
 
 % check if we've applied SIFT to this dataset before
 res = hlp_checkeegset(ALLEEG,{'cat'});
-if isempty(res) && isfield(ALLEEG(1).CAT.configs,fcnName)
+if isempty(res) && isfield(ALLEEG(1).CAT, 'configs') && isfield(ALLEEG(1).CAT.configs,fcnName)
     % get default configuration (from prior use) and merge with varargin
     varargin = [hlp_struct2varargin(ALLEEG(1).CAT.configs.(fcnName)) varargin];
 end
