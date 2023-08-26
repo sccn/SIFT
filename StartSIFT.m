@@ -15,7 +15,7 @@ if nargin<2
     nosplash = false;
 end
 
-fprintf('Initializing SIFT...\n');
+%fprintf('Initializing SIFT...\n');
     
 % temporary hack to remove measure projection toolbox from path 
 % (MPT interferes with SIFT)
@@ -69,5 +69,5 @@ end
 
 ok = true;
 
-fprintf('Start SIFTing!\n');
+%fprintf('Start SIFTing!\n');
 
