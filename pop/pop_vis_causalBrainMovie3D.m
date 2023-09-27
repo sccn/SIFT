@@ -54,6 +54,7 @@ function [ALLEEG cfg handles] = pop_vis_causalBrainMovie3D(ALLEEG,typeproc,varar
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 handles = [];
+plugin_askinstall('brainmovie', 'brainmovie3d_causal');
 
 if length(varargin) == 1 && isempty(varargin{1})
     varargin = {};

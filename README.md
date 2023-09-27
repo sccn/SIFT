@@ -37,6 +37,8 @@ ANY USE OF SIFT IMPLIES THAT YOU HAVE READ AND AGREE WITH THE TERMS AND CONDITIO
 
 ## ADDITIONAL NOTE
 
-SIFT is designed and distributed for research purposes only.
-SIFT should not be used for medical purposes.
-The authors accept no responsibility for its use in this manner.
+SIFT is designed and distributed for research purposes only. SIFT should not be used for medical purposes. The authors accept no responsibility for its use in this manner.
+
+## Verions
+
+v1.6 - fix conflict with BrainMovie plugin. Fix minor GUI issues.

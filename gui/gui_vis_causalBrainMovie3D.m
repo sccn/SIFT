@@ -24,6 +24,7 @@ function varargout = gui_vis_causalBrainMovie3D(varargin)
 % Edit the above text to modify the response to help gui_vis_causalBrainMovie3D
 
 % Last Modified by GUIDE v2.5 22-Apr-2013 18:02:48
+plugin_askinstall('brainmovie', 'brainmovie3d_causal');
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
