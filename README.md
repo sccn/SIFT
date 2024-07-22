@@ -2,7 +2,8 @@
 
 ## The Source Information Flow Toolbox
 
-Developed and Maintained by: Tim Mullen and Arnaud Delorme (SCCN, INC, UCSD) 2009
+Developed by: Tim Mullen 2009-
+Maintained: Tim Mullen and Arnaud Delorme
 
 SIFT is an EEGLAB-compatible toolbox for the analysis and visualization of
 multivariate causality and information flow between sources of
