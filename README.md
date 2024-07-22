@@ -16,7 +16,7 @@ Methods currently implemented include:
 
 -   Preprocessing routines
 -   Time-varying (adaptive) multivariate autoregessive modeling
-    -   granger causality
+    -   Granger causality
     -   directed transfer function (DTF, dDTF)
     -   partial directed coherence (PDC, GPDC, PDCF, RPDC)
     -   multiple and partial coherence
