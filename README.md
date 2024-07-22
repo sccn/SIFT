@@ -1,7 +1,33 @@
+![263416749-1abc1d2d-36bb-4cfb-9328-b57a96044f55](https://github.com/user-attachments/assets/b45a5caa-6b39-4291-b137-125132e5ade0)
+
 ## The Source Information Flow Toolbox
 
-Version: [$Version$]  
-Author: Tim Mullen (tim@sccn.ucsd.edu)
+Developed and Maintained by: Tim Mullen and Arnaud Delorme (SCCN, INC, UCSD) 2009
+
+SIFT is an EEGLAB-compatible toolbox for the analysis and visualization of
+multivariate causality and information flow between sources of
+electrophysiological (EEG/ECoG/MEG) activity. It consists of a suite of
+command-line functions with an integrated Graphical User Interface for
+easy access to multiple features. There are currently six modules: data
+preprocessing, model fitting and connectivity estimation, statistical
+analysis, visualization, group analysis, and neuronal data simulation.
+
+Methods currently implemented include:
+
+-   Preprocessing routines
+-   Time-varying (adaptive) multivariate autoregessive modeling
+    -   granger causality
+    -   directed transfer function (DTF, dDTF)
+    -   partial directed coherence (PDC, GPDC, PDCF, RPDC)
+    -   multiple and partial coherence
+    -   event-related spectral perturbation (ERSP)
+    -   and many other measures...
+-   Bootstrap/resampling and analytical statistics
+    -   event-related (difference from baseline))
+    -   between-condition (test for condition A = condition B)
+-   A suite of programs for interactive visualization of information
+    flow dynamics across time and frequency (with optional 3D
+    visualization in MRI-coregistered source-space).
 
 ## Acknowledgements
 
@@ -13,7 +39,7 @@ Author: Tim Mullen (tim@sccn.ucsd.edu)
 SIFT makes use of routines from (or is inspired by) the following open-source packages:
 
 - [ARFIT](https://github.com/tapios/arfit) (Schneider et al)
-- [TSA/Biosig](http://octave.sourceforge.net/tsa/) (Schlögl et al)
+- [TSA/Biosig](http://octave.sourceforge.net/tsa/) (SchlÃ¶gl et al)
 - [Chronux](https://chronux.org) (Mitra et al)
 - [DAL/SCSA](https://ttic.uchicago.edu/~ryotat/softwares/dal/) (Tomioka / Haufe et al)
 - [BCILAB](http://sccn.ucsd.edu/wiki/BCILAB) (Kothe et al)
