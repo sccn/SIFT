@@ -46,9 +46,9 @@ SIFT makes use of routines from (or is inspired by) the following open-source pa
 - [BCILAB](http://sccn.ucsd.edu/wiki/BCILAB) (Kothe et al)
 
 
-## Official Website
+## Documentation
 
-[SIFT page in the SCCN wiki](http://sccn.ucsd.edu/wiki/SIFT)
+See the [SIFT wiki](http://sccn.ucsd.edu/wiki/SIFT) or use the submenus on the EEGLAB website.
 
 ## Citation
 
